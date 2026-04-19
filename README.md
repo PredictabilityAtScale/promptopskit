@@ -4,21 +4,22 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](https://nodejs.org)
 
-Open-source developer toolkit for managing prompts, system instructions, tools, and model settings **as code**. One `npm install` gives you both a runtime library and a CLI.
+**Centralize prompts, system instructions, tools, and model settings — without leaving your codebase.**
 
-PromptOpsKit treats every prompt as a Markdown file — YAML front matter defines model settings, sampling parameters, reasoning levels, tool bindings, and override rules, while H1 headings separate system instructions from prompt templates. Variables use `{{ mustache }}` syntax, shared instructions are composed via `includes`, and environment/tier overrides let the same prompt target dev vs. prod or free vs. pro without duplication.
+Your prompts are already in Git. PromptOpsKit makes them manageable. It replaces hardcoded strings and scattered provider-specific glue with structured Markdown files where prompt text, model settings, sampling parameters, tool bindings, environment overrides, and composable shared instructions all live together — diffable, reviewable, and release-aware.
 
 Provider adapters for OpenAI, Anthropic, Gemini, and OpenRouter produce a ready-to-send **request body only** — no HTTP client, no auth, no headers. Your application owns transport, so PromptOpsKit slots into any stack without opinions about how you call the API.
 
 ### Why PromptOpsKit?
 
-- **Version-control your prompts** — plain Markdown files that diff, review, and merge like any other code.
-- **One prompt, many providers** — write once, render for OpenAI, Anthropic, Gemini, or OpenRouter with correct body shapes.
-- **Override without forking** — environment and tier overrides swap models and parameters without duplicating prompt files.
-- **Compose and share** — `includes` lets you define shared tone, policy, or safety instructions once and reuse them everywhere.
+- **Centralized, not scattered** — each prompt is a single Markdown file that captures prompt text, model config, tool bindings, and context rules together.
+- **Operational, not just templated** — model name, temperature, reasoning effort, tools, and response format are declared alongside the prompt they govern.
+- **Reusable, not duplicated** — `includes` lets you define shared tone, policy, or safety instructions once and compose them into any prompt.
+- **Release-aware, not ad hoc** — environment and tier overrides swap models and parameters without forking prompt files.
+- **Provider-portable** — write once, render for OpenAI, Anthropic, Gemini, or OpenRouter with correct body shapes.
 - **Validate early** — Zod schema validation, Levenshtein-based "did you mean?" suggestions for typos, and variable usage checks catch mistakes before runtime.
 - **Compile for production** — pre-compile `.md` to JSON or ESM so deployments skip parsing entirely.
-- **No lock-in** — body-only output means you choose the HTTP client, auth strategy, and infrastructure.
+- **Repo-native, not dashboard-native** — no hosted service, no external admin tool. Everything lives in source control.
 
 ## Install
 

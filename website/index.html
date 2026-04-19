@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PromptOpsKit | Open-Source Prompt Management Toolkit for Developers</title>
+    <meta
+      name="description"
+      content="PromptOpsKit is an open-source toolkit and CLI for versioning, validating, composing, and rendering AI prompts as code across OpenAI, Anthropic, Gemini, and OpenRouter."
+    />
+    <meta
+      name="keywords"
+      content="PromptOpsKit, prompt management, prompts as code, OpenAI prompts, Anthropic prompts, Gemini prompts, OpenRouter, developer toolkit, prompt engineering"
+    />
+    <meta name="robots" content="index,follow,max-image-preview:large" />
+    <meta name="author" content="Predictability at Scale, Inc." />
+    <link rel="canonical" href="https://github.com/PredictabilityAtScale/promptopskit" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="PromptOpsKit | Open-Source Prompt Management Toolkit" />
+    <meta
+      property="og:description"
+      content="Treat prompts as code with markdown authoring, schema validation, provider adapters, and a CLI for production workflows."
+    />
+    <meta property="og:url" content="https://github.com/PredictabilityAtScale/promptopskit" />
+    <meta property="og:site_name" content="PromptOpsKit" />
+
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="PromptOpsKit | Prompt Infrastructure for Developers" />
+    <meta
+      name="twitter:description"
+      content="Open-source toolkit and CLI to version, validate, and render prompts for OpenAI, Anthropic, Gemini, and OpenRouter."
+    />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "PromptOpsKit",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "Cross-platform",
+        "license": "https://opensource.org/license/mit",
+        "codeRepository": "https://github.com/PredictabilityAtScale/promptopskit",
+        "url": "https://github.com/PredictabilityAtScale/promptopskit",
+        "description": "Open-source developer toolkit for versioning, validating, composing, and rendering prompts as code.",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        }
+      }
+    </script>
+
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container nav">
+        <a class="brand" href="#top" aria-label="PromptOpsKit home">PromptOpsKit</a>
+        <nav aria-label="Primary">
+          <a href="#why">Why</a>
+          <a href="#features">Features</a>
+          <a href="#quickstart">Quick start</a>
+          <a href="#faq">FAQ</a>
+          <a href="#oss">Open source</a>
+        </nav>
+        <a class="button button-primary" href="https://github.com/PredictabilityAtScale/promptopskit">GitHub</a>
+      </div>
+    </header>
+
+    <main id="top">
+      <section class="hero container">
+        <p class="eyebrow">Open-source prompt infrastructure</p>
+        <h1>Ship AI prompts with the same rigor as application code.</h1>
+        <p class="lead">
+          PromptOpsKit is a developer-first toolkit and CLI for authoring prompts in Markdown,
+          validating schema and variables before runtime, and rendering provider-specific request bodies
+          without locking you into a transport stack.
+        </p>
+        <div class="hero-actions">
+          <a class="button button-primary" href="https://www.npmjs.com/package/promptopskit">Install from npm</a>
+          <a class="button" href="https://github.com/PredictabilityAtScale/promptopskit#quick-start">Read the quick start</a>
+        </div>
+        <pre><code>npm install promptopskit
+npx promptopskit init ./prompts
+promptopskit validate ./prompts --strict</code></pre>
+      </section>
+
+      <section id="why" class="container section">
+        <h2>Why teams adopt PromptOpsKit</h2>
+        <div class="grid three">
+          <article class="card">
+            <h3>Predictable prompt changes</h3>
+            <p>Store prompts in markdown with front matter so every change is diffable, reviewable, and auditable.</p>
+          </article>
+          <article class="card">
+            <h3>Portable provider output</h3>
+            <p>Generate request bodies for OpenAI, Anthropic, Gemini, and OpenRouter while keeping network logic in your app.</p>
+          </article>
+          <article class="card">
+            <h3>Safer releases</h3>
+            <p>Catch invalid schema, unresolved variables, and malformed composition before your production calls fail.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="features" class="container section">
+        <h2>Prompt management features for engineering teams</h2>
+        <div class="grid two">
+          <article class="card">
+            <h3>Authoring format engineers already trust</h3>
+            <ul>
+              <li>Markdown files with YAML front matter</li>
+              <li>H1 sections for system instructions and prompt template</li>
+              <li><code>{{ variable }}</code> interpolation and strict checks</li>
+            </ul>
+          </article>
+          <article class="card">
+            <h3>Composition and overrides without duplication</h3>
+            <ul>
+              <li><code>includes</code> for shared policy, tone, and safety blocks</li>
+              <li>Environment and tier-specific overrides</li>
+              <li>Deterministic precedence: base → env → tier → runtime</li>
+            </ul>
+          </article>
+          <article class="card">
+            <h3>CLI for local and CI pipelines</h3>
+            <ul>
+              <li><code>init</code>, <code>validate</code>, <code>render</code>, <code>inspect</code>, <code>compile</code>, and <code>skill</code></li>
+              <li>Pre-compile prompts to JSON/ESM artifacts</li>
+              <li>Use in pre-merge checks and release workflows</li>
+            </ul>
+          </article>
+          <article class="card">
+            <h3>No transport lock-in</h3>
+            <ul>
+              <li>Adapters return request body only</li>
+              <li>You keep control of auth, retries, headers, and observability</li>
+              <li>Integrates with existing HTTP and infra standards</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <section id="quickstart" class="container section">
+        <h2>PromptOpsKit quick start</h2>
+        <div class="grid two">
+          <article class="card">
+            <h3>1) Install and scaffold</h3>
+            <pre><code>npm install promptopskit
+npx promptopskit init ./prompts</code></pre>
+          </article>
+          <article class="card">
+            <h3>2) Render for your target provider</h3>
+            <pre><code>import { createPromptOpsKit } from 'promptopskit';
+
+const kit = createPromptOpsKit({ sourceDir: './prompts' });
+const result = await kit.renderPrompt({
+  path: 'support/reply',
+  provider: 'openai',
+  variables: { user_message: 'How do I reset my password?' }
+});</code></pre>
+          </article>
+        </div>
+      </section>
+
+      <section id="faq" class="container section">
+        <h2>Frequently asked questions</h2>
+        <div class="grid two">
+          <article class="card">
+            <h3>Is PromptOpsKit only for one model provider?</h3>
+            <p>No. It supports OpenAI, Anthropic, Gemini, and OpenRouter adapters out of the box.</p>
+          </article>
+          <article class="card">
+            <h3>Does PromptOpsKit make HTTP requests?</h3>
+            <p>No. It returns request-body payloads so your app controls auth, transport, retries, and headers.</p>
+          </article>
+          <article class="card">
+            <h3>Can we validate prompts in CI before deploy?</h3>
+            <p>Yes. Use the CLI validate and compile commands in your CI pipeline to catch issues before release.</p>
+          </article>
+          <article class="card">
+            <h3>Is PromptOpsKit open source?</h3>
+            <p>Yes. The project is MIT-licensed and maintained in a public GitHub repository.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="oss" class="container section">
+        <h2>Open source and production-ready defaults</h2>
+        <p>
+          PromptOpsKit is MIT-licensed and designed for teams that need testable prompt operations.
+          Use source prompts in development and pre-compiled artifacts in production for speed and reliability.
+        </p>
+        <p>
+          Explore docs, examples, and API details in the repository.
+        </p>
+        <a class="button button-primary" href="https://github.com/PredictabilityAtScale/promptopskit">View repository</a>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-content">
+        <p>PromptOpsKit • MIT License</p>
+        <p><a href="https://github.com/PredictabilityAtScale/promptopskit">GitHub</a></p>
+      </div>
+    </footer>
+  </body>
+</html>

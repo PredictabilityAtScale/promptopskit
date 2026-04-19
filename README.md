@@ -330,6 +330,10 @@ Prompt files use YAML front matter with these fields:
 | `tiers` | `object` | Named tier overrides |
 | `metadata` | `object` | `{ owner, tags, review_required, stable }` |
 
+## Website
+
+The `website/` directory contains a standalone marketing website for PromptOpsKit.
+
 ## License
 
 [MIT](LICENSE)

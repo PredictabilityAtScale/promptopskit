@@ -16,6 +16,7 @@ context:
   inputs:
     - user_message
     - account_summary
+    - app_context
   history:
     max_items: 8
 tools:
@@ -42,6 +43,7 @@ metadata:
 # System instructions
 
 You are a careful support assistant. Follow refund policy exactly.
+Current app context: {{ app_context }}.
 
 # Prompt template
 

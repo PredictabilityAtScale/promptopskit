@@ -21,7 +21,7 @@ const kit = createPromptOpsKit({ sourceDir: './prompts' });
 const { request } = await kit.renderPrompt({
   path: 'hello',
   provider: 'openai',
-  variables: { name: 'World' },
+  variables: { name: 'World', app_context: 'Welcome screen' },
 });
 
 // request.body is ready for fetch()

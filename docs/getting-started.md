@@ -43,13 +43,14 @@ sampling:
 context:
   inputs:
     - user_message
+    - app_context
 includes:
   - ./shared/tone.md
 ---
 
 # System instructions
 
-You are a helpful support assistant.
+You are a helpful support assistant helping inside {{ app_context }}.
 
 # Prompt template
 
@@ -68,7 +69,10 @@ const kit = createPromptOpsKit({ sourceDir: './prompts' });
 const result = await kit.renderPrompt({
   path: 'support/reply',
   provider: 'openai',
-  variables: { user_message: 'How do I reset my password?' },
+  variables: {
+    user_message: 'How do I reset my password?',
+    app_context: 'Billing settings page',
+  },
 });
 
 // result.request.body is ready for fetch()

@@ -2,6 +2,8 @@
 
 `includes` lets you define shared system instructions once and reuse them across prompts. Included instructions are prepended before local system instructions.
 
+Included files can also contain runtime placeholders (`{{ variable }}`), so shared guidance can consume app-specific context passed at render time.
+
 ## How it works
 
 1. List paths in the `includes` front matter field (relative to the prompt file).

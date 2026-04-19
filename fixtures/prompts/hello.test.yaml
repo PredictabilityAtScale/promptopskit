@@ -2,6 +2,8 @@ cases:
   - name: basic
     variables:
       name: "World"
+      app_context: "Onboarding flow"
   - name: named
     variables:
       name: "Alice"
+      app_context: "Dashboard"

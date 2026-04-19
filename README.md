@@ -59,13 +59,14 @@ sampling:
 context:
   inputs:
     - user_message
+    - app_context
 includes:
   - ./shared/tone.md
 ---
 
 # System instructions
 
-You are a helpful support assistant.
+You are a helpful support assistant working in {{ app_context }}.
 
 # Prompt template
 
@@ -82,7 +83,10 @@ const kit = createPromptOpsKit({ sourceDir: './prompts' });
 const result = await kit.renderPrompt({
   path: 'support/reply',
   provider: 'openai',
-  variables: { user_message: 'How do I reset my password?' },
+  variables: {
+    user_message: 'How do I reset my password?',
+    app_context: 'Account settings page',
+  },
 });
 
 // result.request.body is ready for fetch()
@@ -116,19 +120,35 @@ Each adapter produces a `{ body, provider, model }` object shaped for the target
 // OpenAI
 import { createPromptOpsKit } from 'promptopskit';
 const kit = createPromptOpsKit({ sourceDir: './prompts' });
-const { request } = await kit.renderPrompt({ path: 'hello', provider: 'openai', variables: { name: 'World' } });
+const { request } = await kit.renderPrompt({
+  path: 'hello',
+  provider: 'openai',
+  variables: { name: 'World', app_context: 'Welcome screen' },
+});
 // request.body → { model, messages, temperature, reasoning_effort, ... }
 
 // Anthropic — system is a top-level field, max_tokens defaults to 4096
-const { request } = await kit.renderPrompt({ path: 'hello', provider: 'anthropic', variables: { name: 'World' } });
+const { request } = await kit.renderPrompt({
+  path: 'hello',
+  provider: 'anthropic',
+  variables: { name: 'World', app_context: 'Welcome screen' },
+});
 // request.body → { model, messages, system, max_tokens, ... }
 
 // Gemini — contents/systemInstruction/generationConfig structure
-const { request } = await kit.renderPrompt({ path: 'hello', provider: 'gemini', variables: { name: 'World' } });
+const { request } = await kit.renderPrompt({
+  path: 'hello',
+  provider: 'gemini',
+  variables: { name: 'World', app_context: 'Welcome screen' },
+});
 // request.body → { contents, systemInstruction, generationConfig, ... }
 
 // OpenRouter — same shape as OpenAI, different provider label
-const { request } = await kit.renderPrompt({ path: 'hello', provider: 'openrouter', variables: { name: 'World' } });
+const { request } = await kit.renderPrompt({
+  path: 'hello',
+  provider: 'openrouter',
+  variables: { name: 'World', app_context: 'Welcome screen' },
+});
 ```
 
 Provider adapters are also available as direct imports:

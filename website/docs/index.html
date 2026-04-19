@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PromptOpsKit Docs</title>
+    <meta name="description" content="Documentation for PromptOpsKit — centralize AI prompt behavior in your codebase." />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/docsify-themeable@0/dist/css/theme-simple.css" />
+    <style>
+      :root {
+        --base-font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        --theme-color: #0f172a;
+        --sidebar-width: 16rem;
+      }
+      .app-nav {
+        position: fixed;
+        top: 0;
+        right: 1rem;
+        z-index: 10;
+      }
+      .app-nav a {
+        color: #475467;
+        text-decoration: none;
+        font-weight: 500;
+        margin-left: 1rem;
+      }
+      .app-nav a:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="app-nav">
+      <a href="/">← Home</a>
+      <a href="https://github.com/PredictabilityAtScale/promptopskit">GitHub</a>
+    </nav>
+    <div id="app"></div>
+    <script>
+      window.$docsify = {
+        name: 'PromptOpsKit',
+        repo: 'https://github.com/PredictabilityAtScale/promptopskit',
+        loadSidebar: true,
+        subMaxLevel: 2,
+        homepage: 'index.md',
+        auto2top: true,
+        search: {
+          placeholder: 'Search docs',
+          noData: 'No results',
+          depth: 3,
+        },
+      };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/docsify@4/lib/docsify.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/docsify@4/lib/plugins/search.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-bash.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-typescript.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-yaml.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-json.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-markdown.min.js"></script>
+  </body>
+</html>

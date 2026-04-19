@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'website/**'
+      - 'docs/**'
   workflow_dispatch:
 
 permissions:
@@ -22,6 +23,9 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: us-east-1
+
+      - name: Copy docs into website
+        run: cp docs/*.md website/docs/
 
       - name: Deploy to S3
         run: aws s3 sync website/ s3://${{ secrets.AWS_S3_BUCKET }} --delete

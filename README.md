@@ -1,0 +1,309 @@
+# PromptOpsKit
+
+[![npm version](https://img.shields.io/npm/v/promptopskit.svg)](https://www.npmjs.com/package/promptopskit)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](https://nodejs.org)
+
+Open-source developer toolkit for managing prompts, system instructions, tools, and model settings **as code**. One `npm install` gives you both a runtime library and a CLI.
+
+PromptOpsKit treats every prompt as a Markdown file — YAML front matter defines model settings, sampling parameters, reasoning levels, tool bindings, and override rules, while H1 headings separate system instructions from prompt templates. Variables use `{{ mustache }}` syntax, shared instructions are composed via `includes`, and environment/tier overrides let the same prompt target dev vs. prod or free vs. pro without duplication.
+
+Provider adapters for OpenAI, Anthropic, Gemini, and OpenRouter produce a ready-to-send **request body only** — no HTTP client, no auth, no headers. Your application owns transport, so PromptOpsKit slots into any stack without opinions about how you call the API.
+
+### Why PromptOpsKit?
+
+- **Version-control your prompts** — plain Markdown files that diff, review, and merge like any other code.
+- **One prompt, many providers** — write once, render for OpenAI, Anthropic, Gemini, or OpenRouter with correct body shapes.
+- **Override without forking** — environment and tier overrides swap models and parameters without duplicating prompt files.
+- **Compose and share** — `includes` lets you define shared tone, policy, or safety instructions once and reuse them everywhere.
+- **Validate early** — Zod schema validation, Levenshtein-based "did you mean?" suggestions for typos, and variable usage checks catch mistakes before runtime.
+- **Compile for production** — pre-compile `.md` to JSON or ESM so deployments skip parsing entirely.
+- **No lock-in** — body-only output means you choose the HTTP client, auth strategy, and infrastructure.
+
+## Install
+
+```bash
+npm install promptopskit
+```
+
+## Quick Start
+
+### 1. Scaffold starter prompts
+
+```bash
+npx promptopskit init ./prompts
+```
+
+This creates:
+
+```
+prompts/
+├── hello.md            # Sample prompt with variables
+├── hello.test.yaml     # Test sidecar with sample inputs
+└── shared/
+    └── tone.md         # Shared system instructions (included via composition)
+```
+
+### 2. Write a prompt
+
+```markdown
+---
+id: support.reply
+schema_version: 1
+provider: openai
+model: gpt-5.4
+reasoning:
+  effort: medium
+sampling:
+  temperature: 0.7
+context:
+  inputs:
+    - user_message
+includes:
+  - ./shared/tone.md
+---
+
+# System instructions
+
+You are a helpful support assistant.
+
+# Prompt template
+
+{{ user_message }}
+```
+
+### 3. Render for a provider
+
+```typescript
+import { createPromptOpsKit } from 'promptopskit';
+
+const kit = createPromptOpsKit({ sourceDir: './prompts' });
+
+const result = await kit.renderPrompt({
+  path: 'support/reply',
+  provider: 'openai',
+  variables: { user_message: 'How do I reset my password?' },
+});
+
+// result.request.body is ready for fetch()
+const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+  },
+  body: JSON.stringify(result.request.body),
+});
+```
+
+## Features
+
+- **Prompts as Markdown** — YAML front matter for settings, H1 headings for sections (`# System instructions`, `# Prompt template`, `# Notes`)
+- **Variable interpolation** — `{{ variable }}` syntax with strict and permissive modes
+- **Composition** — `includes` to share system instructions across prompts, with circular detection
+- **Overrides** — Environment and tier-based overrides (base → env → tier → runtime)
+- **4 provider adapters** — OpenAI, Anthropic, Gemini, OpenRouter — body-only output
+- **Validation** — Zod schema validation, Levenshtein-based "did you mean?" for typos, variable usage checks
+- **Caching** — LRU cache with mtime-based invalidation
+- **CLI** — init, validate, compile, render, inspect
+- **Compiled artifacts** — Pre-compile `.md` → JSON or ESM for production
+
+## Provider Adapters
+
+Each adapter produces a `{ body, provider, model }` object shaped for the target API. You handle the HTTP call.
+
+```typescript
+// OpenAI
+import { createPromptOpsKit } from 'promptopskit';
+const kit = createPromptOpsKit({ sourceDir: './prompts' });
+const { request } = await kit.renderPrompt({ path: 'hello', provider: 'openai', variables: { name: 'World' } });
+// request.body → { model, messages, temperature, reasoning_effort, ... }
+
+// Anthropic — system is a top-level field, max_tokens defaults to 4096
+const { request } = await kit.renderPrompt({ path: 'hello', provider: 'anthropic', variables: { name: 'World' } });
+// request.body → { model, messages, system, max_tokens, ... }
+
+// Gemini — contents/systemInstruction/generationConfig structure
+const { request } = await kit.renderPrompt({ path: 'hello', provider: 'gemini', variables: { name: 'World' } });
+// request.body → { contents, systemInstruction, generationConfig, ... }
+
+// OpenRouter — same shape as OpenAI, different provider label
+const { request } = await kit.renderPrompt({ path: 'hello', provider: 'openrouter', variables: { name: 'World' } });
+```
+
+Provider adapters are also available as direct imports:
+
+```typescript
+import { openaiAdapter } from 'promptopskit/openai';
+import { anthropicAdapter } from 'promptopskit/anthropic';
+import { geminiAdapter } from 'promptopskit/gemini';
+import { openrouterAdapter } from 'promptopskit/openrouter';
+```
+
+## Overrides
+
+Define environment and tier overrides in front matter. Precedence: **base → environment → tier → runtime**. Scalars and arrays are replaced, not merged.
+
+```markdown
+---
+id: support.reply
+schema_version: 1
+provider: openai
+model: gpt-5.4
+sampling:
+  temperature: 0.7
+environments:
+  dev:
+    model: gpt-5.4-mini
+    sampling:
+      temperature: 0.2
+  prod:
+    model: gpt-5.4
+tiers:
+  free:
+    model: gpt-5.4-mini
+  pro:
+    model: gpt-5.4
+---
+```
+
+```typescript
+const result = await kit.renderPrompt({
+  path: 'support/reply',
+  provider: 'openai',
+  environment: 'dev',
+  tier: 'pro',
+  variables: { user_message: '...' },
+});
+```
+
+## Composition
+
+Share system instructions across prompts using `includes`. Included system instructions are prepended before local ones.
+
+```markdown
+---
+id: support.reply
+schema_version: 1
+includes:
+  - ./shared/tone.md
+---
+
+# System instructions
+
+Handle support requests carefully.
+```
+
+## CLI
+
+```bash
+# Scaffold starter prompts
+promptopskit init [dir]
+
+# Validate all .md files in a directory
+promptopskit validate <dir> [--strict]
+
+# Compile .md → JSON/ESM artifacts
+promptopskit compile <src> <out> [--dry-run] [--format json|esm] [--no-clean]
+
+# Render a prompt preview (auto-loads .test.yaml sidecar)
+promptopskit render <file> [--env <name>] [--tier <name>] [--vars <file>] [--json]
+
+# Print normalized asset as JSON
+promptopskit inspect <file>
+```
+
+## Inline Source
+
+Render prompts from strings without files:
+
+```typescript
+const result = await kit.renderPrompt({
+  source: `---
+id: inline
+schema_version: 1
+provider: openai
+model: gpt-5.4
+---
+
+# Prompt template
+
+Hello {{ name }}!`,
+  provider: 'openai',
+  variables: { name: 'World' },
+});
+```
+
+## Testing Helpers
+
+```typescript
+import { createMockAsset, createMockResolvedAsset, parseTestPrompt } from 'promptopskit/testing';
+
+const asset = createMockAsset({ model: 'gpt-5.4' });
+const resolved = createMockResolvedAsset();
+const parsed = parseTestPrompt('---\nid: test\nschema_version: 1\n---\n\nHello');
+```
+
+## API Reference
+
+### `createPromptOpsKit(config)`
+
+Creates a `PromptOpsKit` instance.
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `sourceDir` | `string` | — | Path to prompt `.md` files (required) |
+| `compiledDir` | `string` | — | Path to compiled artifacts |
+| `mode` | `'auto' \| 'compiled-only' \| 'source-only'` | `'auto'` | Resolution strategy |
+| `cache` | `boolean` | `true` | Enable LRU cache with mtime invalidation |
+
+### `kit.renderPrompt(options)`
+
+Renders a prompt for a specific provider. Returns `{ resolved, request, warnings }`.
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `path` | `string` | Prompt path (no extension), e.g. `'support/reply'` |
+| `source` | `string` | Inline prompt source (alternative to path) |
+| `provider` | `string` | `'openai'`, `'anthropic'`, `'gemini'`, `'openrouter'` |
+| `variables` | `Record<string, string>` | Template variables |
+| `environment` | `string` | Environment override name |
+| `tier` | `string` | Tier override name |
+| `history` | `Array<{ role, content }>` | Conversation history |
+| `strict` | `boolean` | Fail on missing variables |
+
+### `kit.loadPrompt(path)` / `kit.resolvePrompt(path, options)` / `kit.validatePrompt(path)`
+
+Lower-level methods for loading, resolving (includes + overrides), and validating individual prompts.
+
+### Standalone Functions
+
+```typescript
+import { parsePrompt, interpolate, extractVariables, resolveIncludes, applyOverrides, validateAsset, getAdapter } from 'promptopskit';
+```
+
+## Schema
+
+Prompt files use YAML front matter with these fields:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` | Unique prompt identifier (required) |
+| `schema_version` | `number` | Schema version, currently `1` |
+| `provider` | `string` | `openai`, `anthropic`, `google`, `openrouter`, `any` |
+| `model` | `string` | Model name |
+| `fallback_models` | `string[]` | Fallback model list |
+| `reasoning` | `object` | `{ effort, budget_tokens }` |
+| `sampling` | `object` | `{ temperature, top_p, frequency_penalty, presence_penalty, stop, max_output_tokens }` |
+| `response` | `object` | `{ format, stream }` |
+| `tools` | `array` | Tool references (string names or inline definitions) |
+| `mcp` | `object` | MCP server references |
+| `context` | `object` | `{ inputs, history }` — declare expected variables |
+| `includes` | `string[]` | Paths to included prompt files |
+| `environments` | `object` | Named environment overrides |
+| `tiers` | `object` | Named tier overrides |
+| `metadata` | `object` | `{ owner, tags, review_required, stable }` |
+
+## License
+
+[MIT](LICENSE)

@@ -1,0 +1,7 @@
+cases:
+  - name: basic
+    variables:
+      name: "World"
+  - name: named
+    variables:
+      name: "Alice"

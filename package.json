@@ -1,0 +1,79 @@
+{
+  "name": "promptopskit",
+  "version": "0.0.1",
+  "description": "Manage prompts, system instructions, tools, and model settings as code",
+  "type": "module",
+  "bin": {
+    "promptopskit": "./dist/cli/index.js"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./testing": {
+      "import": "./dist/testing.js",
+      "types": "./dist/testing.d.ts"
+    },
+    "./openai": {
+      "import": "./dist/providers/openai.js",
+      "types": "./dist/providers/openai.d.ts"
+    },
+    "./anthropic": {
+      "import": "./dist/providers/anthropic.js",
+      "types": "./dist/providers/anthropic.d.ts"
+    },
+    "./gemini": {
+      "import": "./dist/providers/gemini.js",
+      "types": "./dist/providers/gemini.d.ts"
+    },
+    "./openrouter": {
+      "import": "./dist/providers/openrouter.js",
+      "types": "./dist/providers/openrouter.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit",
+    "clean": "rimraf dist"
+  },
+  "keywords": [
+    "prompt",
+    "llm",
+    "ai",
+    "openai",
+    "anthropic",
+    "gemini",
+    "prompt-engineering",
+    "prompt-management"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/PredictabilityAtScale/promptopskit.git"
+  },
+  "homepage": "https://github.com/PredictabilityAtScale/promptopskit",
+  "author": "Predictability at Scale, Inc.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "gray-matter": "^4.0.3",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "rimraf": "^6.0.0",
+    "tsup": "^8.5.1",
+    "typescript": "^5.5.0",
+    "vitest": "^4.1.4"
+  }
+}

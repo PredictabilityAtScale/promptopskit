@@ -189,6 +189,29 @@ ul {
   color: inherit;
 }
 
+.section-intro {
+  max-width: 68ch;
+  color: var(--muted);
+  font-size: 1.05rem;
+  margin-bottom: 1.5rem;
+}
+
+.quickstart-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  margin-top: 1.25rem;
+}
+
+.quickstart-steps .card h3 {
+  margin-bottom: 0.5rem;
+}
+
+.quickstart-steps .card p {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
 @media (max-width: 900px) {
   nav {
     display: none;

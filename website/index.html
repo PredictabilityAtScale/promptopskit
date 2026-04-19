@@ -59,141 +59,259 @@
         <a class="brand" href="#top" aria-label="PromptOpsKit home">PromptOpsKit</a>
         <nav aria-label="Primary">
           <a href="#why">Why</a>
+          <a href="#what">What</a>
+          <a href="#quickstart">How</a>
           <a href="#features">Features</a>
-          <a href="#quickstart">Quick start</a>
           <a href="#faq">FAQ</a>
-          <a href="#oss">Open source</a>
         </nav>
         <a class="button button-primary" href="https://github.com/PredictabilityAtScale/promptopskit">GitHub</a>
       </div>
     </header>
 
     <main id="top">
+      <!-- ─── HERO ─── -->
       <section class="hero container">
         <p class="eyebrow">Open-source prompt infrastructure</p>
-        <h1>Ship AI prompts with the same rigor as application code.</h1>
+        <h1>Version-control your AI prompts like application code.</h1>
         <p class="lead">
-          PromptOpsKit is a developer-first toolkit and CLI for authoring prompts in Markdown,
-          validating schema and variables before runtime, and rendering provider-specific request bodies
-          without locking you into a transport stack.
+          PromptOpsKit turns prompts into plain Markdown files that live in your repo.
+          Model settings, sampling parameters, environment overrides, variable placeholders,
+          and shared instructions are all defined in one file — then rendered into ready-to-send
+          request bodies for OpenAI, Anthropic, Gemini, or OpenRouter.
         </p>
         <div class="hero-actions">
           <a class="button button-primary" href="https://www.npmjs.com/package/promptopskit">Install from npm</a>
-          <a class="button" href="https://github.com/PredictabilityAtScale/promptopskit#quick-start">Read the quick start</a>
+          <a class="button" href="#quickstart">Quick start</a>
         </div>
-        <pre><code>npm install promptopskit
-npx promptopskit init ./prompts
-promptopskit validate ./prompts --strict</code></pre>
+        <pre><code>npm install promptopskit</code></pre>
       </section>
 
+      <!-- ─── THE PROBLEM ─── -->
       <section id="why" class="container section">
-        <h2>Why teams adopt PromptOpsKit</h2>
+        <h2>The problem: prompts are invisible infrastructure</h2>
+        <p class="section-intro">
+          Most teams embed prompts as string literals scattered across application code.
+          Model parameters live in config files. Environment differences are handled with
+          if/else branches. When a prompt changes, there is no diff to review, no schema to
+          validate, and no way to share instructions across features without copy-pasting.
+        </p>
         <div class="grid three">
           <article class="card">
-            <h3>Predictable prompt changes</h3>
-            <p>Store prompts in markdown with front matter so every change is diffable, reviewable, and auditable.</p>
+            <h3>Prompts buried in code</h3>
+            <p>String constants and template literals are hard to diff, review, or audit. Prompt changes hide inside application commits with no clear ownership.</p>
           </article>
           <article class="card">
-            <h3>Portable provider output</h3>
-            <p>Generate request bodies for OpenAI, Anthropic, Gemini, and OpenRouter while keeping network logic in your app.</p>
+            <h3>Settings scattered everywhere</h3>
+            <p>Model names, temperature, reasoning effort, and max tokens live in separate config objects — disconnected from the prompt they belong to.</p>
           </article>
           <article class="card">
-            <h3>Safer releases</h3>
-            <p>Catch invalid schema, unresolved variables, and malformed composition before your production calls fail.</p>
+            <h3>Duplication across environments</h3>
+            <p>Dev uses a cheaper model. Prod uses a different one. Free-tier caps output tokens. Each variation means another copy of the same prompt.</p>
           </article>
         </div>
       </section>
 
-      <section id="features" class="container section">
-        <h2>Prompt management features for engineering teams</h2>
+      <!-- ─── THE SOLUTION (WHAT) ─── -->
+      <section id="what" class="container section">
+        <h2>The solution: prompts as versioned, composable Markdown files</h2>
+        <p class="section-intro">
+          PromptOpsKit gives every prompt a single Markdown file that captures everything —
+          model settings, sampling parameters, environment overrides, variable declarations,
+          and composable includes — so prompts are diffable, reviewable, and portable.
+        </p>
         <div class="grid two">
           <article class="card">
-            <h3>Authoring format engineers already trust</h3>
-            <ul>
-              <li>Markdown files with YAML front matter</li>
-              <li>H1 sections for system instructions and prompt template</li>
-              <li><code>{{ variable }}</code> interpolation and strict checks</li>
-            </ul>
+            <h3>Version-controlled prompts</h3>
+            <p>Each prompt is a <code>.md</code> file with YAML front matter. It diffs in pull requests, merges through your normal workflow, and has a clear history in git.</p>
           </article>
           <article class="card">
-            <h3>Composition and overrides without duplication</h3>
-            <ul>
-              <li><code>includes</code> for shared policy, tone, and safety blocks</li>
-              <li>Environment and tier-specific overrides</li>
-              <li>Deterministic precedence: base → env → tier → runtime</li>
-            </ul>
+            <h3>Model &amp; parameter settings in one place</h3>
+            <p>Model name, temperature, top_p, reasoning effort, max output tokens, and response format are declared in front matter — right next to the prompt text they govern.</p>
           </article>
           <article class="card">
-            <h3>CLI for local and CI pipelines</h3>
-            <ul>
-              <li><code>init</code>, <code>validate</code>, <code>render</code>, <code>inspect</code>, <code>compile</code>, and <code>skill</code></li>
-              <li>Pre-compile prompts to JSON/ESM artifacts</li>
-              <li>Use in pre-merge checks and release workflows</li>
-            </ul>
+            <h3>Environment &amp; tier overrides</h3>
+            <p>Define <code>environments</code> and <code>tiers</code> in front matter to swap models and parameters for dev/prod or free/pro without duplicating the prompt file.</p>
           </article>
           <article class="card">
-            <h3>No transport lock-in</h3>
-            <ul>
-              <li>Adapters return request body only</li>
-              <li>You keep control of auth, retries, headers, and observability</li>
-              <li>Integrates with existing HTTP and infra standards</li>
-            </ul>
+            <h3>Data insertion with variables</h3>
+            <p><code>{{ variable }}</code> placeholders inject runtime data into prompts. Declared inputs are validated before rendering — missing or extra variables are caught early.</p>
+          </article>
+          <article class="card">
+            <h3>Composable shared instructions</h3>
+            <p><code>includes</code> lets you define tone, policy, or safety instructions once and prepend them to any prompt. No copy-paste, no drift, with circular dependency detection.</p>
+          </article>
+          <article class="card">
+            <h3>Provider-portable output</h3>
+            <p>Render the same prompt for OpenAI, Anthropic, Gemini, or OpenRouter. Each adapter produces the correct request body shape — you own the HTTP call.</p>
           </article>
         </div>
       </section>
 
+      <!-- ─── HOW IT WORKS (QUICK START) ─── -->
       <section id="quickstart" class="container section">
-        <h2>PromptOpsKit quick start</h2>
-        <div class="grid two">
+        <h2>How it works</h2>
+
+        <div class="quickstart-steps">
           <article class="card">
-            <h3>1) Install and scaffold</h3>
+            <h3>1. Install and scaffold</h3>
             <pre><code>npm install promptopskit
 npx promptopskit init ./prompts</code></pre>
+            <p>Creates a <code>prompts/</code> directory with starter files and a shared instructions folder.</p>
           </article>
+
           <article class="card">
-            <h3>2) Render for your target provider</h3>
+            <h3>2. Write a prompt file</h3>
+            <p>One Markdown file defines everything: model, parameters, overrides, variables, includes, and prompt text.</p>
+            <pre><code>---
+id: support.reply
+schema_version: 1
+provider: openai
+model: gpt-5.4
+reasoning:
+  effort: medium
+sampling:
+  temperature: 0.7
+context:
+  inputs:
+    - user_message
+    - app_context
+includes:
+  - ./shared/tone.md
+environments:
+  dev:
+    model: gpt-5.4-mini
+    sampling:
+      temperature: 0.2
+  prod:
+    model: gpt-5.4
+tiers:
+  free:
+    model: gpt-5.4-mini
+  pro:
+    model: gpt-5.4
+---
+
+# System instructions
+
+You are a helpful support assistant working in {{ app_context }}.
+
+# Prompt template
+
+{{ user_message }}</code></pre>
+          </article>
+
+          <article class="card">
+            <h3>3. Render for any provider</h3>
+            <p>Load the prompt, supply variables, and get a ready-to-send request body.</p>
             <pre><code>import { createPromptOpsKit } from 'promptopskit';
 
 const kit = createPromptOpsKit({ sourceDir: './prompts' });
-const result = await kit.renderPrompt({
+
+const { request } = await kit.renderPrompt({
   path: 'support/reply',
   provider: 'openai',
-  variables: { user_message: 'How do I reset my password?' }
+  environment: 'prod',
+  tier: 'pro',
+  variables: {
+    user_message: 'How do I reset my password?',
+    app_context: 'Account settings page',
+  },
+});
+
+// request.body is shaped for OpenAI — send it with your own HTTP client
+const res = await fetch('https://api.openai.com/v1/chat/completions', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+  },
+  body: JSON.stringify(request.body),
 });</code></pre>
           </article>
         </div>
       </section>
 
+      <!-- ─── FEATURES ─── -->
+      <section id="features" class="container section">
+        <h2>Features for engineering teams</h2>
+        <div class="grid two">
+          <article class="card">
+            <h3>Validation &amp; schema checks</h3>
+            <ul>
+              <li>Zod schema validation for front matter</li>
+              <li>Levenshtein-based "did you mean?" for field typos</li>
+              <li>Variable usage checks — missing and unused inputs</li>
+              <li>Strict mode fails on any unresolved placeholder</li>
+            </ul>
+          </article>
+          <article class="card">
+            <h3>CLI for local dev and CI</h3>
+            <ul>
+              <li><code>init</code> — scaffold starter prompts</li>
+              <li><code>validate</code> — check all prompts before merge</li>
+              <li><code>compile</code> — pre-compile <code>.md</code> → JSON or ESM</li>
+              <li><code>render</code> — preview output with test variables</li>
+              <li><code>inspect</code> — print normalized prompt as JSON</li>
+              <li><code>skill</code> — deploy AI agent instructions</li>
+            </ul>
+          </article>
+          <article class="card">
+            <h3>Compiled artifacts for production</h3>
+            <ul>
+              <li>Pre-compile prompts to JSON or ESM — skip parsing at runtime</li>
+              <li>Auto mode loads compiled when available, falls back to source</li>
+              <li>LRU cache with mtime-based invalidation during development</li>
+            </ul>
+          </article>
+          <article class="card">
+            <h3>No transport lock-in</h3>
+            <ul>
+              <li>Adapters return request body only — no HTTP client bundled</li>
+              <li>You control auth, retries, headers, and observability</li>
+              <li>Works with any fetch wrapper, SDK, or infrastructure</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <!-- ─── FAQ ─── -->
       <section id="faq" class="container section">
         <h2>Frequently asked questions</h2>
         <div class="grid two">
           <article class="card">
             <h3>Is PromptOpsKit only for one model provider?</h3>
-            <p>No. It supports OpenAI, Anthropic, Gemini, and OpenRouter adapters out of the box.</p>
+            <p>No. It ships with adapters for OpenAI, Anthropic, Gemini, and OpenRouter. Each produces the correct request body shape for that API.</p>
           </article>
           <article class="card">
-            <h3>Does PromptOpsKit make HTTP requests?</h3>
-            <p>No. It returns request-body payloads so your app controls auth, transport, retries, and headers.</p>
+            <h3>Does it make HTTP requests for me?</h3>
+            <p>No. PromptOpsKit returns request-body payloads. Your application owns transport, auth, retries, and headers.</p>
           </article>
           <article class="card">
-            <h3>Can we validate prompts in CI before deploy?</h3>
-            <p>Yes. Use the CLI validate and compile commands in your CI pipeline to catch issues before release.</p>
+            <h3>Can I validate prompts in CI?</h3>
+            <p>Yes. Run <code>promptopskit validate ./prompts --strict</code> in your pipeline to catch schema errors, missing variables, and broken includes before deploy.</p>
+          </article>
+          <article class="card">
+            <h3>How do overrides work?</h3>
+            <p>Define <code>environments</code> and <code>tiers</code> in front matter. At render time, pass <code>environment</code> and <code>tier</code> to apply the right model and parameter set. Precedence: base → env → tier → runtime.</p>
+          </article>
+          <article class="card">
+            <h3>What does composability look like?</h3>
+            <p>Add an <code>includes</code> array in front matter pointing to other <code>.md</code> files. Their system instructions are prepended to the current prompt. Circular includes are detected automatically.</p>
           </article>
           <article class="card">
             <h3>Is PromptOpsKit open source?</h3>
-            <p>Yes. The project is MIT-licensed and maintained in a public GitHub repository.</p>
+            <p>Yes. MIT-licensed, maintained on GitHub, and designed so you never depend on a hosted service.</p>
           </article>
         </div>
       </section>
 
+      <!-- ─── OPEN SOURCE ─── -->
       <section id="oss" class="container section">
-        <h2>Open source and production-ready defaults</h2>
+        <h2>Open source and production-ready</h2>
         <p>
-          PromptOpsKit is MIT-licensed and designed for teams that need testable prompt operations.
-          Use source prompts in development and pre-compiled artifacts in production for speed and reliability.
-        </p>
-        <p>
-          Explore docs, examples, and API details in the repository.
+          PromptOpsKit is MIT-licensed and built for teams that treat prompt engineering as a
+          first-class engineering discipline. Use source prompts in development, compiled
+          artifacts in production, and the CLI in CI — all from one <code>npm install</code>.
         </p>
         <a class="button button-primary" href="https://github.com/PredictabilityAtScale/promptopskit">View repository</a>
       </section>

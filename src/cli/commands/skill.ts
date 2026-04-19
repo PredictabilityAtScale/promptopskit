@@ -1,0 +1,373 @@
+import { writeFile, mkdir } from 'node:fs/promises';
+import { join, dirname } from 'node:path';
+import { existsSync } from 'node:fs';
+
+const HELP = `
+promptopskit skill [--target <target>] [--force]
+
+Deploy AI agent instructions so coding assistants know how to
+create and manage prompts using promptopskit.
+
+Targets:
+  copilot   (default) .github/instructions/promptopskit.instructions.md
+  cursor    .cursor/rules/promptopskit.mdc
+  generic   .ai/promptopskit-skill.md
+
+Options:
+  --target, -t     Target AI tool (copilot, cursor, generic)
+  --force, -f      Overwrite existing file
+  --help, -h       Show this help
+`.trim();
+
+interface TargetConfig {
+  path: string;
+  wrap: (content: string) => string;
+}
+
+const TARGETS: Record<string, TargetConfig> = {
+  copilot: {
+    path: '.github/instructions/promptopskit.instructions.md',
+    wrap: (content) =>
+      `---\napplyTo: "**"\n---\n\n${content}`,
+  },
+  cursor: {
+    path: '.cursor/rules/promptopskit.mdc',
+    wrap: (content) =>
+      `---\ndescription: How to create and manage prompts using promptopskit\nglobs: "**"\nalwaysApply: true\n---\n\n${content}`,
+  },
+  generic: {
+    path: '.ai/promptopskit-skill.md',
+    wrap: (content) => content,
+  },
+};
+
+export async function skill(args: string[]): Promise<void> {
+  if (args.includes('--help') || args.includes('-h')) {
+    console.log(HELP);
+    return;
+  }
+
+  const force = args.includes('--force') || args.includes('-f');
+
+  let target = 'copilot';
+  const targetIdx = args.findIndex((a) => a === '--target' || a === '-t');
+  if (targetIdx !== -1 && args[targetIdx + 1]) {
+    target = args[targetIdx + 1];
+  }
+
+  const config = TARGETS[target];
+  if (!config) {
+    console.error(`Unknown target: ${target}`);
+    console.error(`Valid targets: ${Object.keys(TARGETS).join(', ')}`);
+    process.exit(1);
+  }
+
+  const filePath = config.path;
+
+  if (existsSync(filePath) && !force) {
+    console.log(`  skip ${filePath} (already exists, use --force to overwrite)`);
+    return;
+  }
+
+  const content = config.wrap(SKILL_CONTENT);
+
+  await mkdir(dirname(filePath), { recursive: true });
+  await writeFile(filePath, content, 'utf-8');
+  console.log(`  ✓ ${filePath}`);
+  console.log();
+  console.log(`AI agents will now understand how to create and manage prompts with promptopskit.`);
+}
+
+// ---------------------------------------------------------------------------
+// Skill content — comprehensive instructions for AI coding agents
+// ---------------------------------------------------------------------------
+
+const SKILL_CONTENT = `# promptopskit — Prompt Engineering Skill
+
+This project uses **promptopskit** to manage LLM prompts as code.
+Prompts live in markdown files with YAML front matter, are validated against
+a schema, and render into provider-specific request bodies (OpenAI, Anthropic,
+Gemini, OpenRouter). Follow these instructions when creating or editing prompts.
+
+---
+
+## Prompt file format
+
+Every prompt is a \`.md\` file with two parts:
+
+1. **YAML front matter** — model settings, provider config, variables, overrides
+2. **Markdown body** — sections separated by H1 headings
+
+### Minimal example
+
+\`\`\`markdown
+---
+id: greeting
+schema_version: 1
+provider: openai
+model: gpt-5.4
+context:
+  inputs:
+    - name
+---
+
+# System instructions
+
+You are a helpful assistant.
+
+# Prompt template
+
+Hello {{ name }}, how can I help you?
+\`\`\`
+
+---
+
+## Front matter reference
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| \`id\` | string | **yes** | Unique identifier for the prompt |
+| \`schema_version\` | number | yes | Always \`1\` |
+| \`description\` | string | no | Human-readable description |
+| \`provider\` | enum | no | \`openai\`, \`anthropic\`, \`google\`, \`gemini\`, \`openrouter\`, or \`any\` |
+| \`model\` | string | no | Model identifier (e.g. \`gpt-5.4\`, \`claude-sonnet-4-20250514\`) |
+| \`fallback_models\` | string[] | no | Ordered fallback model list |
+| \`reasoning\` | object | no | \`{ effort: low|medium|high, budget_tokens: number }\` |
+| \`sampling\` | object | no | \`{ temperature, top_p, frequency_penalty, presence_penalty, stop, max_output_tokens }\` |
+| \`response\` | object | no | \`{ format: text|json|markdown, stream: boolean }\` |
+| \`tools\` | array | no | Tool names (strings) or inline definitions with \`{ name, description, input_schema }\` |
+| \`mcp\` | object | no | \`{ servers: [string | { name, config }] }\` |
+| \`context.inputs\` | string[] | no | Declared variable names used in templates |
+| \`context.history\` | object | no | \`{ max_items: number }\` |
+| \`includes\` | string[] | no | Relative paths to other prompt files to include |
+| \`environments\` | object | no | Per-environment overrides (see Overrides) |
+| \`tiers\` | object | no | Per-tier overrides (see Overrides) |
+| \`metadata\` | object | no | \`{ owner, tags, review_required, stable }\` |
+
+---
+
+## Sections (markdown body)
+
+Use H1 headings to define sections. The parser recognizes these headings
+(case-insensitive):
+
+| Heading | Maps to | Purpose |
+|---------|---------|---------|
+| \`# System instructions\` | \`system_instructions\` | System/developer message |
+| \`# Prompt template\` | \`prompt_template\` | User message template |
+| \`# Notes\` | \`notes\` | Documentation only — not sent to the model |
+
+If the body has **no H1 headings**, the entire body becomes the \`prompt_template\`.
+
+---
+
+## Variable interpolation
+
+Use \`{{ variable_name }}\` syntax in system instructions and prompt template
+sections. Variables are replaced at render time.
+
+Rules:
+- Declare all variables in \`context.inputs\` — validation warns on undeclared usage
+- Escape literal braces with \`\\\\{{\` and \`\\\\}}\`
+- In strict mode, missing variables throw an error
+- In permissive mode, unresolved placeholders are left intact
+
+---
+
+## Includes (composition)
+
+Compose prompts from shared fragments:
+
+\`\`\`yaml
+includes:
+  - ./shared/tone.md
+  - ./shared/safety.md
+\`\`\`
+
+Included files are parsed and their \`system_instructions\` are **prepended**
+before the including file's own system instructions. Includes resolve
+recursively. Circular includes are detected and rejected.
+
+---
+
+## Environment & tier overrides
+
+Override model settings per environment or tier:
+
+\`\`\`yaml
+environments:
+  development:
+    model: gpt-4.1-mini
+    sampling:
+      temperature: 0.9
+  production:
+    model: gpt-5.4
+    sampling:
+      temperature: 0.3
+
+tiers:
+  free:
+    model: gpt-4.1-mini
+    sampling:
+      max_output_tokens: 500
+  premium:
+    model: gpt-5.4
+\`\`\`
+
+Overridable fields: \`model\`, \`fallback_models\`, \`reasoning\`, \`sampling\`,
+\`response\`, \`tools\`.
+
+Override application order: **base → environment → tier → runtime**.
+
+---
+
+## Test sidecars
+
+Create a \`.test.yaml\` file alongside a prompt to define test cases:
+
+\`\`\`yaml
+# greeting.test.yaml
+cases:
+  - name: basic
+    variables:
+      name: "World"
+  - name: formal
+    variables:
+      name: "Dr. Smith"
+\`\`\`
+
+---
+
+## Using the library (TypeScript / JavaScript)
+
+### Quick start
+
+\`\`\`typescript
+import { createPromptOpsKit } from 'promptopskit';
+
+const kit = createPromptOpsKit({ sourceDir: './prompts' });
+
+// Load → resolve includes → apply overrides → render
+const request = await kit.renderPrompt('greeting', {
+  variables: { name: 'Alice' },
+  environment: 'production',
+});
+
+// request.body is ready for the provider's API
+const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    Authorization: \`Bearer $\{apiKey}\`,
+  },
+  body: JSON.stringify(request.body),
+});
+\`\`\`
+
+### Step-by-step API
+
+\`\`\`typescript
+import {
+  parsePrompt,
+  resolveIncludes,
+  applyOverrides,
+  getAdapter,
+} from 'promptopskit';
+import { readFileSync } from 'fs';
+
+// 1. Parse a prompt file
+const source = readFileSync('./prompts/greeting.md', 'utf-8');
+const asset = parsePrompt(source, 'greeting.md');
+
+// 2. Resolve includes
+const resolved = await resolveIncludes(asset, './prompts');
+
+// 3. Apply overrides
+const configured = applyOverrides(resolved, {
+  environment: 'production',
+  tier: 'premium',
+});
+
+// 4. Get provider adapter and render
+const adapter = getAdapter(configured.provider ?? 'openai');
+const request = adapter.render(configured, {
+  variables: { name: 'Alice' },
+  history: [
+    { role: 'user', content: 'Previous message' },
+    { role: 'assistant', content: 'Previous response' },
+  ],
+});
+\`\`\`
+
+### Available provider adapters
+
+| Provider | Import path | Provider request format |
+|----------|------------|----------------------|
+| OpenAI | \`promptopskit\` or \`promptopskit/openai\` | Chat Completions API |
+| Anthropic | \`promptopskit/anthropic\` | Messages API |
+| Gemini | \`promptopskit/gemini\` | GenerateContent API |
+| OpenRouter | \`promptopskit/openrouter\` | OpenAI-compatible + extras |
+
+### Validation
+
+\`\`\`typescript
+import { validateAsset, parsePrompt } from 'promptopskit';
+
+const asset = parsePrompt(source);
+const result = validateAsset(asset);
+
+if (!result.valid) {
+  console.error(result.errors); // Error codes: POK001-POK021
+}
+\`\`\`
+
+### Testing helpers
+
+\`\`\`typescript
+import { createMockAsset, parseTestPrompt } from 'promptopskit/testing';
+
+// Create a mock asset for unit tests
+const mock = createMockAsset({ model: 'gpt-4.1-mini' });
+
+// Parse an inline prompt string for tests
+const asset = parseTestPrompt(\`
+---
+id: test
+schema_version: 1
+provider: openai
+model: gpt-5.4
+---
+
+# Prompt template
+
+Hello {{ name }}
+\`);
+\`\`\`
+
+---
+
+## CLI commands
+
+| Command | Description |
+|---------|-------------|
+| \`promptopskit init [dir]\` | Scaffold a prompts directory with starter files |
+| \`promptopskit validate <dir>\` | Validate all prompt files in a directory |
+| \`promptopskit compile <src> <out>\` | Compile .md prompts to JSON artifacts |
+| \`promptopskit render <file> [--set key=value]\` | Render a prompt preview |
+| \`promptopskit inspect <file>\` | Print the normalized prompt asset |
+
+---
+
+## Conventions to follow
+
+1. **One prompt per file** — each \`.md\` file is a single prompt asset
+2. **Always set \`id\` and \`schema_version: 1\`** in front matter
+3. **Declare all variables** in \`context.inputs\` that appear in templates
+4. **Use includes** for shared system instructions (tone, safety, formatting)
+5. **Keep prompt templates focused** — compose behavior via includes, not duplication
+6. **Use environment overrides** for dev/staging/prod model differences
+7. **Add test sidecars** (\`.test.yaml\`) for critical prompts
+8. **Run \`promptopskit validate\`** before committing changes
+9. **Variable names** should be \`snake_case\`
+10. **Prompt file names** should be \`kebab-case.md\`
+`.trimEnd();

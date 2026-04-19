@@ -105,7 +105,7 @@ const response = await fetch('https://api.openai.com/v1/chat/completions', {
 - **4 provider adapters** — OpenAI, Anthropic, Gemini, OpenRouter — body-only output
 - **Validation** — Zod schema validation, Levenshtein-based "did you mean?" for typos, variable usage checks
 - **Caching** — LRU cache with mtime-based invalidation
-- **CLI** — init, validate, compile, render, inspect
+- **CLI** — init, validate, compile, render, inspect, skill
 - **Compiled artifacts** — Pre-compile `.md` → JSON or ESM for production
 
 ## Provider Adapters
@@ -211,7 +211,33 @@ promptopskit render <file> [--env <name>] [--tier <name>] [--vars <file>] [--jso
 
 # Print normalized asset as JSON
 promptopskit inspect <file>
+
+# Deploy AI agent instructions into your project
+promptopskit skill [--target copilot|cursor|generic] [--force]
 ```
+
+## AI Agent Instructions
+
+The `skill` command deploys a comprehensive instructions file so AI coding assistants (GitHub Copilot, Cursor, etc.) automatically understand how to create and manage prompts with promptopskit.
+
+```bash
+# Deploy for GitHub Copilot (default)
+promptopskit skill
+# → .github/instructions/promptopskit.instructions.md
+
+# Deploy for Cursor
+promptopskit skill --target cursor
+# → .cursor/rules/promptopskit.mdc
+
+# Deploy a generic instructions file
+promptopskit skill --target generic
+# → .ai/promptopskit-skill.md
+
+# Overwrite an existing instructions file
+promptopskit skill --force
+```
+
+The deployed file covers the prompt format, front matter schema, variable interpolation, includes, overrides, the TypeScript API, provider adapters, and project conventions — everything an AI agent needs to write correct prompts on the first try.
 
 ## Inline Source
 
@@ -290,7 +316,7 @@ Prompt files use YAML front matter with these fields:
 |-------|------|-------------|
 | `id` | `string` | Unique prompt identifier (required) |
 | `schema_version` | `number` | Schema version, currently `1` |
-| `provider` | `string` | `openai`, `anthropic`, `google`, `openrouter`, `any` |
+| `provider` | `string` | `openai`, `anthropic`, `gemini` (or `google`), `openrouter`, `any` |
 | `model` | `string` | Model name |
 | `fallback_models` | `string[]` | Fallback model list |
 | `reasoning` | `object` | `{ effort, budget_tokens }` |

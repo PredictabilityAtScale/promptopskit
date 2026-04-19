@@ -1,6 +1,7 @@
 import { PromptAssetSchema } from '../schema/index.js';
 import type { PromptAsset } from '../schema/index.js';
 import { extractVariables } from '../renderer/index.js';
+import { resolveIncludes } from '../composition/index.js';
 import { levenshtein } from './levenshtein.js';
 
 export interface ValidationError {
@@ -119,6 +120,39 @@ export function validateAsset(
     errors,
     warnings,
   };
+}
+
+/**
+ * Validate a prompt asset including its include graph.
+ * Catches missing include files, circular includes, and parse errors in included files.
+ */
+export async function validateAssetWithIncludes(
+  asset: PromptAsset,
+  filePath: string,
+  frontMatterKeys?: string[],
+): Promise<PromptValidationResult> {
+  // Run standard validation first
+  const result = validateAsset(asset, frontMatterKeys, filePath);
+
+  // Validate includes
+  if (asset.includes && asset.includes.length > 0) {
+    try {
+      await resolveIncludes(asset, filePath);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      const isCircular = message.includes('Circular include');
+      result.errors.push({
+        code: isCircular ? 'POK021' : 'POK020',
+        message: isCircular
+          ? `Circular include detected: ${message}`
+          : `Include resolution failed: ${message}`,
+        filePath,
+      });
+      result.valid = false;
+    }
+  }
+
+  return result;
 }
 
 function findClosestMatch(input: string, candidates: Set<string>): string | undefined {

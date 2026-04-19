@@ -1,6 +1,7 @@
 import { readdir, readFile, writeFile, mkdir, rm } from 'node:fs/promises';
 import { join, extname, relative, dirname } from 'node:path';
 import { parsePrompt } from '../../parser/index.js';
+import { resolveIncludes } from '../../composition/index.js';
 
 const HELP = `
 promptopskit compile <sourceDir> <outputDir> [options]
@@ -62,7 +63,12 @@ export async function compile(args: string[]): Promise<void> {
 
     try {
       const content = await readFile(file, 'utf-8');
-      const { asset } = parsePrompt(content, file);
+      const { asset: parsed } = parsePrompt(content, file);
+
+      // Resolve includes so compiled artifacts are self-sufficient
+      const asset = (parsed.includes && parsed.includes.length > 0)
+        ? await resolveIncludes(parsed, file)
+        : parsed;
 
       if (dryRun) {
         console.log(`  Would create: ${outPath}`);

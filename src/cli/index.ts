@@ -3,6 +3,7 @@ import { compile } from './commands/compile.js';
 import { render } from './commands/render.js';
 import { inspect } from './commands/inspect.js';
 import { init } from './commands/init.js';
+import { skill } from './commands/skill.js';
 
 const HELP = `
 promptopskit — Manage prompts, system instructions, tools, and model settings as code
@@ -16,6 +17,7 @@ Commands:
   compile <src> <out> [options]        Compile .md prompts to JSON/ESM artifacts
   render <file> [options]              Render a prompt preview
   inspect <file>                       Print normalized prompt asset
+  skill [options]                      Deploy AI agent instructions into your project
 
 Options:
   --help, -h                           Show this help message
@@ -56,6 +58,9 @@ async function main() {
       break;
     case 'inspect':
       await inspect(commandArgs);
+      break;
+    case 'skill':
+      await skill(commandArgs);
       break;
     default:
       console.error(`Unknown command: ${command}`);

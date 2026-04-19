@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { parsePrompt } from '../../parser/index.js';
+import { resolveIncludes } from '../../composition/index.js';
 import { applyOverrides } from '../../overrides/index.js';
 import { interpolate } from '../../renderer/interpolate.js';
 
@@ -56,10 +57,15 @@ export async function render(args: string[]): Promise<void> {
   }
 
   const content = await readFile(file, 'utf-8');
-  const { asset } = parsePrompt(content, file);
+  const { asset: parsed } = parsePrompt(content, file);
+
+  // Resolve includes (matching the library pipeline)
+  const resolved = (parsed.includes && parsed.includes.length > 0)
+    ? await resolveIncludes(parsed, file)
+    : parsed;
 
   // Apply overrides using the standard applyOverrides function
-  const overridden = applyOverrides(asset, {
+  const overridden = applyOverrides(resolved, {
     environment: env,
     tier: tier,
   });

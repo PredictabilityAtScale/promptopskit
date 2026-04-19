@@ -11,7 +11,7 @@ export default defineConfig([
       'providers/gemini': 'src/providers/gemini.ts',
       'providers/openrouter': 'src/providers/openrouter.ts',
     },
-    format: ['esm'],
+    format: ['esm', 'cjs'],
     dts: true,
     clean: true,
     sourcemap: true,

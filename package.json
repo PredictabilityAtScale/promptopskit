@@ -6,33 +6,69 @@
   "bin": {
     "promptopskit": "./dist/cli/index.js"
   },
-  "main": "./dist/index.js",
+  "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
     },
     "./testing": {
-      "import": "./dist/testing.js",
-      "types": "./dist/testing.d.ts"
+      "import": {
+        "types": "./dist/testing.d.ts",
+        "default": "./dist/testing.js"
+      },
+      "require": {
+        "types": "./dist/testing.d.cts",
+        "default": "./dist/testing.cjs"
+      }
     },
     "./openai": {
-      "import": "./dist/providers/openai.js",
-      "types": "./dist/providers/openai.d.ts"
+      "import": {
+        "types": "./dist/providers/openai.d.ts",
+        "default": "./dist/providers/openai.js"
+      },
+      "require": {
+        "types": "./dist/providers/openai.d.cts",
+        "default": "./dist/providers/openai.cjs"
+      }
     },
     "./anthropic": {
-      "import": "./dist/providers/anthropic.js",
-      "types": "./dist/providers/anthropic.d.ts"
+      "import": {
+        "types": "./dist/providers/anthropic.d.ts",
+        "default": "./dist/providers/anthropic.js"
+      },
+      "require": {
+        "types": "./dist/providers/anthropic.d.cts",
+        "default": "./dist/providers/anthropic.cjs"
+      }
     },
     "./gemini": {
-      "import": "./dist/providers/gemini.js",
-      "types": "./dist/providers/gemini.d.ts"
+      "import": {
+        "types": "./dist/providers/gemini.d.ts",
+        "default": "./dist/providers/gemini.js"
+      },
+      "require": {
+        "types": "./dist/providers/gemini.d.cts",
+        "default": "./dist/providers/gemini.cjs"
+      }
     },
     "./openrouter": {
-      "import": "./dist/providers/openrouter.js",
-      "types": "./dist/providers/openrouter.d.ts"
+      "import": {
+        "types": "./dist/providers/openrouter.d.ts",
+        "default": "./dist/providers/openrouter.js"
+      },
+      "require": {
+        "types": "./dist/providers/openrouter.d.cts",
+        "default": "./dist/providers/openrouter.cjs"
+      }
     }
   },
   "files": [
@@ -43,7 +79,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "tsc --noEmit",
-    "clean": "rimraf dist"
+    "clean": "rimraf dist",
+    "prepublishOnly": "npm run lint && npm run test && npm run build"
   },
   "keywords": [
     "prompt",
@@ -57,7 +94,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/PredictabilityAtScale/promptopskit.git"
+    "url": "git+https://github.com/PredictabilityAtScale/promptopskit.git"
   },
   "homepage": "https://github.com/PredictabilityAtScale/promptopskit",
   "author": "Predictability at Scale, Inc.",

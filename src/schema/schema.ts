@@ -110,7 +110,7 @@ export const PromptAssetSchema = z.object({
   schema_version: z.number().int().positive().default(1),
   description: z.string().optional(),
 
-  provider: z.enum(['openai', 'anthropic', 'google', 'openrouter', 'any']).optional(),
+  provider: z.enum(['openai', 'anthropic', 'google', 'gemini', 'openrouter', 'any']).optional(),
   model: z.string().optional(),
   fallback_models: z.array(z.string()).optional(),
 

@@ -2,7 +2,10 @@ import { describe, it, expect } from 'vitest';
 import { openaiAdapter } from '../src/providers/openai.js';
 import { anthropicAdapter } from '../src/providers/anthropic.js';
 import { geminiAdapter } from '../src/providers/gemini.js';
+import { getAdapter } from '../src/providers/index.js';
+import { PromptAssetSchema } from '../src/schema/index.js';
 import type { ResolvedPromptAsset } from '../src/schema/index.js';
+import { createPromptOpsKit } from '../src/index.js';
 
 const baseAsset: ResolvedPromptAsset = {
   id: 'test',
@@ -88,5 +91,51 @@ describe('Gemini adapter', () => {
       role: 'user',
       parts: [{ text: 'Hello World.' }],
     });
+  });
+});
+
+describe('Provider naming', () => {
+  it('schema accepts gemini as a provider value', () => {
+    const result = PromptAssetSchema.safeParse({
+      id: 'test',
+      schema_version: 1,
+      provider: 'gemini',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('schema still accepts google as a provider value', () => {
+    const result = PromptAssetSchema.safeParse({
+      id: 'test',
+      schema_version: 1,
+      provider: 'google',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('getAdapter resolves both gemini and google', () => {
+    expect(getAdapter('gemini').name).toBe('gemini');
+    expect(getAdapter('google').name).toBe('gemini');
+  });
+});
+
+describe('Adapter validation on render', () => {
+  it('openai adapter reports error for missing model', () => {
+    const validation = openaiAdapter.validate({
+      ...baseAsset,
+      model: undefined,
+    });
+    expect(validation.valid).toBe(false);
+    expect(validation.errors.length).toBeGreaterThan(0);
+  });
+
+  it('renderPrompt throws when adapter validation fails', async () => {
+    const kit = createPromptOpsKit({ sourceDir: '.', cache: false });
+    await expect(
+      kit.renderPrompt({
+        source: `---\nid: no-model\nschema_version: 1\n---\n\n# Prompt template\n\nHello`,
+        provider: 'openai',
+      }),
+    ).rejects.toThrow(/Provider validation failed/);
   });
 });

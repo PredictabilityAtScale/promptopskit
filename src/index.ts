@@ -25,7 +25,7 @@ export { parsePrompt, loadPromptFile, extractSections } from './parser/index.js'
 export { interpolate, extractVariables } from './renderer/index.js';
 export { resolveIncludes } from './composition/index.js';
 export { applyOverrides } from './overrides/index.js';
-export { validateAsset } from './validation/index.js';
+export { validateAsset, validateAssetWithIncludes } from './validation/index.js';
 export { getAdapter, openaiAdapter } from './providers/index.js';
 export { anthropicAdapter } from './providers/anthropic.js';
 export { geminiAdapter } from './providers/gemini.js';
@@ -204,6 +204,13 @@ export class PromptOpsKit {
 
     const adapter = getAdapter(options.provider);
     const validation = adapter.validate(resolved);
+
+    if (!validation.valid) {
+      throw new Error(
+        `Provider validation failed for "${options.provider}":\n` +
+        validation.errors.map((e) => `  - ${e}`).join('\n'),
+      );
+    }
 
     const request = adapter.render(resolved, {
       variables: options.variables,

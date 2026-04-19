@@ -1,6 +1,6 @@
 # Publishing promptopskit
 
-## The Only Three Commands You Need
+## The Only Two Commands You Need
 
 ```powershell
 npm version patch      # or minor or major
@@ -8,7 +8,7 @@ git push --follow-tags
 # done. go get a coffee.
 ```
 
-That's it. The GitHub Action does the rest — lint, test, build, publish to npm with provenance.
+That's it. The GitHub Action does the rest — lint, test, build, publish to npm via **Trusted Publishing** (OIDC). No tokens, no OTP, no manual publish.
 
 ---
 
@@ -25,8 +25,20 @@ That's it. The GitHub Action does the rest — lint, test, build, publish to npm
 1. `npm version patch` bumps the version in `package.json` and creates a git commit + tag (`v0.0.2`)
 2. `git push --follow-tags` pushes the commit and tag to GitHub
 3. The `v*` tag triggers the **Publish** workflow (`.github/workflows/publish.yml`)
-4. The workflow runs lint → test → build → publint → attw → `npm publish --provenance`
-5. The package appears on npm
+4. The workflow runs lint → test → build → publint → attw → `npm publish`
+5. npm authenticates via **OIDC Trusted Publishing** — no secrets needed
+6. Provenance attestation is generated automatically
+7. The package appears on npm
+
+## How Trusted Publishing Works
+
+Instead of storing an npm token as a GitHub secret, the publish workflow uses GitHub Actions OIDC to prove its identity to npm. npm verifies the request came from:
+
+- **Org/user:** `PredictabilityAtScale`
+- **Repo:** `promptopskit`
+- **Workflow:** `publish.yml`
+
+This is configured in npm's package settings under **Trusted Publishers**. No long-lived tokens to rotate or leak.
 
 ## Pre-flight Checklist
 
@@ -62,18 +74,18 @@ git push origin v0.0.X
 
 (Replace `v0.0.X` with your actual version.)
 
-### Publish workflow failed
+### Publish workflow failed with auth error
 
-1. Check the Actions log for the error
-2. If it says `NPM_TOKEN` is missing, add it: **Repo Settings → Secrets and variables → Actions → New repository secret** → Name: `NPM_TOKEN`, Value: your npm token
+1. Go to [npmjs.com](https://www.npmjs.com) → package settings for `promptopskit` → **Trusted Publishers**
+2. Verify the trusted publisher is configured with:
+   - **Organization/user:** `PredictabilityAtScale`
+   - **Repository:** `promptopskit`
+   - **Workflow filename:** `publish.yml`
 3. Re-run the failed workflow from the Actions page
 
-### I need a new npm token
+### The workflow file must be on main BEFORE tagging
 
-1. Go to [npmjs.com](https://www.npmjs.com) → avatar → **Access Tokens**
-2. **Generate New Token** → **Granular Access Token**
-3. Name: `promptopskit-publish`, Packages: **Read and write**, Scope: `promptopskit` only
-4. Copy the token and add it as the `NPM_TOKEN` secret in GitHub (see above)
+If you add or change the publish workflow and tag in the same push, GitHub may not pick up the workflow. Always push the workflow change to `main` first, then create the tag.
 
 ## Do NOT
 

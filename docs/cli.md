@@ -108,6 +108,8 @@ promptopskit render <file> [--env <name>] [--tier <name>] [--vars <file>] [--jso
 
 If no `--vars` file is provided, the command auto-loads a `.test.yaml` sidecar file (same name as the prompt, with `.test.yaml` extension) and uses the first test case's variables.
 
+`--vars` keys map directly to placeholder names in `{{ name }}` syntax.
+
 Readable output:
 ```
 ── support.reply (openai, gpt-5.4) ────────────────────────

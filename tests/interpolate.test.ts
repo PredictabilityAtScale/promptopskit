@@ -17,6 +17,11 @@ describe('interpolate', () => {
     expect(result).toBe('Bob and Bob');
   });
 
+  it('supports runtime context placeholders by key name', () => {
+    const result = interpolate('Context: {{ app_context }}', { app_context: 'Billing screen' });
+    expect(result).toBe('Context: Billing screen');
+  });
+
   it('leaves missing variables as-is in permissive mode', () => {
     const result = interpolate('Hello {{ name }}!', {});
     expect(result).toBe('Hello {{ name }}!');
@@ -42,6 +47,11 @@ describe('extractVariables', () => {
   it('extracts variable names', () => {
     const vars = extractVariables('Hello {{ name }}, your id is {{ user_id }}.');
     expect(vars).toEqual(['name', 'user_id']);
+  });
+
+  it('extracts runtime context variables by key name', () => {
+    const vars = extractVariables('Use {{ app_context }} for {{ user_goal }}.');
+    expect(vars).toEqual(['app_context', 'user_goal']);
   });
 
   it('deduplicates', () => {

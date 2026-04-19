@@ -19,6 +19,7 @@ model: gpt-5.4
 context:
   inputs:
     - name
+    - app_context
 includes:
   - ./shared/tone.md
 ---
@@ -26,6 +27,7 @@ includes:
 # System instructions
 
 You are a friendly assistant. Be helpful and concise.
+Current app context: {{ app_context }}.
 
 # Prompt template
 
@@ -46,9 +48,11 @@ const TEST_SIDECAR = `cases:
   - name: basic-greeting
     variables:
       name: "World"
+      app_context: "Welcome screen"
   - name: named-greeting
     variables:
       name: "Alice"
+      app_context: "Settings page"
 `;
 
 export async function init(args: string[]): Promise<void> {

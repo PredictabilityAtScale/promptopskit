@@ -65,6 +65,7 @@ Use `{{ mustache }}` syntax for variable interpolation:
 # Prompt template
 
 Hello {{ name }}, welcome to {{ company }}.
+Runtime context: {{ app_context }}.
 ```
 
 Variable names must match `[a-zA-Z_][a-zA-Z0-9_]*`.
@@ -95,6 +96,7 @@ context:
   inputs:
     - name
     - company
+    - app_context
 ```
 
 The validator warns about:

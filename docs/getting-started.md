@@ -33,7 +33,7 @@ Create a Markdown file with YAML front matter and H1 sections:
 
 ```markdown
 ---
-id: support.reply
+id: support/reply
 schema_version: 1
 provider: openai
 model: gpt-5.4

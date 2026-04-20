@@ -16,7 +16,7 @@ Declare `environments` and `tiers` in front matter. Each key maps to a set of ov
 
 ```markdown
 ---
-id: support.reply
+id: support/reply
 schema_version: 1
 provider: openai
 model: gpt-5.4

@@ -6,7 +6,7 @@ Prompt files use YAML front matter. This page documents every supported field.
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `id` | `string` | Yes | Unique prompt identifier (e.g. `support.reply`) |
+| `id` | `string` | Yes | Unique prompt identifier (e.g. `support/reply`) |
 | `schema_version` | `number` | Yes | Schema version — currently `1` |
 | `description` | `string` | No | Human-readable description of the prompt |
 | `provider` | `string` | No | `openai`, `anthropic`, `gemini`, `google`, `openrouter`, `any` |

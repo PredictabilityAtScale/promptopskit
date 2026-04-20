@@ -57,15 +57,29 @@
     <header class="site-header">
       <div class="container nav">
         <a class="brand" href="#top" aria-label="PromptOpsKit home">PromptOpsKit</a>
-        <nav aria-label="Primary">
+
+        <button
+          class="menu-toggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="primary-nav"
+          aria-label="Toggle navigation menu"
+        >
+          <span aria-hidden="true">☰</span>
+          <span>Menu</span>
+        </button>
+
+        <nav id="primary-nav" aria-label="Primary">
           <a href="#why">Why</a>
           <a href="#what">What</a>
           <a href="#quickstart">How</a>
           <a href="#features">Features</a>
           <a href="#faq">FAQ</a>
           <a href="/docs/index.html">Docs</a>
+          <a class="button button-primary mobile-github" href="https://github.com/PredictabilityAtScale/promptopskit">GitHub</a>
         </nav>
-        <a class="button button-primary" href="https://github.com/PredictabilityAtScale/promptopskit">GitHub</a>
+
+        <a class="button button-primary desktop-github" href="https://github.com/PredictabilityAtScale/promptopskit">GitHub</a>
       </div>
     </header>
 
@@ -349,5 +363,38 @@ const res = await fetch('https://api.openai.com/v1/chat/completions', {
         <p><a href="https://github.com/PredictabilityAtScale/promptopskit">GitHub</a></p>
       </div>
     </footer>
+    <script>
+      (() => {
+        const header = document.querySelector('.site-header');
+        const toggle = document.querySelector('.menu-toggle');
+        const nav = document.getElementById('primary-nav');
+
+        if (!header || !toggle || !nav) return;
+
+        const closeMenu = () => {
+          header.classList.remove('is-menu-open');
+          toggle.setAttribute('aria-expanded', 'false');
+        };
+
+        toggle.addEventListener('click', () => {
+          const isOpen = header.classList.toggle('is-menu-open');
+          toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        });
+
+        nav.querySelectorAll('a').forEach((link) => {
+          link.addEventListener('click', () => {
+            if (window.matchMedia('(max-width: 900px)').matches) {
+              closeMenu();
+            }
+          });
+        });
+
+        window.addEventListener('resize', () => {
+          if (!window.matchMedia('(max-width: 900px)').matches) {
+            closeMenu();
+          }
+        });
+      })();
+    </script>
   </body>
 </html>

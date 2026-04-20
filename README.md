@@ -34,6 +34,7 @@ npm install promptopskit
 
 ```bash
 npx promptopskit init ./prompts
+npx promptopskit skill
 ```
 
 This creates:
@@ -246,8 +247,9 @@ prompts/
 ## CLI
 
 ```bash
-# Scaffold starter prompts
+# Scaffold starter prompts and deploy AI agent instructions
 promptopskit init [dir]
+promptopskit skill
 
 # Validate all .md files in a directory
 promptopskit validate <dir> [--strict]
@@ -267,7 +269,7 @@ promptopskit skill [--target agents|claude|copilot|cursor] [--force]
 
 ## AI Agent Instructions
 
-The `skill` command deploys instruction files so AI coding assistants automatically understand how to create and manage prompts with promptopskit. By default it generates files for **all** major vendors:
+The `skill` command deploys instruction files so AI coding assistants automatically understand how to create and manage prompts with promptopskit. Each file references the full guide at `node_modules/promptopskit/SKILL.md`, so instructions stay in sync with the installed version. By default it generates files for **all** major vendors:
 
 ```bash
 # Deploy for all AI coding assistants (default)
@@ -280,11 +282,13 @@ promptopskit skill
 # Deploy only a specific target
 promptopskit skill --target copilot
 
-# Overwrite existing instructions files
+# Overwrite entire file instead of merging
 promptopskit skill --force
 ```
 
-The `CLAUDE.md` file uses Claude Code's `@AGENTS.md` import syntax to avoid duplicating content. The deployed files cover the prompt format, front matter schema, variable interpolation, includes, overrides, the TypeScript API, provider adapters, and project conventions — everything an AI agent needs to write correct prompts on the first try.
+If a target file already exists, the promptopskit section is merged in-place (or appended) rather than skipping or overwriting. Use `--force` to replace the entire file.
+
+The `CLAUDE.md` file uses Claude Code's `@AGENTS.md` import syntax to avoid duplicating content.
 
 ## Inline Source
 

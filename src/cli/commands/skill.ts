@@ -188,6 +188,35 @@ Included files are parsed and their \`system_instructions\` are **prepended**
 before the including file's own system instructions. Includes resolve
 recursively. Circular includes are detected and rejected.
 
+> **Note:** Included files do not inherit folder defaults. Only the top-level
+> prompt that is loaded via \`loadPromptFile\` receives defaults.
+
+---
+
+## Folder defaults (\`defaults.md\`)
+
+Define shared defaults for a prompt tree by adding a \`defaults.md\` file in any
+folder:
+
+\`\`\`text
+prompts/
+├── defaults.md          # global metadata + system instructions
+└── support/
+    ├── defaults.md      # overrides for support/*
+    └── reply.md         # inherits from support/defaults.md
+\`\`\`
+
+Supported default fields:
+- \`metadata\` (front matter) — merged with prompt-local metadata
+- \`# System instructions\` (body section) — used when the prompt has none
+
+Rules:
+- Nearest subfolder \`defaults.md\` overrides parent defaults
+- Prompt-local values always take precedence over defaults
+- \`defaults.md\` files are skipped during compilation and validation
+- \`loadPromptFile\` defaults the search boundary to the file's own directory;
+  pass \`defaultsRoot\` to enable ancestor traversal
+
 ---
 
 ## Environment & tier overrides
@@ -350,7 +379,7 @@ Hello {{ name }}
 
 | Command | Description |
 |---------|-------------|
-| \`promptopskit init [dir]\` | Scaffold a prompts directory with starter files |
+| \`promptopskit init [dir]\` | Scaffold a prompts directory with starter files (including \`defaults.md\`) |
 | \`promptopskit validate <dir>\` | Validate all prompt files in a directory |
 | \`promptopskit compile <src> <out>\` | Compile .md prompts to JSON artifacts |
 | \`promptopskit render <file> [--set key=value]\` | Render a prompt preview |
@@ -368,6 +397,7 @@ Hello {{ name }}
 6. **Use environment overrides** for dev/staging/prod model differences
 7. **Add test sidecars** (\`.test.yaml\`) for critical prompts
 8. **Run \`promptopskit validate\`** before committing changes
-9. **Variable names** should be \`snake_case\`
-10. **Prompt file names** should be \`kebab-case.md\`
+9. **Use \`defaults.md\`** to share metadata and system instructions across a folder
+10. **Variable names** should be \`snake_case\`
+11. **Prompt file names** should be \`kebab-case.md\`
 `.trimEnd();

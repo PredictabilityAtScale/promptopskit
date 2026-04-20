@@ -1,6 +1,7 @@
 # PromptOpsKit
 
 [![npm version](https://img.shields.io/npm/v/promptopskit.svg)](https://www.npmjs.com/package/promptopskit)
+[![CI](https://github.com/PredictabilityAtScale/promptopskit/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/PredictabilityAtScale/promptopskit/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](https://nodejs.org)
 

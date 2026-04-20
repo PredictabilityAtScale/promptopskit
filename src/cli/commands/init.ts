@@ -97,24 +97,29 @@ async function main() {
     },
   });
 
-  // request.body is the fully transformed OpenAI Chat Completions payload.
-  // For the hello.md prompt in the dev environment it looks like:
-  //
-  // {
-  //   "model": "gpt-5.4-mini",
-  //   "reasoning_effort": "low",
-  //   "temperature": 0.2,
-  //   "messages": [
-  //     {
-  //       "role": "system",
-  //       "content": "You are a friendly assistant. Be helpful and concise.\nCurrent app context: Welcome screen.\n\nAlways be polite, professional, and concise. Avoid jargon unless the user uses it first."
-  //     },
-  //     {
-  //       "role": "user",
-  //       "content": "Say hello to World and ask how you can help them today."
-  //     }
-  //   ]
-  // }
+    /*
+    request.body is the fully transformed OpenAI Chat Completions payload.
+    For the hello.md prompt in the dev environment it looks like:
+
+    {
+      "model": "gpt-5.4-mini",
+      "reasoning_effort": "low",
+      "temperature": 0.2,
+      "messages": [
+        {
+          "role": "system",
+          "content": "You are a friendly assistant. Be helpful and concise.
+  Current app context: Welcome screen.
+
+  Always be polite, professional, and concise. Avoid jargon unless the user uses it first."
+        },
+        {
+          "role": "user",
+          "content": "Say hello to World and ask how you can help them today."
+        }
+      ]
+    }
+    */
 
   console.log('Model:', request.body.model);
 

@@ -1,0 +1,63 @@
+{
+  "id": "support.reply",
+  "schema_version": 1,
+  "provider": "openai",
+  "model": "gpt-5.4",
+  "fallback_models": [
+    "gpt-5.4-mini"
+  ],
+  "reasoning": {
+    "effort": "medium"
+  },
+  "sampling": {
+    "temperature": 0.7,
+    "max_output_tokens": 2048
+  },
+  "response": {
+    "format": "text"
+  },
+  "tools": [
+    "get_account_status"
+  ],
+  "context": {
+    "inputs": [
+      "user_message",
+      "account_summary",
+      "app_context"
+    ],
+    "history": {
+      "max_items": 8
+    }
+  },
+  "environments": {
+    "dev": {
+      "model": "gpt-5.4-mini",
+      "reasoning": {
+        "effort": "low"
+      }
+    },
+    "prod": {
+      "model": "gpt-5.4"
+    }
+  },
+  "tiers": {
+    "free": {
+      "model": "gpt-5.4-mini"
+    },
+    "pro": {
+      "model": "gpt-5.4"
+    }
+  },
+  "metadata": {
+    "owner": "support-platform",
+    "review_required": true,
+    "stable": true
+  },
+  "sections": {
+    "system_instructions": "Always be polite, professional, and concise. Avoid jargon unless the user uses it first.\n\nYou are a careful support assistant. Follow refund policy exactly.\nCurrent app context: {{ app_context }}.",
+    "prompt_template": "Customer message:\n{{ user_message }}\n\nAccount summary:\n{{ account_summary }}"
+  },
+  "source": {
+    "file_path": "fixtures\\prompts\\support\\reply.md"
+  }
+}

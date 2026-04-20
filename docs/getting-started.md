@@ -18,7 +18,7 @@ This creates:
 
 ```
 prompts/
-├── defaults.md         # Folder-level defaults (metadata + system instructions)
+├── defaults.md         # Folder-level defaults (provider, model, metadata, system instructions)
 ├── hello.md            # Sample prompt with variables
 ├── hello.test.yaml     # Test sidecar with sample inputs
 └── shared/

@@ -29,6 +29,8 @@ Prompt files use YAML front matter. This page documents every supported field.
 
 | Field | Type | Description |
 |-------|------|-------------|
+| `provider` | `enum` | Default provider (`openai`, `anthropic`, `google`, `gemini`, `openrouter`, `any`) |
+| `model` | `string` | Default model identifier |
 | `metadata` | `object` | Same as the prompt `metadata` block (`owner`, `tags`, `review_required`, `stable`) |
 | `# System instructions` | section | System instructions inherited by prompts in this folder |
 

@@ -200,15 +200,20 @@ folder:
 
 \`\`\`text
 prompts/
-├── defaults.md          # global metadata + system instructions
+├── defaults.md          # global provider, model, metadata + system instructions
 └── support/
     ├── defaults.md      # overrides for support/*
     └── reply.md         # inherits from support/defaults.md
 \`\`\`
 
 Supported default fields:
+- \`provider\` (front matter) — default provider for the folder
+- \`model\` (front matter) — default model for the folder
 - \`metadata\` (front matter) — merged with prompt-local metadata
 - \`# System instructions\` (body section) — used when the prompt has none
+
+This lets you configure app-wide settings like \`provider\` and \`model\`
+in a single root \`defaults.md\`, so individual prompts only declare what\u2019s unique to them.
 
 Rules:
 - Nearest subfolder \`defaults.md\` overrides parent defaults
@@ -390,14 +395,14 @@ Hello {{ name }}
 ## Conventions to follow
 
 1. **One prompt per file** — each \`.md\` file is a single prompt asset
-2. **Always set \`id\` and \`schema_version: 1\`** in front matter
+2. **Always set \`id\` and \`schema_version: 1\`** in front matter (or inherit \`schema_version\` from \`defaults.md\`)
 3. **Declare all variables** in \`context.inputs\` that appear in templates
 4. **Use includes** for shared system instructions (tone, safety, formatting)
 5. **Keep prompt templates focused** — compose behavior via includes, not duplication
 6. **Use environment overrides** for dev/staging/prod model differences
 7. **Add test sidecars** (\`.test.yaml\`) for critical prompts
 8. **Run \`promptopskit validate\`** before committing changes
-9. **Use \`defaults.md\`** to share metadata and system instructions across a folder
+9. **Use \`defaults.md\`** to share provider, model, metadata, and system instructions across a folder
 10. **Variable names** should be \`snake_case\`
 11. **Prompt file names** should be \`kebab-case.md\`
 `.trimEnd();

@@ -16,7 +16,7 @@ const SECTION_MAP: Record<string, keyof Sections> = {
  * If no H1 headings are found, the entire body is treated as prompt_template.
  */
 export function extractSections(body: string): Sections {
-  const lines = body.split('\n');
+  const lines = body.split(/\r?\n/);
   const sections: Sections = {};
 
   let currentKey: keyof Sections | null = null;

@@ -106,6 +106,8 @@ export const SectionsSchema = z.object({
 // --- Defaults files (folder-level inheritance) ---
 
 export const PromptDefaultsSchema = z.object({
+  provider: z.enum(['openai', 'anthropic', 'google', 'gemini', 'openrouter', 'any']).optional(),
+  model: z.string().optional(),
   metadata: MetadataSchema.optional(),
   sections: z.object({
     system_instructions: z.string().optional(),

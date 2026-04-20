@@ -1,8 +1,5 @@
 ---
 id: hello
-schema_version: 1
-provider: openai
-model: gpt-5.4
 context:
   inputs:
     - name

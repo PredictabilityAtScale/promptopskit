@@ -1,0 +1,23 @@
+{
+  "id": "hello",
+  "schema_version": 1,
+  "context": {
+    "inputs": [
+      "name",
+      "app_context"
+    ]
+  },
+  "sections": {
+    "system_instructions": "You are a friendly assistant helping in {{ app_context }}.",
+    "prompt_template": "Say hello to {{ name }}."
+  },
+  "source": {
+    "file_path": "fixtures\\prompts\\hello.md"
+  },
+  "provider": "openai",
+  "model": "gpt-5.4",
+  "metadata": {
+    "owner": "platform-team",
+    "review_required": true
+  }
+}

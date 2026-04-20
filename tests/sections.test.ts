@@ -87,4 +87,11 @@ Some content.
     expect(sections.system_instructions).toBe('Be helpful.');
     // Unknown heading content is lost (by design — warn in validation)
   });
+
+  it('handles CRLF line endings', () => {
+    const body = '# System instructions\r\n\r\nBe helpful.\r\n\r\n# Prompt template\r\n\r\nHello {{ name }}.\r\n';
+    const sections = extractSections(body);
+    expect(sections.system_instructions).toBe('Be helpful.');
+    expect(sections.prompt_template).toBe('Hello {{ name }}.');
+  });
 });

@@ -13,9 +13,6 @@ Options:
 
 const HELLO_PROMPT = `---
 id: hello
-schema_version: 1
-provider: openai
-model: gpt-5.4
 context:
   inputs:
     - name
@@ -50,6 +47,8 @@ Always be polite, professional, and concise. Avoid jargon unless the user uses i
 `.trimStart();
 
 const DEFAULTS = `---
+provider: openai
+model: gpt-5.4
 metadata:
   owner: my-team
   review_required: true

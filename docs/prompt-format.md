@@ -52,14 +52,18 @@ You can define shared defaults for an entire prompt tree by adding a `defaults.m
 
 Supported default fields:
 
-- `metadata` (front matter)
-- `# System instructions` (body section)
+- `provider` (front matter) — default provider for the folder
+- `model` (front matter) — default model for the folder
+- `metadata` (front matter) — merged with prompt-local metadata
+- `# System instructions` (body section) — used when the prompt has none
+
+This lets you configure app-wide settings like `provider` and `model` in a single place. Individual prompts only need to declare what's unique to them.
 
 Example:
 
 ```text
 prompts/
-├── defaults.md          # global metadata + system instructions
+├── defaults.md          # global settings, metadata + system instructions
 └── support/
     ├── defaults.md      # overrides for support/*
     └── reply.md         # inherits from support/defaults.md
@@ -69,6 +73,8 @@ prompts/
 
 ```markdown
 ---
+provider: openai
+model: gpt-5.4
 metadata:
   owner: platform
   review_required: true
@@ -93,6 +99,8 @@ Use support tone and escalation policy.
 ```
 
 `prompts/support/reply.md` (no local `metadata.owner` and no local system section) will use:
+- `provider: openai` (inherited from root defaults)
+- `model: gpt-5.4` (inherited from root defaults)
 - `metadata.owner: support` (nearest override)
 - `metadata.review_required: true` (inherited from parent defaults)
 - system instructions from `support/defaults.md`

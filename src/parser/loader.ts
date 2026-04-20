@@ -85,6 +85,8 @@ function parseDefaults(content: string): PromptDefaults {
 
 function mergeDefaults(base: PromptDefaults, local: PromptDefaults): PromptDefaults {
   return {
+    provider: local.provider ?? base.provider,
+    model: local.model ?? base.model,
     metadata: {
       ...(base.metadata ?? {}),
       ...(local.metadata ?? {}),
@@ -99,9 +101,11 @@ function mergeDefaults(base: PromptDefaults, local: PromptDefaults): PromptDefau
 function applyDefaults(asset: ParseResult['asset'], defaults: PromptDefaults): ParseResult['asset'] {
   const hasDefaultMetadata = defaults.metadata && Object.keys(defaults.metadata).length > 0;
   const hasDefaultSystem = !!defaults.sections?.system_instructions;
+  const hasDefaultScalars = defaults.provider !== undefined
+    || defaults.model !== undefined;
 
   // Short-circuit: nothing to merge
-  if (!hasDefaultMetadata && !hasDefaultSystem) {
+  if (!hasDefaultMetadata && !hasDefaultSystem && !hasDefaultScalars) {
     return asset;
   }
 
@@ -121,6 +125,8 @@ function applyDefaults(asset: ParseResult['asset'], defaults: PromptDefaults): P
 
   return {
     ...asset,
+    provider: asset.provider ?? defaults.provider,
+    model: asset.model ?? defaults.model,
     metadata,
     sections,
   };

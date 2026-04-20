@@ -22,7 +22,7 @@ Creates:
 
 ```
 prompts/
-├── defaults.md         # Folder-level defaults (metadata + system instructions)
+├── defaults.md         # Folder-level defaults (provider, model, metadata, system instructions)
 ├── hello.md            # Sample prompt with variables
 ├── hello.test.yaml     # Test sidecar with sample inputs
 └── shared/
@@ -50,7 +50,7 @@ Checks:
 - Unknown front matter keys with Levenshtein-based "did you mean?" suggestions
 - Variable usage — used but undeclared, declared but unused
 - Include resolution — missing files, circular includes
-- Folder defaults inheritance from `defaults.md` (metadata + system instructions)
+- Folder defaults inheritance from `defaults.md` (provider, model, metadata, system instructions)
 
 Output per file:
 ```

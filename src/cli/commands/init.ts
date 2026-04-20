@@ -72,7 +72,7 @@ const TEST_SIDECAR = `cases:
 `;
 
 const EXAMPLE_USAGE = `// Example: render the hello prompt and send it to OpenAI
-// Full docs: https://promptopskit.com/docs/#/getting-started
+// Full docs: https://promptopskit.com/docs/index.html#/
 
 import { createPromptOpsKit } from 'promptopskit';
 

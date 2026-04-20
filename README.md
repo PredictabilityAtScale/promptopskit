@@ -182,6 +182,71 @@ import { geminiAdapter } from 'promptopskit/gemini';
 import { openrouterAdapter } from 'promptopskit/openrouter';
 ```
 
+## Optional UsageTap Tracking
+
+PromptOpsKit can also help you track provider calls with UsageTap.com while keeping the core render API body-only.
+
+```typescript
+import { createPromptOpsKit } from 'promptopskit';
+import { createUsageTapClient, runOpenAIWithUsageTap } from 'promptopskit/usagetap';
+
+const kit = createPromptOpsKit({ sourceDir: './prompts' });
+const usageTap = createUsageTapClient({ apiKey: process.env.USAGETAP_API_KEY! });
+
+const { request } = await kit.renderPrompt({
+  path: 'support/reply',
+  provider: 'openai',
+  variables: {
+    user_message: 'How do I reset my password?',
+    app_context: 'Account settings page',
+  },
+});
+
+const tracked = await runOpenAIWithUsageTap(usageTap, {
+  begin: {
+    customerId: 'user_123',
+    feature: 'chat.send',
+    requested: { standard: true, premium: true, search: true },
+    idempotencyKey: 'chat-send-user-123-req-456',
+  },
+  request,
+  entitlementMode: 'apply',
+  modelTiers: {
+    standard: 'gpt-5.4-mini',
+    premium: 'gpt-5.4',
+  },
+  toolEntitlements: {
+    image_tool: 'image',
+    web_lookup: 'search',
+  },
+  invoke: async (requestUsed) => {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify(requestUsed.body),
+    });
+
+    return response.json();
+  },
+});
+
+// tracked.response      -> vendor JSON response
+// tracked.begin         -> UsageTap call_begin payload
+// tracked.end           -> UsageTap call_end payload
+// tracked.requestUsed   -> effective request after optional entitlement changes
+// tracked.effectiveUsage -> usage sent to UsageTap
+```
+
+Notes:
+- `entitlementMode` defaults to `'off'`. Set it to `'apply'` only when you want UsageTap allowances to mutate a cloned provider request.
+- `runOpenRouterWithUsageTap`, `runAnthropicWithUsageTap`, and `runGeminiWithUsageTap` follow the same pattern.
+- `extractOpenAIUsage`, `extractAnthropicUsage`, and `extractGeminiUsage` are public if you want to manage UsageTap lifecycle yourself.
+
+For explicit lifecycle control, use `beginUsageTapCall`, `endUsageTapCall`, or `withUsageTapCall` from `promptopskit/usagetap`. Full documentation: [docs/usagetap.md](./docs/usagetap.md).
+
 ## Overrides
 
 Define environment and tier overrides in front matter. Precedence: **base → environment → tier → runtime**. Scalars and arrays are replaced, not merged.

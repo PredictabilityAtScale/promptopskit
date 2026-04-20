@@ -286,6 +286,25 @@ const res = await fetch('https://api.openai.com/v1/chat/completions', {
       <section id="features" class="container section">
         <h2>Features for engineering teams</h2>
         <div class="grid two">
+          <article class="card card-featured-optional">
+            <p class="card-kicker">Optional Integration</p>
+            <h3>Usage-based billing and entitlement checks with <a href="https://usagetap.com">usagetap.com</a></h3>
+            <p>
+              PromptOpsKit can optionally pair with <a href="https://usagetap.com">usagetap.com</a> when you need usage metering,
+              per-call entitlement checks, spend-aware AI feature gating, or a path from free
+              usage to PAYG and committed plans. PromptOpsKit still owns prompt rendering;
+              <a href="https://usagetap.com">usagetap.com</a> adds billing and control around the LLM call.
+            </p>
+            <p>
+              The integration is separate, fetch-based, and opt-in through the
+              <code>promptopskit/usagetap</code> subpath.
+            </p>
+            <p>
+              <a href="/docs/index.html#/usagetap">Read the usagetap.com docs</a>
+              ·
+              <a href="https://usagetap.com">Learn about usagetap.com</a>
+            </p>
+          </article>
           <article class="card">
             <h3>Validation &amp; schema checks</h3>
             <ul>

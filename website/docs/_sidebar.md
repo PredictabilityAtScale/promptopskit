@@ -6,6 +6,7 @@
   - [Composition](composition.md)
   - [Overrides](overrides.md)
   - [Providers](providers.md)
+  - [UsageTap](usagetap.md)
   - [Inline Source](inline-source.md)
   - [Publishing](publishing.md)
 

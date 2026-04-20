@@ -21,6 +21,27 @@ export type { PromptValidationResult, ValidationError } from './validation/index
 export type { RenderedSections, RenderOptions } from './renderer/index.js';
 export type { ParseResult } from './parser/index.js';
 export type { OverrideOptions } from './overrides/index.js';
+export type {
+  UsageTapAllowed,
+  UsageTapAllowedCapability,
+  UsageTapBeginRequest,
+  UsageTapBeginResponse,
+  UsageTapCallOptions,
+  UsageTapCallResult,
+  UsageTapClient,
+  UsageTapClientConfig,
+  UsageTapEndRequest,
+  UsageTapEndResponse,
+  UsageTapEndUsage,
+  UsageTapEntitlementMode,
+  UsageTapEntitlementOptions,
+  UsageTapErrorPayload,
+  UsageTapInvokeContext,
+  UsageTapInvokeResult,
+  UsageTapProviderRunOptions,
+  UsageTapProviderRunResult,
+  UsageTapReasoningLevel,
+} from './usagetap/index.js';
 
 export { parsePrompt, loadPromptFile, extractSections } from './parser/index.js';
 export { interpolate, extractVariables } from './renderer/index.js';
@@ -32,6 +53,21 @@ export { anthropicAdapter } from './providers/anthropic.js';
 export { geminiAdapter } from './providers/gemini.js';
 export { openrouterAdapter } from './providers/openrouter.js';
 export { PromptAssetSchema, PromptAssetOverridesSchema } from './schema/index.js';
+export {
+  applyUsageTapEntitlements,
+  beginUsageTapCall,
+  createUsageTapClient,
+  defaultUsageTapErrorMapper,
+  endUsageTapCall,
+  extractAnthropicUsage,
+  extractGeminiUsage,
+  extractOpenAIUsage,
+  runAnthropicWithUsageTap,
+  runGeminiWithUsageTap,
+  runOpenAIWithUsageTap,
+  runOpenRouterWithUsageTap,
+  withUsageTapCall,
+} from './usagetap/index.js';
 
 // --- Config ---
 

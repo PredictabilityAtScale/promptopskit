@@ -9,6 +9,7 @@ Open-source developer toolkit for managing prompts, system instructions, tools, 
 - [Composition](./composition.md) — Share system instructions across prompts with `includes`
 - [Overrides](./overrides.md) — Environment and tier-based overrides for dev/prod/free/pro
 - [Providers](./providers.md) — Provider adapters for OpenAI, Anthropic, Gemini, and OpenRouter
+- [UsageTap](./usagetap.md) — Optional begin/end call tracking and entitlement-aware provider helpers for UsageTap.com
 - [Inline Source](./inline-source.md) — Render prompts from strings without files
 
 ## Reference

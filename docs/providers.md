@@ -50,6 +50,17 @@ interface ProviderAdapter {
 }
 ```
 
+## Optional UsageTap tracking
+
+If you want UsageTap begin/end tracking around a provider call, use the optional `promptopskit/usagetap` helper layer.
+
+- The core adapters still only produce request bodies.
+- Provider-specific runners are available for OpenAI, OpenRouter, Anthropic, and Gemini.
+- Manual lifecycle control is available through `withUsageTapCall`.
+- Entitlement-aware request mutation is opt-in and runs on a cloned request.
+
+See [UsageTap](./usagetap.md) for setup, lifecycle helpers, entitlement behavior, tool gating, standalone usage extractors, and provider examples.
+
 ## OpenAI
 
 Body shape: [Chat Completions API](https://platform.openai.com/docs/api-reference/chat)

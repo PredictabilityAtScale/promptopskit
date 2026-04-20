@@ -30,6 +30,16 @@
         "default": "./dist/testing.cjs"
       }
     },
+    "./usagetap": {
+      "import": {
+        "types": "./dist/usagetap/index.d.ts",
+        "default": "./dist/usagetap/index.js"
+      },
+      "require": {
+        "types": "./dist/usagetap/index.d.cts",
+        "default": "./dist/usagetap/index.cjs"
+      }
+    },
     "./openai": {
       "import": {
         "types": "./dist/providers/openai.d.ts",

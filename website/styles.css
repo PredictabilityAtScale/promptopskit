@@ -172,6 +172,36 @@ h2 {
   padding: 1.25rem;
 }
 
+.card-featured-optional {
+  background:
+    radial-gradient(circle at top right, rgba(15, 23, 42, 0.08), transparent 35%),
+    linear-gradient(180deg, #fffaf0 0%, #fffdf8 100%);
+  border-color: #d6bbfb;
+}
+
+.card-kicker {
+  display: inline-block;
+  margin: 0 0 0.75rem;
+  padding: 0.2rem 0.55rem;
+  border: 1px solid #e9d7fe;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #6941c6;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.card-featured-optional p:last-child {
+  margin-bottom: 0;
+}
+
+.card-featured-optional a {
+  color: var(--brand);
+  font-weight: 600;
+}
+
 p {
   margin: 0 0 1rem;
 }

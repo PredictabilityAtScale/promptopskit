@@ -19,9 +19,13 @@ context:
     - app_context
 includes:
   - ./shared/tone.md
+reasoning:
+  effort: high
 environments:
   dev:
     model: gpt-5.4-mini
+    reasoning:
+      effort: low
     sampling:
       temperature: 0.2
 ---
@@ -79,8 +83,8 @@ async function main() {
   const kit = createPromptOpsKit({ sourceDir: './prompts' });
 
   // Determine environment from ENV var (defaults to 'dev')
-  // - dev: uses gpt-5.4-mini with temperature 0.2 (see hello.md environments)
-  // - production: uses base model gpt-5.4 with default settings
+  // - dev: uses gpt-5.4-mini, low reasoning effort, temperature 0.2
+  // - production: uses base model gpt-5.4 with high reasoning effort
   const environment = process.env.NODE_ENV === 'production' ? 'prod' : 'dev';
 
   const { request } = await kit.renderPrompt({
@@ -92,6 +96,25 @@ async function main() {
       app_context: 'Welcome screen',
     },
   });
+
+  // request.body is the fully transformed OpenAI Chat Completions payload.
+  // For the hello.md prompt in the dev environment it looks like:
+  //
+  // {
+  //   "model": "gpt-5.4-mini",
+  //   "reasoning_effort": "low",
+  //   "temperature": 0.2,
+  //   "messages": [
+  //     {
+  //       "role": "system",
+  //       "content": "You are a friendly assistant. Be helpful and concise.\nCurrent app context: Welcome screen.\n\nAlways be polite, professional, and concise. Avoid jargon unless the user uses it first."
+  //     },
+  //     {
+  //       "role": "user",
+  //       "content": "Say hello to World and ask how you can help them today."
+  //     }
+  //   ]
+  // }
 
   console.log('Model:', request.body.model);
 

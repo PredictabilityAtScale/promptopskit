@@ -139,23 +139,26 @@ Parses the file, resolves includes, and outputs the normalized asset. Useful for
 Deploy AI agent instructions into your project so coding assistants understand how to create and manage prompts.
 
 ```bash
-promptopskit skill [--target copilot|cursor|generic] [--force]
+promptopskit skill [--target agents|claude|copilot|cursor] [--force]
 ```
+
+By default, generates files for **all** major AI coding assistants. Use `--target` to deploy only a specific one.
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `--target` | `copilot` | Target assistant format |
-| `--force` | — | Overwrite existing instructions file |
+| `--target` | all | Deploy only a specific target |
+| `--force` | — | Overwrite existing instructions files |
 
 Output locations:
 
-| Target | File |
-|--------|------|
-| `copilot` | `.github/instructions/promptopskit.instructions.md` |
-| `cursor` | `.cursor/rules/promptopskit.mdc` |
-| `generic` | `.ai/promptopskit-skill.md` |
+| Target | File | Used by |
+|--------|------|---------|
+| `agents` | `AGENTS.md` | Codex, OpenCode, Cursor, Copilot |
+| `claude` | `CLAUDE.md` | Claude Code (imports `AGENTS.md`) |
+| `copilot` | `.github/instructions/promptopskit.instructions.md` | GitHub Copilot (path-specific) |
+| `cursor` | `.cursor/rules/promptopskit.mdc` | Cursor (project rule) |
 
-The deployed file covers the prompt format, front matter schema, variable interpolation, includes, overrides, the TypeScript API, provider adapters, and project conventions.
+The deployed files cover the prompt format, front matter schema, variable interpolation, includes, overrides, the TypeScript API, provider adapters, and project conventions. The `CLAUDE.md` file uses the `@AGENTS.md` import syntax to avoid duplicating content.
 
 ## Global options
 

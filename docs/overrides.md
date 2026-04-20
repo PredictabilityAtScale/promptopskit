@@ -20,11 +20,15 @@ id: support/reply
 schema_version: 1
 provider: openai
 model: gpt-5.4
+reasoning:
+  effort: high
 sampling:
   temperature: 0.7
 environments:
   dev:
     model: gpt-5.4-mini
+    reasoning:
+      effort: low
     sampling:
       temperature: 0.2
   prod:
@@ -68,11 +72,11 @@ const result = await kit.renderPrompt({
 
 With the config above and `environment: 'dev', tier: 'pro'`:
 
-1. **Base**: `model: gpt-5.4`, `temperature: 0.7`
-2. **Environment (dev)**: `model: gpt-5.4-mini`, `temperature: 0.2`
+1. **Base**: `model: gpt-5.4`, `reasoning.effort: high`, `temperature: 0.7`
+2. **Environment (dev)**: `model: gpt-5.4-mini`, `reasoning.effort: low`, `temperature: 0.2`
 3. **Tier (pro)**: `model: gpt-5.4` (overrides dev)
 
-Result: `model: gpt-5.4`, `temperature: 0.2`
+Result: `model: gpt-5.4`, `reasoning.effort: low`, `temperature: 0.2`
 
 ### Via `resolvePrompt`
 

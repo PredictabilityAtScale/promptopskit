@@ -174,11 +174,15 @@ id: support/reply
 schema_version: 1
 provider: openai
 model: gpt-5.4
+reasoning:
+  effort: high
 sampling:
   temperature: 0.7
 environments:
   dev:
     model: gpt-5.4-mini
+    reasoning:
+      effort: low
     sampling:
       temperature: 0.2
   prod:
@@ -257,32 +261,30 @@ promptopskit render <file> [--env <name>] [--tier <name>] [--vars <file>] [--jso
 # Print normalized asset as JSON
 promptopskit inspect <file>
 
-# Deploy AI agent instructions into your project
-promptopskit skill [--target copilot|cursor|generic] [--force]
+# Deploy AI agent instructions for all major coding assistants
+promptopskit skill [--target agents|claude|copilot|cursor] [--force]
 ```
 
 ## AI Agent Instructions
 
-The `skill` command deploys a comprehensive instructions file so AI coding assistants (GitHub Copilot, Cursor, etc.) automatically understand how to create and manage prompts with promptopskit.
+The `skill` command deploys instruction files so AI coding assistants automatically understand how to create and manage prompts with promptopskit. By default it generates files for **all** major vendors:
 
 ```bash
-# Deploy for GitHub Copilot (default)
+# Deploy for all AI coding assistants (default)
 promptopskit skill
-# → .github/instructions/promptopskit.instructions.md
+# → AGENTS.md                                          (Codex, OpenCode, Cursor, Copilot)
+# → CLAUDE.md                                          (Claude Code — imports AGENTS.md)
+# → .github/instructions/promptopskit.instructions.md  (GitHub Copilot)
+# → .cursor/rules/promptopskit.mdc                     (Cursor)
 
-# Deploy for Cursor
-promptopskit skill --target cursor
-# → .cursor/rules/promptopskit.mdc
+# Deploy only a specific target
+promptopskit skill --target copilot
 
-# Deploy a generic instructions file
-promptopskit skill --target generic
-# → .ai/promptopskit-skill.md
-
-# Overwrite an existing instructions file
+# Overwrite existing instructions files
 promptopskit skill --force
 ```
 
-The deployed file covers the prompt format, front matter schema, variable interpolation, includes, overrides, the TypeScript API, provider adapters, and project conventions — everything an AI agent needs to write correct prompts on the first try.
+The `CLAUDE.md` file uses Claude Code's `@AGENTS.md` import syntax to avoid duplicating content. The deployed files cover the prompt format, front matter schema, variable interpolation, includes, overrides, the TypeScript API, provider adapters, and project conventions — everything an AI agent needs to write correct prompts on the first try.
 
 ## Inline Source
 

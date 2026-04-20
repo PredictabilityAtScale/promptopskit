@@ -8,14 +8,16 @@ promptopskit skill [--target <target>] [--force]
 Deploy AI agent instructions so coding assistants know how to
 create and manage prompts using promptopskit.
 
-Targets:
-  copilot   (default) .github/instructions/promptopskit.instructions.md
-  cursor    .cursor/rules/promptopskit.mdc
-  generic   .ai/promptopskit-skill.md
+By default, generates files for all major AI coding assistants:
+
+  AGENTS.md                                          Codex, OpenCode, Cursor, Copilot
+  CLAUDE.md                                          Claude Code (imports AGENTS.md)
+  .github/instructions/promptopskit.instructions.md  GitHub Copilot (path-specific)
+  .cursor/rules/promptopskit.mdc                     Cursor (project rule)
 
 Options:
-  --target, -t     Target AI tool (copilot, cursor, generic)
-  --force, -f      Overwrite existing file
+  --target, -t     Deploy only a specific target (agents, claude, copilot, cursor)
+  --force, -f      Overwrite existing files
   --help, -h       Show this help
 `.trim();
 
@@ -25,6 +27,14 @@ interface TargetConfig {
 }
 
 const TARGETS: Record<string, TargetConfig> = {
+  agents: {
+    path: 'AGENTS.md',
+    wrap: (content) => content,
+  },
+  claude: {
+    path: 'CLAUDE.md',
+    wrap: () => '@AGENTS.md\n',
+  },
   copilot: {
     path: '.github/instructions/promptopskit.instructions.md',
     wrap: (content) =>
@@ -35,11 +45,9 @@ const TARGETS: Record<string, TargetConfig> = {
     wrap: (content) =>
       `---\ndescription: How to create and manage prompts using promptopskit\nglobs: "**"\nalwaysApply: true\n---\n\n${content}`,
   },
-  generic: {
-    path: '.ai/promptopskit-skill.md',
-    wrap: (content) => content,
-  },
 };
+
+const ALL_TARGETS = ['agents', 'claude', 'copilot', 'cursor'];
 
 export async function skill(args: string[]): Promise<void> {
   if (args.includes('--help') || args.includes('-h')) {
@@ -49,33 +57,41 @@ export async function skill(args: string[]): Promise<void> {
 
   const force = args.includes('--force') || args.includes('-f');
 
-  let target = 'copilot';
+  let targets = ALL_TARGETS;
   const targetIdx = args.findIndex((a) => a === '--target' || a === '-t');
   if (targetIdx !== -1 && args[targetIdx + 1]) {
-    target = args[targetIdx + 1];
+    const target = args[targetIdx + 1];
+    const config = TARGETS[target];
+    if (!config) {
+      console.error(`Unknown target: ${target}`);
+      console.error(`Valid targets: ${Object.keys(TARGETS).join(', ')}`);
+      process.exit(1);
+    }
+    targets = [target];
   }
 
-  const config = TARGETS[target];
-  if (!config) {
-    console.error(`Unknown target: ${target}`);
-    console.error(`Valid targets: ${Object.keys(TARGETS).join(', ')}`);
-    process.exit(1);
+  let written = 0;
+  for (const target of targets) {
+    const config = TARGETS[target];
+    const filePath = config.path;
+
+    if (existsSync(filePath) && !force) {
+      console.log(`  skip ${filePath} (already exists, use --force to overwrite)`);
+      continue;
+    }
+
+    const content = config.wrap(SKILL_CONTENT);
+
+    await mkdir(dirname(filePath), { recursive: true });
+    await writeFile(filePath, content, 'utf-8');
+    console.log(`  ✓ ${filePath}`);
+    written++;
   }
 
-  const filePath = config.path;
-
-  if (existsSync(filePath) && !force) {
-    console.log(`  skip ${filePath} (already exists, use --force to overwrite)`);
-    return;
+  if (written > 0) {
+    console.log();
+    console.log(`AI agents will now understand how to create and manage prompts with promptopskit.`);
   }
-
-  const content = config.wrap(SKILL_CONTENT);
-
-  await mkdir(dirname(filePath), { recursive: true });
-  await writeFile(filePath, content, 'utf-8');
-  console.log(`  ✓ ${filePath}`);
-  console.log();
-  console.log(`AI agents will now understand how to create and manage prompts with promptopskit.`);
 }
 
 // ---------------------------------------------------------------------------
@@ -232,10 +248,14 @@ Override model settings per environment or tier:
 environments:
   development:
     model: gpt-4.1-mini
+    reasoning:
+      effort: low
     sampling:
       temperature: 0.9
   production:
     model: gpt-5.4
+    reasoning:
+      effort: high
     sampling:
       temperature: 0.3
 

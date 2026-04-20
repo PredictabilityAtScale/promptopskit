@@ -1,3 +1,8 @@
+---
+name: promptopskit
+description: Guidance for creating and editing promptopskit prompt files, defaults, variables, and validation-safe templates.
+---
+
 # promptopskit — Prompt Engineering Skill
 
 This project uses **promptopskit** to manage LLM prompts as code.
@@ -35,6 +40,13 @@ You are a helpful assistant.
 
 Hello {{ name }}, how can I help you?
 ```
+
+When creating a new prompt file with "just the necessary fields", include only
+the fields required by that specific file:
+- Always include `id` and `schema_version: 1`
+- Include `provider` and `model` only if they are not inherited from `defaults.md`
+- Include `context.inputs` whenever the body contains `{{ variable }}` placeholders
+- Omit `context` entirely only when the body has no placeholders
 
 ---
 
@@ -84,9 +96,30 @@ sections. Variables are replaced at render time.
 
 Rules:
 - Declare all variables in `context.inputs` — validation warns on undeclared usage
+- Before finishing a new prompt file, scan the body for every `{{ variable }}` and
+  ensure each exact variable name appears in `context.inputs`
 - Escape literal braces with `\{{` and `\}}`
 - In strict mode, missing variables throw an error
 - In permissive mode, unresolved placeholders are left intact
+
+Example: this is the minimal valid shape for a prompt that references
+`{{ pull_request }}` even when provider/model are inherited from defaults:
+
+```markdown
+---
+id: summarizePullRequest
+schema_version: 1
+context:
+  inputs:
+    - pull_request
+---
+
+# Prompt template
+
+Summarize the following pull request:
+
+{{ pull_request }}
+```
 
 ---
 
@@ -130,6 +163,9 @@ Supported default fields:
 
 This lets you configure app-wide settings like `provider` and `model`
 in a single root `defaults.md`, so individual prompts only declare what's unique to them.
+
+Important: `defaults.md` does not declare or infer `context.inputs` for a prompt.
+If a prompt body uses placeholders, the prompt file itself must declare them.
 
 Rules:
 - Nearest subfolder `defaults.md` overrides parent defaults
@@ -316,7 +352,7 @@ Hello {{ name }}
 
 1. **One prompt per file** — each `.md` file is a single prompt asset
 2. **Always set `id` and `schema_version: 1`** in front matter (or inherit `schema_version` from `defaults.md`)
-3. **Declare all variables** in `context.inputs` that appear in templates
+3. **Declare all variables** in `context.inputs` that appear in templates; do not leave placeholders undeclared just because other settings come from `defaults.md`
 4. **Use includes** for shared system instructions (tone, safety, formatting)
 5. **Keep prompt templates focused** — compose behavior via includes, not duplication
 6. **Use environment overrides** for dev/staging/prod model differences

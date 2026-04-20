@@ -55,6 +55,17 @@ describe('validateAsset', () => {
     expect(warning?.message).toContain('age');
   });
 
+  it('warns on variables used with no context.inputs declared', () => {
+    const result = validateAsset({
+      id: 'test',
+      schema_version: 1,
+      sections: { prompt_template: '{{ pull_request }}' },
+    });
+    const warning = result.warnings.find((w) => w.code === 'POK011');
+    expect(warning).toBeDefined();
+    expect(warning?.message).toContain('pull_request');
+  });
+
   it('warns on declared but unused variables', () => {
     const result = validateAsset({
       id: 'test',

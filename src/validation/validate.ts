@@ -95,7 +95,7 @@ export function validateAsset(
   }
 
   for (const v of usedVars) {
-    if (declaredInputs.size > 0 && !declaredInputs.has(v)) {
+    if (!declaredInputs.has(v)) {
       warnings.push({
         code: 'POK011',
         message: `Variable "{{ ${v} }}" is used but not declared in context.inputs`,

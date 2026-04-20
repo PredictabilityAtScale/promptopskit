@@ -67,8 +67,8 @@ body {
   line-height: 1;
 }
 
-.mobile-github {
-  display: none;
+.nav-github {
+  margin-left: 0.5rem;
 }
 
 nav {
@@ -177,19 +177,29 @@ h2 {
     radial-gradient(circle at top right, rgba(15, 23, 42, 0.08), transparent 35%),
     linear-gradient(180deg, #fffaf0 0%, #fffdf8 100%);
   border-color: #d6bbfb;
+  padding: 1.1rem;
 }
 
-.card-kicker {
+.card-featured-optional h3 {
+  font-size: 1.45rem;
+}
+
+.card-featured-optional p {
+  font-size: 0.95rem;
+}
+
+.card-featured-optional .card-kicker {
   display: inline-block;
-  margin: 0 0 0.75rem;
-  padding: 0.2rem 0.55rem;
+  margin: 0 0 0.6rem;
+  padding: 0.1rem 0.44rem;
   border: 1px solid #e9d7fe;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.9);
   color: #6941c6;
-  font-size: 0.8rem;
+  font-size: 0.68rem;
+  line-height: 1.2;
   font-weight: 700;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.015em;
   text-transform: uppercase;
 }
 
@@ -290,10 +300,6 @@ ul {
     margin-left: auto;
   }
 
-  .desktop-github {
-    display: none;
-  }
-
   nav {
     display: none;
     position: absolute;
@@ -315,9 +321,10 @@ ul {
     display: flex;
   }
 
-  .mobile-github {
+  .nav-github {
     display: inline-block;
     margin-top: 0.25rem;
+    margin-left: 0;
   }
 
   .grid.two,

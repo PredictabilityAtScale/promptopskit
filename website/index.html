@@ -251,6 +251,24 @@ const { request } = await kit.renderPrompt({
 });
 
 // request.body is shaped for OpenAI — send it with your own HTTP client
+// {
+//   "model": "gpt-5.4",
+//   "temperature": 0.7,
+//   "messages": [
+//     {
+//       "role": "system",
+//       "content": "You are a helpful support assistant working in Account settings page.\nUse tools to look up account details before answering."
+//     },
+//     {
+//       "role": "user",
+//       "content": "How do I reset my password?"
+//     }
+//   ],
+//   "tools": [
+//     { "type": "function", "function": { "name": "lookup_account" } },
+//     { "type": "function", "function": { "name": "reset_password" } }
+//   ]
+// }
 const res = await fetch('https://api.openai.com/v1/chat/completions', {
   method: 'POST',
   headers: {

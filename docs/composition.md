@@ -17,7 +17,7 @@ Included files can also contain runtime placeholders (`{{ variable }}`), so shar
 
 ```markdown
 ---
-id: shared.tone
+id: shared/tone
 schema_version: 1
 ---
 
@@ -30,7 +30,7 @@ Always be polite, professional, and concise. Avoid jargon unless the user uses i
 
 ```markdown
 ---
-id: support.reply
+id: support/reply
 schema_version: 1
 provider: openai
 model: gpt-5.4
@@ -63,7 +63,7 @@ Included files can themselves include other files. Resolution is recursive — n
 
 ```markdown
 ---
-id: shared.safety
+id: shared/safety
 schema_version: 1
 includes:
   - ./base-rules.md

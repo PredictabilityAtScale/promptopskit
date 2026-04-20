@@ -22,7 +22,7 @@ describe('resolveIncludes', () => {
   it('inlines system instructions from an included file', async () => {
     await mkdir(join(tmpDir, 'shared'), { recursive: true });
     await writeFile(join(tmpDir, 'shared', 'tone.md'), `---
-id: shared.tone
+id: shared/tone
 schema_version: 1
 ---
 
@@ -169,7 +169,7 @@ describe('validateAssetWithIncludes', () => {
   it('passes for a prompt with valid includes', async () => {
     await mkdir(join(tmpDir, 'shared'), { recursive: true });
     await writeFile(join(tmpDir, 'shared', 'tone.md'), `---
-id: shared.tone
+id: shared/tone
 schema_version: 1
 ---
 
@@ -295,7 +295,7 @@ describe('compile resolves includes', () => {
     await mkdir(join(srcDir, 'shared'), { recursive: true });
 
     await writeFile(join(srcDir, 'shared', 'tone.md'), `---
-id: shared.tone
+id: shared/tone
 schema_version: 1
 ---
 

@@ -40,7 +40,7 @@ Say hello to {{ name }} and ask how you can help them today.
 `.trimStart();
 
 const TONE_INCLUDE = `---
-id: shared.tone
+id: shared/tone
 schema_version: 1
 ---
 

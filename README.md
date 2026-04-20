@@ -50,7 +50,7 @@ prompts/
 
 ```markdown
 ---
-id: support.reply
+id: support/reply
 schema_version: 1
 provider: openai
 model: gpt-5.4
@@ -169,7 +169,7 @@ Define environment and tier overrides in front matter. Precedence: **base → en
 
 ```markdown
 ---
-id: support.reply
+id: support/reply
 schema_version: 1
 provider: openai
 model: gpt-5.4
@@ -206,7 +206,7 @@ Share system instructions across prompts using `includes`. Included system instr
 
 ```markdown
 ---
-id: support.reply
+id: support/reply
 schema_version: 1
 includes:
   - ./shared/tone.md

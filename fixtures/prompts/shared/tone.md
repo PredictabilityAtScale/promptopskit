@@ -1,5 +1,5 @@
 ---
-id: shared.tone
+id: shared/tone
 schema_version: 1
 ---
 

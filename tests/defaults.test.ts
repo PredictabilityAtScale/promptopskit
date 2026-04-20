@@ -68,7 +68,7 @@ Support defaults.
 `);
 
     await writeFile(join(tmpDir, 'support', 'reply.md'), `---
-id: support.reply
+id: support/reply
 schema_version: 1
 metadata:
   review_required: false
@@ -147,7 +147,7 @@ Global default instructions.
 
     await mkdir(join(tmpDir, 'shared'), { recursive: true });
     await writeFile(join(tmpDir, 'shared', 'tone.md'), `---
-id: shared.tone
+id: shared/tone
 schema_version: 1
 ---
 

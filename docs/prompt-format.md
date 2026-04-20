@@ -6,7 +6,7 @@ Every prompt is a Markdown file with two parts: **YAML front matter** for settin
 
 ```markdown
 ---
-id: support.reply
+id: support/reply
 schema_version: 1
 provider: openai
 model: gpt-5.4
@@ -38,7 +38,7 @@ Required fields:
 
 | Field | Description |
 |-------|-------------|
-| `id` | Unique identifier for the prompt (e.g. `support.reply`) |
+| `id` | Unique identifier for the prompt (e.g. `support/reply`) |
 | `schema_version` | Schema version — currently `1` |
 
 ## Folder defaults (`defaults.md`)
@@ -180,7 +180,7 @@ A production-ready prompt using all major features:
 
 ```markdown
 ---
-id: support.reply
+id: support/reply
 schema_version: 1
 provider: openai
 model: gpt-5.4

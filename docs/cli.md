@@ -116,7 +116,7 @@ If no `--vars` file is provided, the command auto-loads a `.test.yaml` sidecar f
 
 Readable output:
 ```
-── support.reply (openai, gpt-5.4) ────────────────────────
+── support/reply (openai, gpt-5.4) ────────────────────────
 System: You are a careful support assistant...
 User:   Customer message: How do I reset my password?...
 Tools:  get_account_status

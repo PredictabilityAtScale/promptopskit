@@ -63,7 +63,8 @@ sampling:
 context:
   inputs:
     - user_message
-    - app_context
+    - name: app_context
+      max_size: 2000
 includes:
   - ./shared/tone.md
 ---
@@ -104,6 +105,19 @@ const response = await fetch('https://api.openai.com/v1/chat/completions', {
 });
 ```
 
+You can control context size warning behavior at the kit level:
+
+```typescript
+const kit = createPromptOpsKit({
+  sourceDir: './prompts',
+  warnings: {
+    contextSize: process.env.NODE_ENV === 'production' ? 'off' : 'console-and-result',
+  },
+});
+```
+
+Supported values for `warnings.contextSize` are `auto`, `off`, `result-only`, `console`, and `console-and-result`.
+
 ## Features
 
 - **Prompts as Markdown** — YAML front matter for settings, H1 headings for sections (`# System instructions`, `# Prompt template`, `# Notes`)
@@ -113,6 +127,8 @@ const response = await fetch('https://api.openai.com/v1/chat/completions', {
 - **Overrides** — Environment and tier-based overrides (base → env → tier → runtime)
 - **4 provider adapters** — OpenAI, Anthropic, Gemini, OpenRouter — body-only output
 - **Validation** — Zod schema validation, Levenshtein-based "did you mean?" for typos, variable usage checks
+- **Context size guardrails** — optional per-input `max_size` metadata with non-blocking render-time warnings
+- **Warning controls** — top-level config can suppress or emit context size warnings differently in dev and prod
 - **Caching** — LRU cache with mtime-based invalidation
 - **CLI** — init, validate, compile, render, inspect, skill
 - **Compiled artifacts** — Pre-compile `.md` → JSON or ESM for production
@@ -333,6 +349,7 @@ Creates a `PromptOpsKit` instance.
 | `compiledDir` | `string` | — | Path to compiled artifacts |
 | `mode` | `'auto' \| 'compiled-only' \| 'source-only'` | `'auto'` | Resolution strategy |
 | `cache` | `boolean` | `true` | Enable LRU cache with mtime invalidation |
+| `warnings.contextSize` | `'auto' \| 'off' \| 'result-only' \| 'console' \| 'console-and-result'` | `'auto'` | Control whether render-time context size warnings are returned, logged, both, or suppressed |
 
 ### `kit.renderPrompt(options)`
 
@@ -347,6 +364,7 @@ Renders a prompt for a specific provider. Returns `{ resolved, request, warnings
 | `environment` | `string` | Environment override name |
 | `tier` | `string` | Tier override name |
 | `history` | `Array<{ role, content }>` | Conversation history |
+| `toolRegistry` | `Record<string, unknown>` | Tool definitions for resolving string tool references |
 | `strict` | `boolean` | Fail on missing variables |
 
 ### `kit.loadPrompt(path)` / `kit.resolvePrompt(path, options)` / `kit.validatePrompt(path)`
@@ -375,7 +393,7 @@ Prompt files use YAML front matter with these fields:
 | `response` | `object` | `{ format, stream }` |
 | `tools` | `array` | Tool references (string names or inline definitions) |
 | `mcp` | `object` | MCP server references |
-| `context` | `object` | `{ inputs, history }` — declare expected variables |
+| `context` | `object` | `{ inputs, history }` — declare expected variables, with optional per-input `max_size` budgets |
 | `includes` | `string[]` | Paths to included prompt files |
 | `environments` | `object` | Named environment overrides |
 | `tiers` | `object` | Named tier overrides |

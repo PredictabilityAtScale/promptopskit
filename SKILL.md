@@ -29,7 +29,8 @@ provider: openai
 model: gpt-5.4
 context:
   inputs:
-    - name
+    - name: name
+      max_size: 2000
 ---
 
 # System instructions
@@ -65,7 +66,7 @@ the fields required by that specific file:
 | `response` | object | no | `{ format: text|json|markdown, stream: boolean }` |
 | `tools` | array | no | Tool names (strings) or inline definitions with `{ name, description, input_schema }` |
 | `mcp` | object | no | `{ servers: [string | { name, config }] }` |
-| `context.inputs` | string[] | no | Declared variable names used in templates |
+| `context.inputs` | `Array<string | { name, max_size? }>` | no | Declared variable names used in templates, with optional size budgets |
 | `context.history` | object | no | `{ max_items: number }` |
 | `includes` | string[] | no | Relative paths to other prompt files to include |
 | `environments` | object | no | Per-environment overrides (see Overrides) |
@@ -98,9 +99,22 @@ Rules:
 - Declare all variables in `context.inputs` — validation warns on undeclared usage
 - Before finishing a new prompt file, scan the body for every `{{ variable }}` and
   ensure each exact variable name appears in `context.inputs`
+- Use object-form inputs with `max_size` when a variable is likely to grow large and should trigger early warnings
 - Escape literal braces with `\{{` and `\}}`
 - In strict mode, missing variables throw an error
 - In permissive mode, unresolved placeholders are left intact
+
+Example with a size budget:
+
+```yaml
+context:
+  inputs:
+    - user_message
+    - name: account_summary
+      max_size: 4096
+```
+
+If a rendered value exceeds `max_size`, `renderPrompt()` emits a non-blocking `POK030` warning.
 
 Example: this is the minimal valid shape for a prompt that references
 `{{ pull_request }}` even when provider/model are inherited from defaults:
@@ -238,19 +252,32 @@ import { createPromptOpsKit } from 'promptopskit';
 const kit = createPromptOpsKit({ sourceDir: './prompts' });
 
 // Load → resolve includes → apply overrides → render
-const request = await kit.renderPrompt('greeting', {
+const result = await kit.renderPrompt({
+  path: 'greeting',
+  provider: 'openai',
   variables: { name: 'Alice' },
   environment: 'production',
 });
 
-// request.body is ready for the provider's API
+// result.request.body is ready for the provider's API
 const response = await fetch('https://api.openai.com/v1/chat/completions', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
     Authorization: `Bearer ${apiKey}`,
   },
-  body: JSON.stringify(request.body),
+  body: JSON.stringify(result.request.body),
+});
+```
+
+You can control render-time context size warnings at the top level:
+
+```typescript
+const kit = createPromptOpsKit({
+  sourceDir: './prompts',
+  warnings: {
+    contextSize: process.env.NODE_ENV === 'production' ? 'off' : 'console-and-result',
+  },
 });
 ```
 
@@ -307,7 +334,7 @@ const asset = parsePrompt(source);
 const result = validateAsset(asset);
 
 if (!result.valid) {
-  console.error(result.errors); // Error codes: POK001-POK021
+  console.error(result.errors); // Validation error codes: POK001-POK021
 }
 ```
 

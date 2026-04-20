@@ -131,16 +131,28 @@ mcp:
 context:
   inputs:
     - user_message
-    - account_summary
+    - name: account_summary
+      max_size: 4096
   history:
     max_items: 8
 ```
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `inputs` | `string[]` | Expected variable names (used for validation) |
+| `inputs` | `Array<string | { name, max_size? }>` | Expected variable names, optionally with a UTF-8 byte budget for render-time warnings |
 | `history` | `object` | History settings |
 | `history.max_items` | `number` | Maximum history items |
+
+String-form inputs remain valid:
+
+```yaml
+context:
+  inputs:
+    - user_message
+    - account_summary
+```
+
+Object-form inputs add optional `max_size`, which is checked during `renderPrompt()` and can produce a `POK030` warning when the injected value exceeds the declared budget.
 
 ## `includes`
 

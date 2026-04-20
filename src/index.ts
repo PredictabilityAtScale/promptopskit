@@ -9,6 +9,7 @@ import { renderSections } from './renderer/index.js';
 import { getAdapter } from './providers/index.js';
 import { validateAsset } from './validation/index.js';
 import { PromptCache } from './cache.js';
+import { collectContextSizeWarnings } from './context.js';
 import type { PromptAsset, ResolvedPromptAsset } from './schema/index.js';
 import type { ProviderRequest, RuntimeRenderOptions } from './providers/types.js';
 import type { PromptValidationResult } from './validation/index.js';
@@ -39,6 +40,9 @@ export interface PromptOpsKitConfig {
   compiledDir?: string;
   mode?: 'auto' | 'compiled-only' | 'source-only';
   cache?: boolean;
+  warnings?: {
+    contextSize?: 'auto' | 'off' | 'result-only' | 'console' | 'console-and-result';
+  };
 }
 
 // --- Render options ---
@@ -70,6 +74,43 @@ export interface RenderResult {
   resolved: ResolvedPromptAsset;
   request: ProviderRequest;
   warnings: string[];
+}
+
+function shouldIncludeContextWarningsInResult(
+  policy: NonNullable<PromptOpsKitConfig['warnings']>['contextSize'] | undefined,
+): boolean {
+  return policy === undefined
+    || policy === 'auto'
+    || policy === 'result-only'
+    || policy === 'console-and-result';
+}
+
+function shouldLogContextWarnings(
+  policy: NonNullable<PromptOpsKitConfig['warnings']>['contextSize'] | undefined,
+  options: Pick<RenderPromptOptions, 'source'>,
+  mode: PromptOpsKitConfig['mode'],
+): boolean {
+  if (policy === 'off' || policy === 'result-only') {
+    return false;
+  }
+
+  if (policy === 'console' || policy === 'console-and-result') {
+    return true;
+  }
+
+  return Boolean(options.source || mode !== 'compiled-only');
+}
+
+function formatContextSizeWarning(
+  asset: ResolvedPromptAsset,
+  warning: { variable: string; maxSize: number; actualSize: number },
+): string {
+  return [
+    'POK030:',
+    `Context variable "${warning.variable}" exceeded max_size`,
+    `for prompt "${asset.id}"`,
+    `(${warning.actualSize} bytes > ${warning.maxSize} bytes).`,
+  ].join(' ');
 }
 
 // --- Main class ---
@@ -211,6 +252,18 @@ export class PromptOpsKit {
       );
     }
 
+    const contextSizeWarnings = collectContextSizeWarnings(resolved, options.variables).map((warning) =>
+      formatContextSizeWarning(resolved, warning),
+    );
+
+    const contextWarningPolicy = this.config.warnings?.contextSize;
+
+    if (contextSizeWarnings.length > 0 && shouldLogContextWarnings(contextWarningPolicy, options, this.config.mode)) {
+      for (const warning of contextSizeWarnings) {
+        console.warn(`[promptopskit] Warning: ${warning}`);
+      }
+    }
+
     const request = adapter.render(resolved, {
       variables: options.variables,
       history: options.history,
@@ -221,7 +274,9 @@ export class PromptOpsKit {
     return {
       resolved,
       request,
-      warnings: validation.warnings,
+      warnings: shouldIncludeContextWarningsInResult(contextWarningPolicy)
+        ? [...validation.warnings, ...contextSizeWarnings]
+        : validation.warnings,
     };
   }
 
@@ -254,11 +309,15 @@ export function createPromptOpsKit(config: PromptOpsKitConfig): PromptOpsKit {
  * Requires either `source` (inline) or `path` + implicit sourceDir of '.'.
  */
 export async function renderPrompt(
-  options: RenderPromptOptions & { sourceDir?: string },
+  options: RenderPromptOptions & {
+    sourceDir?: string;
+    warnings?: PromptOpsKitConfig['warnings'];
+  },
 ): Promise<RenderResult> {
   const kit = createPromptOpsKit({
     sourceDir: options.sourceDir ?? '.',
     cache: false,
+    warnings: options.warnings,
   });
   return kit.renderPrompt(options);
 }

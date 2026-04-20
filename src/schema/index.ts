@@ -5,6 +5,8 @@ export {
   SamplingSchema,
   ResponseSchema,
   ContextSchema,
+  ContextInputDefinitionSchema,
+  ContextInputDefinitionObjectSchema,
   HistorySchema,
   MetadataSchema,
   MCPSchema,
@@ -23,4 +25,5 @@ export type {
   ResolvedPromptAsset,
   InlineToolDef,
   MCPServerRef,
+  ContextInputDefinition,
 } from './schema.js';

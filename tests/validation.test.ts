@@ -47,7 +47,7 @@ describe('validateAsset', () => {
     const result = validateAsset({
       id: 'test',
       schema_version: 1,
-      context: { inputs: ['name'] },
+      context: { inputs: [{ name: 'name', max_size: 100 }] },
       sections: { prompt_template: '{{ name }} {{ age }}' },
     });
     const warning = result.warnings.find((w) => w.code === 'POK011');
@@ -70,12 +70,26 @@ describe('validateAsset', () => {
     const result = validateAsset({
       id: 'test',
       schema_version: 1,
-      context: { inputs: ['name', 'unused_var'] },
+      context: { inputs: ['name', { name: 'unused_var', max_size: 50 }] },
       sections: { prompt_template: '{{ name }}' },
     });
     const warning = result.warnings.find((w) => w.code === 'POK012');
     expect(warning).toBeDefined();
     expect(warning?.message).toContain('unused_var');
+  });
+
+  it('accepts object-form context input definitions', () => {
+    const result = validateAsset({
+      id: 'test',
+      schema_version: 1,
+      context: {
+        inputs: [{ name: 'account_summary', max_size: 2048 }],
+      },
+      sections: { prompt_template: '{{ account_summary }}' },
+    });
+
+    expect(result.valid).toBe(true);
+    expect(result.errors).toHaveLength(0);
   });
 });
 

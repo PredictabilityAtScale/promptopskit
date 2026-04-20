@@ -1,6 +1,6 @@
 # Validation
 
-PromptOpsKit validates prompts at multiple levels — schema structure, front matter keys, variable usage, and include graphs.
+PromptOpsKit validates prompts at multiple levels — schema structure, front matter keys, variable usage, and include graphs. Render-time context size limits are checked separately during prompt rendering.
 
 ## Quick start
 
@@ -17,6 +17,12 @@ promptopskit validate ./prompts --strict
 const result = await kit.validatePrompt('support/reply');
 // { valid: boolean, errors: ValidationError[], warnings: ValidationError[] }
 ```
+
+`validatePrompt()` does not execute render-time context size checks. Those warnings are produced by `renderPrompt()` when variables are provided.
+
+## Render-time warnings
+
+`renderPrompt()` can emit `POK030` when a provided variable exceeds the `max_size` declared for a context input.
 
 ## Error codes
 
@@ -57,6 +63,36 @@ context:
 
 Hello {{ name }} from {{ company }}!   <!-- POK011 warning: company used but not declared -->
 ```
+
+Object-form inputs can also declare size limits:
+
+```yaml
+context:
+  inputs:
+    - name: account_summary
+      max_size: 4096
+```
+
+If `account_summary` is rendered with a value larger than 4096 UTF-8 bytes, `renderPrompt()` returns a `POK030` warning. In source and auto modes, PromptOpsKit also writes the warning to `console.warn` so oversized context is visible during local development.
+
+You can override that behavior at the kit level:
+
+```typescript
+const kit = createPromptOpsKit({
+  sourceDir: './prompts',
+  warnings: {
+    contextSize: 'off',
+  },
+});
+```
+
+`warnings.contextSize` supports:
+
+- `auto` — default behavior; include in `renderPrompt().warnings`, and log to console outside `compiled-only`
+- `off` — suppress context size warnings entirely
+- `result-only` — return warnings but do not log them
+- `console` — log warnings but do not include them in the returned `warnings` array
+- `console-and-result` — log and return warnings in all modes
 
 ## Include validation
 

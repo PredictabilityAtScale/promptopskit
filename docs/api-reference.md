@@ -12,6 +12,9 @@ const kit = createPromptOpsKit({
   compiledDir: './dist/prompts',
   mode: 'auto',
   cache: true,
+  warnings: {
+    contextSize: 'auto',
+  },
 });
 ```
 
@@ -21,6 +24,7 @@ const kit = createPromptOpsKit({
 | `compiledDir` | `string` | — | Path to compiled artifacts |
 | `mode` | `'auto' \| 'compiled-only' \| 'source-only'` | `'auto'` | Resolution strategy |
 | `cache` | `boolean` | `true` | Enable LRU cache with mtime invalidation |
+| `warnings.contextSize` | `'auto' \| 'off' \| 'result-only' \| 'console' \| 'console-and-result'` | `'auto'` | Control whether render-time context size warnings are returned, logged, both, or suppressed |
 
 ### Resolution modes
 
@@ -69,9 +73,11 @@ Either `path` or `source` must be provided.
 interface RenderResult {
   resolved: ResolvedPromptAsset;  // Fully resolved asset
   request: ProviderRequest;       // { body, provider, model }
-  warnings: string[];             // Non-fatal provider warnings
+  warnings: string[];             // Non-fatal provider and render-time warnings
 }
 ```
+
+`warnings` may include provider adapter warnings and render-time `POK030` context size warnings when configured to be included in results.
 
 ## `kit.loadPrompt(path)`
 
@@ -100,6 +106,8 @@ Validate a prompt file. Returns a `PromptValidationResult`.
 const result = await kit.validatePrompt('support/reply');
 // { valid: boolean, errors: ValidationError[], warnings: ValidationError[] }
 ```
+
+`validatePrompt()` covers schema, include-graph, and variable declaration issues. Render-time context size warnings are produced by `renderPrompt()`, not validation.
 
 ## `kit.clearCache()`
 
@@ -234,6 +242,7 @@ const result = await renderPrompt({
   provider: 'openai',
   variables: { name: 'World' },
   sourceDir: './prompts',  // defaults to '.'
+  warnings: { contextSize: 'result-only' },
 });
 ```
 

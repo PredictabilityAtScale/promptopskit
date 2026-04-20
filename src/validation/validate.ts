@@ -2,6 +2,7 @@ import { PromptAssetSchema } from '../schema/index.js';
 import type { PromptAsset } from '../schema/index.js';
 import { extractVariables } from '../renderer/index.js';
 import { resolveIncludes } from '../composition/index.js';
+import { getContextInputNames } from '../context.js';
 import { levenshtein } from './levenshtein.js';
 
 export interface ValidationError {
@@ -80,7 +81,7 @@ export function validateAsset(
   }
 
   // Variable validation: used but not declared
-  const declaredInputs = new Set(asset.context?.inputs ?? []);
+  const declaredInputs = new Set(getContextInputNames(asset));
   const usedVars = new Set<string>();
 
   if (asset.sections?.system_instructions) {

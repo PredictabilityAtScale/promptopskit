@@ -87,6 +87,17 @@ const response = await fetch('https://api.openai.com/v1/chat/completions', {
 });
 ```
 
+To make context size warnings loud in development and silent in production, configure the kit once:
+
+```typescript
+const kit = createPromptOpsKit({
+  sourceDir: './prompts',
+  warnings: {
+    contextSize: process.env.NODE_ENV === 'production' ? 'off' : 'console-and-result',
+  },
+});
+```
+
 `renderPrompt` returns `{ resolved, request, warnings }`:
 
 | Field | Type | Description |

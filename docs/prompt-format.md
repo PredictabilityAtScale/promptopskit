@@ -160,12 +160,20 @@ context:
   inputs:
     - name
     - company
-    - app_context
+    - name: app_context
+      max_size: 2000
 ```
+
+Each entry can be either a string variable name or an object with:
+
+- `name` — the template variable name
+- `max_size` — optional UTF-8 byte limit for the injected value
 
 The validator warns about:
 - Variables used in templates but not declared in `context.inputs`
 - Variables declared in `context.inputs` but never used
+
+At render time, PromptOpsKit also emits a non-blocking `POK030` warning when a provided variable exceeds its declared `max_size`. In source and auto modes, the warning is also written to `console.warn` to make local development issues visible early.
 
 ## Minimal example
 
@@ -204,7 +212,8 @@ response:
 context:
   inputs:
     - user_message
-    - account_summary
+    - name: account_summary
+      max_size: 8000
   history:
     max_items: 8
 tools:

@@ -296,6 +296,15 @@ const res = await fetch('https://api.openai.com/v1/chat/completions', {
             </ul>
           </article>
           <article class="card">
+            <h3>Context size warnings</h3>
+            <ul>
+              <li>Declare optional <code>max_size</code> per context input</li>
+              <li>Measure actual injected values in UTF-8 bytes at render time</li>
+              <li>Emit non-blocking warnings before oversized context reaches the model</li>
+              <li>Control warning behavior globally for dev and prod environments</li>
+            </ul>
+          </article>
+          <article class="card">
             <h3>CLI for local dev and CI</h3>
             <ul>
               <li><code>init</code> — scaffold starter prompts</li>
@@ -343,7 +352,7 @@ const res = await fetch('https://api.openai.com/v1/chat/completions', {
           </article>
           <article class="card">
             <h3>How does context injection work at runtime?</h3>
-            <p>Declare expected <code>inputs</code> in front matter. At render time, pass variables like user messages, app state, or session data. PromptOpsKit validates that all declared inputs are provided and flags any extras.</p>
+            <p>Declare expected <code>inputs</code> in front matter. At render time, pass variables like user messages, app state, or session data. PromptOpsKit interpolates them into the prompt, validates declared inputs against usage, and can warn when a variable exceeds its configured <code>max_size</code>.</p>
           </article>
           <article class="card">
             <h3>Does it support conversation history?</h3>

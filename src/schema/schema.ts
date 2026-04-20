@@ -55,8 +55,20 @@ export const HistorySchema = z.object({
   max_items: z.number().int().positive().optional(),
 });
 
+export const ContextInputDefinitionObjectSchema = z.object({
+  name: z.string(),
+  max_size: z.number().int().positive().optional(),
+});
+
+export const ContextInputDefinitionSchema = z.union([
+  z.string(),
+  ContextInputDefinitionObjectSchema,
+]);
+
+export type ContextInputDefinition = z.infer<typeof ContextInputDefinitionSchema>;
+
 export const ContextSchema = z.object({
-  inputs: z.array(z.string()).optional(),
+  inputs: z.array(ContextInputDefinitionSchema).optional(),
   history: HistorySchema.optional(),
 });
 

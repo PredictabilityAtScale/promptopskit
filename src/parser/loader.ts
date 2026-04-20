@@ -23,7 +23,10 @@ export interface LoadPromptOptions {
 export async function loadPromptFile(filePath: string, options: LoadPromptOptions = {}): Promise<ParseResult> {
   const content = await readFile(filePath, 'utf-8');
   const parsed = parsePrompt(content, filePath);
-  const defaults = await loadDefaultsForPath(filePath, options.defaultsRoot);
+  // Default the boundary to the file's own directory so traversal never
+  // walks above the prompt tree when no explicit root is provided.
+  const root = options.defaultsRoot ?? dirname(filePath);
+  const defaults = await loadDefaultsForPath(filePath, root);
   const asset = applyDefaults(parsed.asset, defaults);
 
   return {
@@ -94,6 +97,14 @@ function mergeDefaults(base: PromptDefaults, local: PromptDefaults): PromptDefau
 }
 
 function applyDefaults(asset: ParseResult['asset'], defaults: PromptDefaults): ParseResult['asset'] {
+  const hasDefaultMetadata = defaults.metadata && Object.keys(defaults.metadata).length > 0;
+  const hasDefaultSystem = !!defaults.sections?.system_instructions;
+
+  // Short-circuit: nothing to merge
+  if (!hasDefaultMetadata && !hasDefaultSystem) {
+    return asset;
+  }
+
   const mergedMetadata = {
     ...(defaults.metadata ?? {}),
     ...(asset.metadata ?? {}),
@@ -102,12 +113,15 @@ function applyDefaults(asset: ParseResult['asset'], defaults: PromptDefaults): P
 
   const systemInstructions = asset.sections?.system_instructions ?? defaults.sections?.system_instructions;
 
+  const sections = asset.sections
+    ? { ...asset.sections, system_instructions: systemInstructions }
+    : systemInstructions
+      ? { system_instructions: systemInstructions }
+      : undefined;
+
   return {
     ...asset,
     metadata,
-    sections: {
-      ...(asset.sections ?? {}),
-      system_instructions: systemInstructions,
-    },
+    sections,
   };
 }

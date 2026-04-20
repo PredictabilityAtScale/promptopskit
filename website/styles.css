@@ -212,6 +212,25 @@ ul {
   font-size: 0.95rem;
 }
 
+.ai-prompt-tip {
+  margin-top: 0.75rem;
+  border: 1px dashed var(--line);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9rem;
+}
+
+.ai-prompt-tip summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.ai-prompt-tip pre {
+  margin-top: 0.5rem;
+  white-space: pre-wrap;
+}
+
 @media (max-width: 900px) {
   nav {
     display: none;

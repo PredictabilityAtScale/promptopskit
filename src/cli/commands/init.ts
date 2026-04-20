@@ -44,6 +44,17 @@ schema_version: 1
 Always be polite, professional, and concise. Avoid jargon unless the user uses it first.
 `.trimStart();
 
+const DEFAULTS = `---
+metadata:
+  owner: my-team
+  review_required: true
+---
+
+# System instructions
+
+You are a helpful AI assistant. Follow company guidelines at all times.
+`.trimStart();
+
 const TEST_SIDECAR = `cases:
   - name: basic-greeting
     variables:
@@ -64,6 +75,7 @@ export async function init(args: string[]): Promise<void> {
   const dir = args.find((a) => !a.startsWith('--')) ?? './prompts';
 
   const files: Array<{ path: string; content: string }> = [
+    { path: join(dir, 'defaults.md'), content: DEFAULTS },
     { path: join(dir, 'hello.md'), content: HELLO_PROMPT },
     { path: join(dir, 'hello.test.yaml'), content: TEST_SIDECAR },
     { path: join(dir, 'shared', 'tone.md'), content: TONE_INCLUDE },

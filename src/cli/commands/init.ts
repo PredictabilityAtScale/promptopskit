@@ -22,6 +22,11 @@ context:
     - app_context
 includes:
   - ./shared/tone.md
+environments:
+  dev:
+    model: gpt-5.4-mini
+    sampling:
+      temperature: 0.2
 ---
 
 # System instructions
@@ -66,6 +71,47 @@ const TEST_SIDECAR = `cases:
       app_context: "Settings page"
 `;
 
+const EXAMPLE_USAGE = `// Example: render the hello prompt and send it to OpenAI
+// Full docs: https://promptopskit.com/docs/#/getting-started
+
+import { createPromptOpsKit } from 'promptopskit';
+
+async function main() {
+  const kit = createPromptOpsKit({ sourceDir: './prompts' });
+
+  // Determine environment from ENV var (defaults to 'dev')
+  // - dev: uses gpt-5.4-mini with temperature 0.2 (see hello.md environments)
+  // - production: uses base model gpt-5.4 with default settings
+  const environment = process.env.NODE_ENV === 'production' ? 'prod' : 'dev';
+
+  const { request } = await kit.renderPrompt({
+    path: 'hello',
+    provider: 'openai',
+    environment,
+    variables: {
+      name: 'World',
+      app_context: 'Welcome screen',
+    },
+  });
+
+  console.log('Model:', request.body.model);
+
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: \`Bearer \${process.env.OPENAI_API_KEY}\`,
+    },
+    body: JSON.stringify(request.body),
+  });
+
+  const data = await res.json();
+  console.log(data.choices[0].message.content);
+}
+
+main();
+`;
+
 export async function init(args: string[]): Promise<void> {
   if (args.includes('--help') || args.includes('-h')) {
     console.log(HELP);
@@ -79,6 +125,7 @@ export async function init(args: string[]): Promise<void> {
     { path: join(dir, 'hello.md'), content: HELLO_PROMPT },
     { path: join(dir, 'hello.test.yaml'), content: TEST_SIDECAR },
     { path: join(dir, 'shared', 'tone.md'), content: TONE_INCLUDE },
+    { path: join(dir, 'example-usage.ts'), content: EXAMPLE_USAGE },
   ];
 
   let created = 0;

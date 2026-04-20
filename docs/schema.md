@@ -23,6 +23,17 @@ Prompt files use YAML front matter. This page documents every supported field.
 | `tiers` | `object` | No | Named tier overrides |
 | `metadata` | `object` | No | Prompt metadata |
 
+## `defaults.md` schema
+
+`defaults.md` files use a subset of the prompt schema. Only these fields are recognized:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `metadata` | `object` | Same as the prompt `metadata` block (`owner`, `tags`, `review_required`, `stable`) |
+| `# System instructions` | section | System instructions inherited by prompts in this folder |
+
+See [Prompt Format — Folder defaults](./prompt-format.md#folder-defaults-defaultsmd) for inheritance rules.
+
 ## `reasoning`
 
 ```yaml

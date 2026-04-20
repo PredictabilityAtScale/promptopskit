@@ -107,3 +107,9 @@ const resolved = await resolveIncludes(asset, '/path/to/prompt.md');
 ```
 
 The `kit.resolvePrompt()` and `kit.renderPrompt()` methods call `resolveIncludes` automatically.
+
+## Includes and folder defaults
+
+Included files are resolved with `parsePrompt` and do **not** inherit folder defaults from `defaults.md`. Only the top-level prompt loaded via `loadPromptFile` receives defaults. This prevents system instructions from being double-applied when a default and an include both contribute system content.
+
+See [Prompt Format — Folder defaults](./prompt-format.md#folder-defaults-defaultsmd) for details on `defaults.md`.

@@ -1,6 +1,6 @@
-import { readdir, readFile } from 'node:fs/promises';
+import { readdir } from 'node:fs/promises';
 import { join, extname } from 'node:path';
-import { parsePrompt } from '../../parser/index.js';
+import { loadPromptFile } from '../../parser/index.js';
 import { validateAssetWithIncludes } from '../../validation/index.js';
 
 const HELP = `
@@ -38,8 +38,7 @@ export async function validate(args: string[]): Promise<void> {
 
   for (const file of files) {
     try {
-      const content = await readFile(file, 'utf-8');
-      const { asset, raw } = parsePrompt(content, file);
+      const { asset, raw } = await loadPromptFile(file, { defaultsRoot: dir });
       const result = await validateAssetWithIncludes(asset, file, Object.keys(raw.frontMatter));
 
       if (result.errors.length > 0) {
@@ -79,7 +78,12 @@ async function collectPromptFiles(dir: string): Promise<string[]> {
   const results: string[] = [];
   const entries = await readdir(dir, { withFileTypes: true, recursive: true });
   for (const entry of entries) {
-    if (entry.isFile() && extname(entry.name) === '.md' && !entry.name.endsWith('.test.md')) {
+    if (
+      entry.isFile()
+      && extname(entry.name) === '.md'
+      && !entry.name.endsWith('.test.md')
+      && entry.name !== 'defaults.md'
+    ) {
       results.push(join(entry.parentPath ?? dir, entry.name));
     }
   }

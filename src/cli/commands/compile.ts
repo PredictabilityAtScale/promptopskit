@@ -1,6 +1,6 @@
-import { readdir, readFile, writeFile, mkdir, rm } from 'node:fs/promises';
+import { readdir, writeFile, mkdir, rm } from 'node:fs/promises';
 import { join, extname, relative, dirname } from 'node:path';
-import { parsePrompt } from '../../parser/index.js';
+import { loadPromptFile } from '../../parser/index.js';
 import { resolveIncludes } from '../../composition/index.js';
 
 const HELP = `
@@ -62,8 +62,7 @@ export async function compile(args: string[]): Promise<void> {
     const outPath = join(outputDir, rel + outExt);
 
     try {
-      const content = await readFile(file, 'utf-8');
-      const { asset: parsed } = parsePrompt(content, file);
+      const { asset: parsed } = await loadPromptFile(file, { defaultsRoot: sourceDir });
 
       // Resolve includes so compiled artifacts are self-sufficient
       const asset = (parsed.includes && parsed.includes.length > 0)
@@ -116,7 +115,12 @@ async function collectPromptFiles(dir: string): Promise<string[]> {
   const results: string[] = [];
   const entries = await readdir(dir, { withFileTypes: true, recursive: true });
   for (const entry of entries) {
-    if (entry.isFile() && extname(entry.name) === '.md' && !entry.name.endsWith('.test.md')) {
+    if (
+      entry.isFile()
+      && extname(entry.name) === '.md'
+      && !entry.name.endsWith('.test.md')
+      && entry.name !== 'defaults.md'
+    ) {
       results.push(join(entry.parentPath ?? dir, entry.name));
     }
   }

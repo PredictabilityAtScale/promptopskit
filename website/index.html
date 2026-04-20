@@ -142,6 +142,10 @@
             <p><code>includes</code> lets you define tone, policy, or safety instructions once and compose them into any prompt. Update the shared file and every prompt that includes it gets the change — no copy-paste, no drift.</p>
           </article>
           <article class="card">
+            <h3>Folder-level defaults</h3>
+            <p>Add <code>defaults.md</code> to any prompt folder to define shared <code>metadata</code> and <code># System instructions</code>. Subfolders can override parent defaults, and prompt-local values still take priority.</p>
+          </article>
+          <article class="card">
             <h3>Render for any provider</h3>
             <p>Write one prompt. Render it for OpenAI, Anthropic, Gemini, or OpenRouter. Each adapter produces the correct request body shape — you own the HTTP call, auth, and transport.</p>
           </article>

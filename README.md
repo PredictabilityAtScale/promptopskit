@@ -15,6 +15,7 @@ Provider adapters for OpenAI, Anthropic, Gemini, and OpenRouter produce a ready-
 - **Centralized, not scattered** — each prompt is a single Markdown file that captures prompt text, model config, tool bindings, and context rules together.
 - **Operational, not just templated** — model name, temperature, reasoning effort, tools, and response format are declared alongside the prompt they govern.
 - **Reusable, not duplicated** — `includes` lets you define shared tone, policy, or safety instructions once and compose them into any prompt.
+- **Layered defaults, not repetition** — `defaults.md` in any folder sets shared `metadata` and `# System instructions` for that subtree, with nearest-folder override behavior.
 - **Release-aware, not ad hoc** — environment and tier overrides swap models and parameters without forking prompt files.
 - **Provider-portable** — write once, render for OpenAI, Anthropic, Gemini, or OpenRouter with correct body shapes.
 - **Validate early** — Zod schema validation, Levenshtein-based "did you mean?" suggestions for typos, and variable usage checks catch mistakes before runtime.
@@ -106,6 +107,7 @@ const response = await fetch('https://api.openai.com/v1/chat/completions', {
 - **Prompts as Markdown** — YAML front matter for settings, H1 headings for sections (`# System instructions`, `# Prompt template`, `# Notes`)
 - **Variable interpolation** — `{{ variable }}` syntax with strict and permissive modes
 - **Composition** — `includes` to share system instructions across prompts, with circular detection
+- **Folder defaults** — `defaults.md` inheritance for shared metadata and system instructions
 - **Overrides** — Environment and tier-based overrides (base → env → tier → runtime)
 - **4 provider adapters** — OpenAI, Anthropic, Gemini, OpenRouter — body-only output
 - **Validation** — Zod schema validation, Levenshtein-based "did you mean?" for typos, variable usage checks
@@ -213,6 +215,26 @@ includes:
 # System instructions
 
 Handle support requests carefully.
+```
+
+## Folder defaults
+
+Define a `defaults.md` file in `prompts/` (and optional subfolders) to provide inherited defaults for prompts:
+
+- Shared `metadata` defaults in front matter
+- Shared `# System instructions` in body
+- Nearest subfolder `defaults.md` overrides parent defaults
+- Prompt-local values always win over defaults
+- Included files (`includes`) are not affected by folder defaults
+
+> `promptopskit init` scaffolds a starter `defaults.md` in the prompts root.
+
+```text
+prompts/
+├── defaults.md
+└── support/
+    ├── defaults.md
+    └── reply.md
 ```
 
 ## CLI

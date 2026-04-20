@@ -22,6 +22,7 @@ Creates:
 
 ```
 prompts/
+├── defaults.md         # Folder-level defaults (metadata + system instructions)
 ├── hello.md            # Sample prompt with variables
 ├── hello.test.yaml     # Test sidecar with sample inputs
 └── shared/
@@ -49,6 +50,7 @@ Checks:
 - Unknown front matter keys with Levenshtein-based "did you mean?" suggestions
 - Variable usage — used but undeclared, declared but unused
 - Include resolution — missing files, circular includes
+- Folder defaults inheritance from `defaults.md` (metadata + system instructions)
 
 Output per file:
 ```
@@ -75,6 +77,8 @@ promptopskit compile <src> <out> [--dry-run] [--format json|esm] [--no-clean]
 | `--no-clean` | — | Don't clear the output directory before compiling |
 
 Includes are resolved during compilation so compiled artifacts are self-sufficient. The output directory is cleared by default before compiling (unless `--no-clean` is set).
+
+`defaults.md` files are treated as configuration inputs and are not compiled as standalone prompts.
 
 JSON format produces `.json` files:
 ```json

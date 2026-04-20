@@ -1,5 +1,4 @@
-import { readFile } from 'node:fs/promises';
-import { parsePrompt } from '../../parser/index.js';
+import { loadPromptFile } from '../../parser/index.js';
 import { resolveIncludes } from '../../composition/index.js';
 
 const HELP = `
@@ -23,8 +22,7 @@ export async function inspect(args: string[]): Promise<void> {
     process.exit(1);
   }
 
-  const content = await readFile(file, 'utf-8');
-  const { asset: parsed } = parsePrompt(content, file);
+  const { asset: parsed } = await loadPromptFile(file);
 
   // Resolve includes so the output shows the fully resolved asset
   const asset = (parsed.includes && parsed.includes.length > 0)

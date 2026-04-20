@@ -2,6 +2,18 @@
 
 PromptOpsKit provides test helpers and a sidecar test file convention.
 
+## Running the test suite
+
+```bash
+# Standard run
+npm test
+
+# Serial run (Vitest equivalent of Jest's --runInBand)
+npm run test:serial
+```
+
+> Note: `--runInBand` is a Jest flag and is not recognized by Vitest.
+
 ## Test helpers
 
 Import from `promptopskit/testing`:

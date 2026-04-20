@@ -1,6 +1,9 @@
-import { writeFile, mkdir } from 'node:fs/promises';
+import { writeFile, readFile, mkdir } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { existsSync } from 'node:fs';
+
+const MARKER_START = '<!-- promptopskit:start -->';
+const MARKER_END = '<!-- promptopskit:end -->';
 
 const HELP = `
 promptopskit skill [--target <target>] [--force]
@@ -15,9 +18,12 @@ By default, generates files for all major AI coding assistants:
   .github/instructions/promptopskit.instructions.md  GitHub Copilot (path-specific)
   .cursor/rules/promptopskit.mdc                     Cursor (project rule)
 
+If a file already exists, the promptopskit section is merged (replaced
+in-place or appended). Use --force to overwrite the entire file.
+
 Options:
   --target, -t     Deploy only a specific target (agents, claude, copilot, cursor)
-  --force, -f      Overwrite existing files
+  --force, -f      Overwrite entire file instead of merging
   --help, -h       Show this help
 `.trim();
 
@@ -74,16 +80,23 @@ export async function skill(args: string[]): Promise<void> {
   for (const target of targets) {
     const config = TARGETS[target];
     const filePath = config.path;
+    const markedContent = config.wrap(wrapMarkers(SKILL_CONTENT));
 
     if (existsSync(filePath) && !force) {
-      console.log(`  skip ${filePath} (already exists, use --force to overwrite)`);
+      const existing = await readFile(filePath, 'utf-8');
+      const merged = mergeContent(existing, markedContent);
+      if (merged === existing) {
+        console.log(`  skip ${filePath} (already up to date)`);
+        continue;
+      }
+      await writeFile(filePath, merged, 'utf-8');
+      console.log(`  ✓ ${filePath} (merged)`);
+      written++;
       continue;
     }
 
-    const content = config.wrap(SKILL_CONTENT);
-
     await mkdir(dirname(filePath), { recursive: true });
-    await writeFile(filePath, content, 'utf-8');
+    await writeFile(filePath, markedContent, 'utf-8');
     console.log(`  ✓ ${filePath}`);
     written++;
   }
@@ -92,6 +105,32 @@ export async function skill(args: string[]): Promise<void> {
     console.log();
     console.log(`AI agents will now understand how to create and manage prompts with promptopskit.`);
   }
+}
+
+// ---------------------------------------------------------------------------
+// Marker helpers
+// ---------------------------------------------------------------------------
+
+function wrapMarkers(content: string): string {
+  return `${MARKER_START}\n${content}\n${MARKER_END}`;
+}
+
+function mergeContent(existing: string, markedContent: string): string {
+  const startIdx = existing.indexOf(MARKER_START);
+  const endIdx = existing.indexOf(MARKER_END);
+
+  // Replace existing block in-place
+  if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+    return (
+      existing.slice(0, startIdx) +
+      markedContent +
+      existing.slice(endIdx + MARKER_END.length)
+    );
+  }
+
+  // Append to end
+  const separator = existing.endsWith('\n') ? '\n' : '\n\n';
+  return existing + separator + markedContent + '\n';
 }
 
 // ---------------------------------------------------------------------------

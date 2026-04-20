@@ -147,7 +147,9 @@ By default, generates files for **all** major AI coding assistants. Use `--targe
 | Option | Default | Description |
 |--------|---------|-------------|
 | `--target` | all | Deploy only a specific target |
-| `--force` | — | Overwrite existing instructions files |
+| `--force` | — | Overwrite entire file instead of merging |
+
+If a target file already exists, the promptopskit section (wrapped in `<!-- promptopskit:start -->` / `<!-- promptopskit:end -->` markers) is replaced in-place or appended to the end. Use `--force` to overwrite the entire file.
 
 Output locations:
 

@@ -103,6 +103,17 @@ export const SectionsSchema = z.object({
   notes: z.string().optional(),
 });
 
+// --- Defaults files (folder-level inheritance) ---
+
+export const PromptDefaultsSchema = z.object({
+  metadata: MetadataSchema.optional(),
+  sections: z.object({
+    system_instructions: z.string().optional(),
+  }).optional(),
+});
+
+export type PromptDefaults = z.infer<typeof PromptDefaultsSchema>;
+
 // --- Top-level PromptAsset ---
 
 export const PromptAssetSchema = z.object({

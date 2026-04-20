@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { existsSync, statSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 
-import { parsePrompt } from './parser/index.js';
+import { parsePrompt, loadPromptFile } from './parser/index.js';
 import { resolveIncludes } from './composition/index.js';
 import { applyOverrides } from './overrides/index.js';
 import { renderSections } from './renderer/index.js';
@@ -142,8 +142,7 @@ export class PromptOpsKit {
         );
       }
 
-      const content = await readFile(sourceFile, 'utf-8');
-      const { asset } = parsePrompt(content, sourceFile);
+      const { asset } = await loadPromptFile(sourceFile, { defaultsRoot: this.config.sourceDir });
 
       if (this.config.cache) {
         this.promptCache.set(sourceFile, asset);

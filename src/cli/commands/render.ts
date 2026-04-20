@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { parsePrompt } from '../../parser/index.js';
+import { loadPromptFile } from '../../parser/index.js';
 import { resolveIncludes } from '../../composition/index.js';
 import { applyOverrides } from '../../overrides/index.js';
 import { interpolate } from '../../renderer/interpolate.js';
@@ -56,8 +56,7 @@ export async function render(args: string[]): Promise<void> {
     }
   }
 
-  const content = await readFile(file, 'utf-8');
-  const { asset: parsed } = parsePrompt(content, file);
+  const { asset: parsed } = await loadPromptFile(file);
 
   // Resolve includes (matching the library pipeline)
   const resolved = (parsed.includes && parsed.includes.length > 0)

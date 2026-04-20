@@ -9,6 +9,7 @@ export {
   MetadataSchema,
   MCPSchema,
   SectionsSchema,
+  PromptDefaultsSchema,
   SourceSchema,
   InlineToolDefSchema,
   ToolRefSchema,
@@ -18,6 +19,7 @@ export {
 export type {
   PromptAsset,
   PromptAssetOverrides,
+  PromptDefaults,
   ResolvedPromptAsset,
   InlineToolDef,
   MCPServerRef,

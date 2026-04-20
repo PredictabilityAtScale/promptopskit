@@ -139,6 +139,18 @@ const { asset, raw } = parsePrompt(markdownString, '/path/to/file.md');
 // raw.body: string — markdown body
 ```
 
+### `loadPromptFile(filePath, options?)`
+
+Load a prompt from disk, parse it, and apply inherited `defaults.md` values.
+
+```typescript
+const { asset } = await loadPromptFile('/path/to/prompts/support/reply.md', {
+  defaultsRoot: '/path/to/prompts',
+});
+```
+
+`options.defaultsRoot` (optional) limits defaults discovery to a specific directory tree.
+
 ### `interpolate(template, variables, options?)`
 
 Replace `{{ variable }}` placeholders with values.

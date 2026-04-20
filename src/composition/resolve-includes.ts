@@ -1,6 +1,5 @@
-import { readFile } from 'node:fs/promises';
 import { resolve, dirname } from 'node:path';
-import { parsePrompt } from '../parser/index.js';
+import { loadPromptFile } from '../parser/index.js';
 import type { PromptAsset } from '../schema/index.js';
 
 /**
@@ -33,8 +32,7 @@ export async function resolveIncludes(
       throw new Error(`Circular include detected: ${fullPath} (included from ${basePath})`);
     }
 
-    const content = await readFile(fullPath, 'utf-8');
-    const { asset: includedAsset } = parsePrompt(content, fullPath);
+    const { asset: includedAsset } = await loadPromptFile(fullPath);
 
     // Recursively resolve nested includes
     const resolved = await resolveIncludes(includedAsset, fullPath, new Set(visited));

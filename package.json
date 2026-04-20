@@ -77,6 +77,7 @@
   "scripts": {
     "build": "tsup",
     "test": "vitest run",
+    "test:serial": "vitest run --no-file-parallelism --maxWorkers=1",
     "test:watch": "vitest",
     "lint": "tsc --noEmit",
     "clean": "rimraf dist",

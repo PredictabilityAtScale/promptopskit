@@ -41,6 +41,61 @@ Required fields:
 | `id` | Unique identifier for the prompt (e.g. `support.reply`) |
 | `schema_version` | Schema version — currently `1` |
 
+## Folder defaults (`defaults.md`)
+
+You can define shared defaults for an entire prompt tree by adding a `defaults.md` file in any folder.
+
+- `defaults.md` values apply to all prompts in that folder and subfolders.
+- Subfolders can define their own `defaults.md`; nearest (most local) values win.
+- Only missing prompt values are filled from defaults (explicit prompt values always take precedence).
+
+Supported default fields:
+
+- `metadata` (front matter)
+- `# System instructions` (body section)
+
+Example:
+
+```text
+prompts/
+├── defaults.md          # global metadata + system instructions
+└── support/
+    ├── defaults.md      # overrides for support/*
+    └── reply.md         # inherits from support/defaults.md
+```
+
+`prompts/defaults.md`:
+
+```markdown
+---
+metadata:
+  owner: platform
+  review_required: true
+---
+
+# System instructions
+
+Follow company-wide safety policy.
+```
+
+`prompts/support/defaults.md`:
+
+```markdown
+---
+metadata:
+  owner: support
+---
+
+# System instructions
+
+Use support tone and escalation policy.
+```
+
+`prompts/support/reply.md` (no local `metadata.owner` and no local system section) will use:
+- `metadata.owner: support` (nearest override)
+- `metadata.review_required: true` (inherited from parent defaults)
+- system instructions from `support/defaults.md`
+
 ## Sections
 
 The Markdown body is split on **H1 headings** into named sections. Three section names are recognized (case-insensitive):

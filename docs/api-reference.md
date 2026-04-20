@@ -149,7 +149,9 @@ const { asset } = await loadPromptFile('/path/to/prompts/support/reply.md', {
 });
 ```
 
-`options.defaultsRoot` (optional) limits defaults discovery to a specific directory tree.
+`options.defaultsRoot` (optional) limits defaults discovery to a specific directory tree. When omitted, defaults to the prompt file's own directory (only the local `defaults.md` is checked). Pass the prompts root directory to enable full ancestor traversal.
+
+> **Note:** `includes` are resolved with `parsePrompt`, not `loadPromptFile`, so included files do not inherit folder defaults. This prevents double-applying system instructions.
 
 ### `interpolate(template, variables, options?)`
 

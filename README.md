@@ -225,6 +225,9 @@ Define a `defaults.md` file in `prompts/` (and optional subfolders) to provide i
 - Shared `# System instructions` in body
 - Nearest subfolder `defaults.md` overrides parent defaults
 - Prompt-local values always win over defaults
+- Included files (`includes`) are not affected by folder defaults
+
+> `promptopskit init` scaffolds a starter `defaults.md` in the prompts root.
 
 ```text
 prompts/

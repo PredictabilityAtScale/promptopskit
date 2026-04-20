@@ -48,6 +48,7 @@ You can define shared defaults for an entire prompt tree by adding a `defaults.m
 - `defaults.md` values apply to all prompts in that folder and subfolders.
 - Subfolders can define their own `defaults.md`; nearest (most local) values win.
 - Only missing prompt values are filled from defaults (explicit prompt values always take precedence).
+- Included files (`includes`) are **not** affected by folder defaults — only the top-level prompt inherits.
 
 Supported default fields:
 

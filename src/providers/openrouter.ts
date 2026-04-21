@@ -6,6 +6,7 @@ import type {
   ValidationResult,
   RuntimeRenderOptions,
 } from './types.js';
+import { withPromptInputSupport } from './prompt-input.js';
 
 /**
  * OpenRouter provider adapter.
@@ -13,7 +14,7 @@ import type {
  * only the provider label differs. The app handles the different
  * base URL and extra headers (HTTP-Referer, X-Title).
  */
-export const openrouterAdapter: ProviderAdapter = {
+export const openrouterAdapter: ProviderAdapter = withPromptInputSupport({
   name: 'openrouter',
 
   validate(asset: ResolvedPromptAsset, runtime?: RuntimeRenderOptions): ValidationResult {
@@ -27,16 +28,4 @@ export const openrouterAdapter: ProviderAdapter = {
       provider: 'openrouter',
     };
   },
-
-  async validatePrompt(input, runtime) {
-    return openaiAdapter.validatePrompt(input, runtime);
-  },
-
-  async renderPrompt(input, runtime) {
-    const result = await openaiAdapter.renderPrompt(input, runtime);
-    return {
-      ...result,
-      provider: 'openrouter',
-    };
-  },
-};
+});

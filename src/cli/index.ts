@@ -14,7 +14,7 @@ Usage:
 Commands:
   init [dir]                           Scaffold a prompts directory with starter files
   validate <dir>                       Validate prompt files
-  compile <src> <out> [options]        Compile .md prompts to JSON/ESM artifacts
+  compile [src] [out] [options]        Compile .md prompts to JSON/ESM artifacts
   render <file> [options]              Render a prompt preview
   inspect <file>                       Print normalized prompt asset
   skill [options]                      Deploy AI agent instructions into your project

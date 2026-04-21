@@ -355,4 +355,85 @@ Hello.
     const compiled = JSON.parse(await readFile(join(outDir, 'simple.json'), 'utf-8'));
     expect(compiled.sections.prompt_template).toBe('Hello.');
   });
+
+  it('defaults to ./prompts and ./.generated-prompts/json', async () => {
+    const cwd = process.cwd();
+    const srcDir = join(tmpDir, 'prompts');
+    const outDir = join(tmpDir, '.generated-prompts', 'json');
+    await mkdir(srcDir, { recursive: true });
+
+    await writeFile(join(srcDir, 'defaulted.md'), `---
+id: defaulted
+schema_version: 1
+---
+
+# Prompt template
+
+Hello.
+`);
+
+    process.chdir(tmpDir);
+
+    try {
+      const { compile } = await import('../src/cli/commands/compile.js');
+      await compile([]);
+    } finally {
+      process.chdir(cwd);
+    }
+
+    const compiled = JSON.parse(await readFile(join(outDir, 'defaulted.json'), 'utf-8'));
+    expect(compiled.id).toBe('defaulted');
+  });
+
+  it('defaults ESM output to ./.generated-prompts/esm', async () => {
+    const cwd = process.cwd();
+    const srcDir = join(tmpDir, 'prompts');
+    const outDir = join(tmpDir, '.generated-prompts', 'esm');
+    await mkdir(srcDir, { recursive: true });
+
+    await writeFile(join(srcDir, 'esm-default.md'), `---
+id: esm-default
+schema_version: 1
+---
+
+# Prompt template
+
+Hello.
+`);
+
+    process.chdir(tmpDir);
+
+    try {
+      const { compile } = await import('../src/cli/commands/compile.js');
+      await compile(['--format', 'esm']);
+    } finally {
+      process.chdir(cwd);
+    }
+
+    const compiled = await readFile(join(outDir, 'esm-default.mjs'), 'utf-8');
+    expect(compiled).toContain('export default');
+    expect(compiled).toContain('"id": "esm-default"');
+  });
+
+  it('accepts -s and -o aliases for source and output', async () => {
+    const srcDir = join(tmpDir, 'source-prompts');
+    const outDir = join(tmpDir, 'custom-output');
+    await mkdir(srcDir, { recursive: true });
+
+    await writeFile(join(srcDir, 'aliased.md'), `---
+id: aliased
+schema_version: 1
+---
+
+# Prompt template
+
+Hello.
+`);
+
+    const { compile } = await import('../src/cli/commands/compile.js');
+    await compile(['-s', srcDir, '-o', outDir]);
+
+    const compiled = JSON.parse(await readFile(join(outDir, 'aliased.json'), 'utf-8'));
+    expect(compiled.id).toBe('aliased');
+  });
 });

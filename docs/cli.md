@@ -65,18 +65,22 @@ Output per file:
 Compile `.md` prompt files to JSON or ESM artifacts.
 
 ```bash
-promptopskit compile <src> <out> [--dry-run] [--format json|esm] [--no-clean]
+promptopskit compile [src] [out] [--dry-run] [--format json|esm] [--no-clean]
 ```
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `<src>` | — | Source directory (required) |
-| `<out>` | — | Output directory (required) |
+| `<src>` | `./prompts` | Source directory |
+| `<out>` | `./.generated-prompts/json` | Output directory |
+| `--source`, `-s` | — | Explicit source directory override |
+| `--output`, `-o` | — | Explicit output directory override |
 | `--format` | `json` | Output format: `json` or `esm` |
 | `--dry-run` | — | Show what would be compiled without writing |
 | `--no-clean` | — | Don't clear the output directory before compiling |
 
 Includes are resolved during compilation so compiled artifacts are self-sufficient. The output directory is cleared by default before compiling (unless `--no-clean` is set).
+
+If you omit `<out>`, the CLI chooses `./.generated-prompts/json` for `json` and `./.generated-prompts/esm` for `esm`.
 
 `defaults.md` files are treated as configuration inputs and are not compiled as standalone prompts.
 

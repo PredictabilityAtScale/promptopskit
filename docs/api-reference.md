@@ -9,7 +9,7 @@ import { createPromptOpsKit } from 'promptopskit';
 
 const kit = createPromptOpsKit({
   sourceDir: './prompts',
-  compiledDir: './dist/prompts',
+  compiledDir: './.generated-prompts/json',
   mode: 'auto',
   cache: true,
   warnings: {

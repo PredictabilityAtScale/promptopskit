@@ -258,7 +258,7 @@ import { createPromptOpsKit } from 'promptopskit';
 
 const kit = createPromptOpsKit({
   sourceDir: './prompts',
-  compiledDir: './dist/prompts',
+  compiledDir: './.generated-prompts/json',
   warnings: {
     contextSize: process.env.NODE_ENV === 'production' ? 'off' : 'console-and-result',
   },
@@ -289,7 +289,7 @@ const request = await openaiAdapter.renderPrompt(
   {
     path: 'support/reply',
     sourceDir: path.join(process.cwd(), 'prompts'),
-    compiledDir: path.join(process.cwd(), 'dist/prompts'),
+    compiledDir: path.join(process.cwd(), '.generated-prompts', 'json'),
   },
   {
     environment: 'production',
@@ -311,7 +311,7 @@ const request = await openaiAdapter.renderPrompt(
 ```typescript
 import type { ResolvedPromptAsset } from 'promptopskit';
 import { openaiAdapter } from 'promptopskit/openai';
-import compiledPrompt from './dist/prompts/support/reply.mjs';
+import compiledPrompt from './.generated-prompts/esm/support/reply.mjs';
 
 const prompt = compiledPrompt as ResolvedPromptAsset;
 
@@ -344,13 +344,13 @@ Prompts should usually be validated and compiled as part of the normal build pip
 {
   "scripts": {
     "validate:prompts": "promptopskit validate ./prompts --strict",
-    "build:prompts": "promptopskit compile ./prompts ./dist/prompts --format json",
+    "build:prompts": "promptopskit compile",
     "build": "npm run validate:prompts && npm run build:prompts && tsup"
   }
 }
 ```
 
-Use `--format json` for server-side Node usage where prompts are loaded from disk. Use `--format esm` when prompts need to be imported into a bundle.
+`promptopskit compile` defaults to JSON output in `./.generated-prompts/json`, which matches runtime `compiledDir` loading. Use `promptopskit compile --format esm` when prompts need to be imported into a bundle; those artifacts default to `./.generated-prompts/esm`.
 
 ### Build strategy by environment
 
@@ -362,7 +362,7 @@ Use `--format json` for server-side Node usage where prompts are loaded from dis
 
 - Add `validate:prompts` before `build:prompts` so schema or variable mistakes fail fast
 - Treat compiled artifacts as build outputs, not the source of truth
-- Keep prompt source in `./prompts` and compiled output in a generated directory such as `./dist/prompts` or `./src/generated/prompts`
+- Keep prompt source in `./prompts`; use `./.generated-prompts/json` as the default server output and `./.generated-prompts/esm` for imported client artifacts unless a project-specific build layout needs something else
 - If using `createPromptOpsKit` in `auto` mode, point both `sourceDir` and `compiledDir` at those directories so local development can fall back to source when artifacts are stale or missing
 
 ### Typical server-side setup
@@ -372,7 +372,7 @@ import { createPromptOpsKit } from 'promptopskit';
 
 export const prompts = createPromptOpsKit({
   sourceDir: './prompts',
-  compiledDir: './dist/prompts',
+  compiledDir: './.generated-prompts/json',
   mode: 'auto',
 });
 ```
@@ -432,7 +432,7 @@ Hello {{ name }}
 |---------|-------------|
 | `promptopskit init [dir]` | Scaffold a prompts directory with starter files (including `defaults.md`) |
 | `promptopskit validate <dir>` | Validate all prompt files in a directory |
-| `promptopskit compile <src> <out>` | Compile `.md` prompts to JSON or ESM artifacts |
+| `promptopskit compile [src] [out]` | Compile `.md` prompts to JSON or ESM artifacts |
 | `promptopskit render <file>` | Render a prompt preview |
 | `promptopskit inspect <file>` | Print the normalized prompt asset |
 

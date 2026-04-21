@@ -68,7 +68,7 @@ const request = await openaiAdapter.renderPrompt(
   {
     path: 'summarizePullRequest',
     sourceDir: path.join(process.cwd(), 'prompts'),
-    compiledDir: path.join(process.cwd(), 'output-json'),
+    compiledDir: path.join(process.cwd(), '.generated-prompts', 'json'),
   },
   {
     environment: 'dev',
@@ -86,7 +86,7 @@ The top-level `promptopskit` runtime is Node-oriented. It supports prompt loadin
 
 For browser or client-side code:
 
-- Precompile prompts to ESM with `promptopskit compile ./prompts ./dist/prompts --format esm` and import the generated artifact, or inline a small `ResolvedPromptAsset`.
+- Precompile prompts to ESM with `promptopskit compile --format esm` and import the generated artifact from `./.generated-prompts/esm`, or inline a small `ResolvedPromptAsset`.
 - Pass `environment` and `tier` directly to `adapter.validate()` and `adapter.render()` when you need overrides on the client side.
 - Avoid `renderPrompt()` in browser-only code because resolving prompt files from disk is Node-oriented.
 - Keep provider credentials on the server. In production, use the rendered request body with a server endpoint, server action, or edge function that owns the API key.

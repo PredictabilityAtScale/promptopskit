@@ -187,7 +187,7 @@ Direct adapter rendering also accepts `environment` and `tier` selectors. This i
 ```typescript
 import type { ResolvedPromptAsset } from 'promptopskit';
 import { openaiAdapter } from 'promptopskit/openai';
-import compiledPrompt from './dist/prompts/summarizePullRequest.mjs';
+import compiledPrompt from './.generated-prompts/esm/summarizePullRequest.mjs';
 
 const prompt = compiledPrompt as ResolvedPromptAsset;
 
@@ -217,7 +217,7 @@ const request = await openaiAdapter.renderPrompt(
   {
     path: 'summarizePullRequest',
     sourceDir: path.join(process.cwd(), 'prompts'),
-    compiledDir: path.join(process.cwd(), 'output-json'),
+    compiledDir: path.join(process.cwd(), '.generated-prompts', 'json'),
   },
   {
     environment: 'dev',
@@ -386,7 +386,7 @@ promptopskit skill
 promptopskit validate <dir> [--strict]
 
 # Compile .md → JSON/ESM artifacts
-promptopskit compile <src> <out> [--dry-run] [--format json|esm] [--no-clean]
+promptopskit compile [src] [out] [--dry-run] [--format json|esm] [--no-clean]
 
 # Render a prompt preview (auto-loads .test.yaml sidecar)
 promptopskit render <file> [--env <name>] [--tier <name>] [--vars <file>] [--json]

@@ -4,11 +4,13 @@ import { loadPromptFile } from '../../parser/index.js';
 import { resolveIncludes } from '../../composition/index.js';
 
 const HELP = `
-promptopskit compile <sourceDir> <outputDir> [options]
+promptopskit compile [sourceDir] [outputDir] [options]
 
-Compile .md prompt files to JSON artifacts.
+Compile .md prompt files to JSON or ESM artifacts.
 
 Options:
+  --source, -s   Source directory (default: ./prompts)
+  --output, -o   Output directory (default: ./.generated-prompts/<format>)
   --no-clean     Don't clear the output directory before compiling
   --dry-run      Show what would be compiled without writing files
   --format       Output format: json (default) or esm
@@ -21,16 +23,7 @@ export async function compile(args: string[]): Promise<void> {
     return;
   }
 
-  const positional = args.filter((a) => !a.startsWith('--'));
-  const sourceDir = positional[0];
-  const outputDir = positional[1];
-
-  if (!sourceDir || !outputDir) {
-    console.error('Error: Please provide source and output directories.');
-    console.error('Usage: promptopskit compile <sourceDir> <outputDir>');
-    process.exit(1);
-  }
-
+  const positional = getPositionalArgs(args, new Set(['--format', '--source', '--output', '-s', '-o']));
   const dryRun = args.includes('--dry-run');
   const noClean = args.includes('--no-clean');
   const format = getFlag(args, '--format') ?? 'json';
@@ -39,6 +32,9 @@ export async function compile(args: string[]): Promise<void> {
     console.error(`Error: Unknown format "${format}". Use "json" or "esm".`);
     process.exit(1);
   }
+
+  const sourceDir = getFlag(args, '--source', '-s') ?? positional[0] ?? './prompts';
+  const outputDir = getFlag(args, '--output', '-o') ?? positional[1] ?? defaultOutputDirForFormat(format);
 
   // Collect prompt files
   const files = await collectPromptFiles(sourceDir);
@@ -103,10 +99,36 @@ export async function compile(args: string[]): Promise<void> {
   }
 }
 
-function getFlag(args: string[], flag: string): string | undefined {
-  const idx = args.indexOf(flag);
-  if (idx >= 0 && idx + 1 < args.length) {
-    return args[idx + 1];
+function defaultOutputDirForFormat(format: 'json' | 'esm'): string {
+  return format === 'esm' ? './.generated-prompts/esm' : './.generated-prompts/json';
+}
+
+function getPositionalArgs(args: string[], flagsWithValues: Set<string>): string[] {
+  const positional: string[] = [];
+
+  for (let index = 0; index < args.length; index++) {
+    const arg = args[index];
+    if (flagsWithValues.has(arg)) {
+      index++;
+      continue;
+    }
+
+    if (arg.startsWith('-')) {
+      continue;
+    }
+
+    positional.push(arg);
+  }
+
+  return positional;
+}
+
+function getFlag(args: string[], ...flags: string[]): string | undefined {
+  for (const flag of flags) {
+    const idx = args.indexOf(flag);
+    if (idx >= 0 && idx + 1 < args.length) {
+      return args[idx + 1];
+    }
   }
   return undefined;
 }

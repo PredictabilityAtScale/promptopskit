@@ -119,7 +119,7 @@ This checks all `.md` files for schema errors, unknown front matter keys (with "
 ## Compile for production
 
 ```bash
-npx promptopskit compile ./prompts ./dist/prompts
+npx promptopskit compile
 ```
 
 Pre-compiles `.md` files to JSON (or ESM) artifacts so deployments skip parsing entirely. Add to your build scripts:
@@ -127,7 +127,7 @@ Pre-compiles `.md` files to JSON (or ESM) artifacts so deployments skip parsing 
 ```json
 {
   "scripts": {
-    "build:prompts": "promptopskit compile ./prompts ./dist/prompts"
+    "build:prompts": "promptopskit compile"
   }
 }
 ```

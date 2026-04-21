@@ -7,6 +7,9 @@ promptopskit init [dir]
 
 Scaffold a prompts directory with starter files.
 
+Arguments:
+  dir            Target directory (default: ./prompts)
+
 Options:
   --help, -h     Show this help
 `.trim();
@@ -180,7 +183,7 @@ export async function init(args: string[]): Promise<void> {
       if (!pkg.scripts?.['build:prompts']) {
         console.log();
         console.log(`Tip: Add to your package.json scripts:`);
-        console.log(`  "build:prompts": "promptopskit compile ${dir} ./dist/prompts"`);
+        console.log(`  "build:prompts": "promptopskit compile ${dir}"`);
       }
     } catch {
       // Ignore parse errors

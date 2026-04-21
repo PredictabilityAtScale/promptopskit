@@ -7,12 +7,13 @@ import type {
 } from './types.js';
 import { renderSections } from '../renderer/index.js';
 import { resolveAssetForProvider } from './resolve-asset.js';
+import { withPromptInputSupport } from './prompt-input.js';
 
 /**
  * OpenAI provider adapter.
  * Produces request bodies compatible with the OpenAI Chat Completions API.
  */
-export const openaiAdapter: ProviderAdapter = {
+export const openaiAdapter: ProviderAdapter = withPromptInputSupport({
   name: 'openai',
 
   validate(asset: ResolvedPromptAsset, runtime?: RuntimeRenderOptions): ValidationResult {
@@ -111,4 +112,4 @@ export const openaiAdapter: ProviderAdapter = {
       model: resolvedAsset.model ?? 'unknown',
     };
   },
-};
+});

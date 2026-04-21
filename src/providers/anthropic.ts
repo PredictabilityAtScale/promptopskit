@@ -7,12 +7,13 @@ import type {
 } from './types.js';
 import { renderSections } from '../renderer/index.js';
 import { resolveAssetForProvider } from './resolve-asset.js';
+import { withPromptInputSupport } from './prompt-input.js';
 
 /**
  * Anthropic provider adapter.
  * Produces request bodies compatible with the Anthropic Messages API.
  */
-export const anthropicAdapter: ProviderAdapter = {
+export const anthropicAdapter: ProviderAdapter = withPromptInputSupport({
   name: 'anthropic',
 
   validate(asset: ResolvedPromptAsset, runtime?: RuntimeRenderOptions): ValidationResult {
@@ -114,4 +115,4 @@ export const anthropicAdapter: ProviderAdapter = {
       model: resolvedAsset.model ?? 'unknown',
     };
   },
-};
+});

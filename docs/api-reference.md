@@ -260,6 +260,9 @@ Key types exported from `promptopskit`:
 import type {
   PromptAsset,
   ResolvedPromptAsset,
+  ProviderInlinePromptSource,
+  ProviderPromptInput,
+  ProviderPromptLookup,
   ProviderRequest,
   RuntimeRenderOptions,
   ProviderAdapter,
@@ -272,3 +275,9 @@ import type {
   OverrideOptions,
 } from 'promptopskit';
 ```
+
+Provider helper types:
+
+- `ProviderPromptLookup` — `{ path, sourceDir, compiledDir?, mode?, cache? }` for adapter-managed source or compiled lookup
+- `ProviderInlinePromptSource` — `{ source }` for adapter-managed inline prompt source
+- `ProviderPromptInput` — union of `ResolvedPromptAsset`, `ProviderPromptLookup`, and `ProviderInlinePromptSource`

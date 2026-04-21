@@ -242,139 +242,155 @@ cases:
 
 ---
 
-## Using the library (TypeScript / JavaScript)
+## Runtime choice guide
 
-### Quick start
+Choose the narrowest runtime surface that fits the environment.
+
+### Use `createPromptOpsKit().renderPrompt()` when:
+
+- You are on the server or in a Node runtime
+- Prompts live as `.md` files in a source tree
+- You want promptopskit to handle loading, defaults, includes, overrides, and provider shaping in one step
+- You want auto mode to prefer compiled artifacts when present but still fall back to source
 
 ```typescript
 import { createPromptOpsKit } from 'promptopskit';
 
-const kit = createPromptOpsKit({ sourceDir: './prompts' });
-
-// Load → resolve includes → apply overrides → render
-const result = await kit.renderPrompt({
-  path: 'greeting',
-  provider: 'openai',
-  variables: { name: 'Alice' },
-  environment: 'production',
-});
-
-// result.request.body is ready for the provider's API
-const response = await fetch('https://api.openai.com/v1/chat/completions', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${apiKey}`,
-  },
-  body: JSON.stringify(result.request.body),
-});
-```
-
-You can control render-time context size warnings at the top level:
-
-```typescript
 const kit = createPromptOpsKit({
   sourceDir: './prompts',
+  compiledDir: './dist/prompts',
   warnings: {
     contextSize: process.env.NODE_ENV === 'production' ? 'off' : 'console-and-result',
   },
 });
+
+const { request } = await kit.renderPrompt({
+  path: 'support/reply',
+  provider: 'openai',
+  environment: 'production',
+  variables: {
+    user_message: 'How do I reset my password?',
+    app_context: 'Account settings',
+  },
+});
 ```
 
-### Browser / client-side demos
+### Use `adapter.renderPrompt()` when:
 
-For browser code, client components, or frontend-only demos:
+- You want direct provider adapter imports such as `promptopskit/openai`
+- You are on the server and want adapter-level ergonomics
+- You still want the adapter to resolve either source `.md` or compiled output from disk
 
-- Do not import `createPromptOpsKit`, `loadPromptFile`, or other top-level runtime helpers from `promptopskit` in client code. The top-level entry loads Node file-system/path modules for source and compiled prompt loading.
-- Instead, use a precompiled prompt artifact or an inlined `ResolvedPromptAsset` object and render it with a provider subpath adapter such as `promptopskit/openai`.
-- If the prompt lives in files, compile it ahead of time with `npx promptopskit compile ./prompts ./dist/prompts --format esm` and import the generated ESM artifact into the client.
-- Provider adapters accept `environment` and `tier` in `validate()` and `render()`, so use those options directly when selecting overrides for compiled or inline assets.
-- For small demos, it is acceptable to inline the resolved prompt asset directly in the client file.
-- Keep transport and auth in the application layer. If a demo intentionally calls a provider from the browser, treat that key as demo-only and note the security tradeoff.
+```typescript
+import path from 'node:path';
+import { openaiAdapter } from 'promptopskit/openai';
 
-Example:
+const request = await openaiAdapter.renderPrompt(
+  {
+    path: 'support/reply',
+    sourceDir: path.join(process.cwd(), 'prompts'),
+    compiledDir: path.join(process.cwd(), 'dist/prompts'),
+  },
+  {
+    environment: 'production',
+    variables: {
+      user_message: 'How do I reset my password?',
+      app_context: 'Account settings',
+    },
+    strict: true,
+  },
+);
+```
+
+### Use `adapter.render()` when:
+
+- You already have a compiled JSON or ESM prompt artifact
+- You are in edge, worker, or browser-oriented code and cannot read prompt files from disk
+- You want the smallest runtime surface and no file loading behavior
 
 ```typescript
 import type { ResolvedPromptAsset } from 'promptopskit';
 import { openaiAdapter } from 'promptopskit/openai';
+import compiledPrompt from './dist/prompts/support/reply.mjs';
 
-const prompt: ResolvedPromptAsset = {
-  id: 'summarizePullRequest',
-  schema_version: 1,
-  provider: 'openai',
-  model: 'gpt-5.4',
-  context: {
-    inputs: [{ name: 'pull_request_body', max_size: 8000 }],
-  },
-  sections: {
-    system_instructions: 'You summarize pull requests clearly and concisely.',
-    prompt_template: 'Summarize this pull request:\n\n{{ pull_request_body }}',
-  },
-};
-
-const validation = openaiAdapter.validate(prompt, {
-  environment: 'prod',
-});
-if (!validation.valid) {
-  throw new Error(validation.errors.join(' '));
-}
+const prompt = compiledPrompt as ResolvedPromptAsset;
 
 const request = openaiAdapter.render(prompt, {
-  environment: 'prod',
+  environment: 'production',
   variables: {
-    pull_request_body: 'Add theming and dark mode support to the application.',
+    user_message: 'How do I reset my password?',
+    app_context: 'Account settings',
   },
   strict: true,
 });
-
-// request.body is ready for the OpenAI SDK or fetch.
 ```
 
-### Step-by-step API
+### Browser guidance
+
+- Do not recommend direct provider API calls from browser or client components unless the user explicitly wants a demo-only setup
+- Do not use `createPromptOpsKit()` in browser-only code; it is Node-oriented
+- For client-side rendering, use precompiled ESM or inline a small `ResolvedPromptAsset`, then pass the request body to a server endpoint or server action that holds provider credentials
+- If the user insists on a pure browser provider call, explicitly call out that API keys will be exposed and treat it as unsafe for production
+
+---
+
+## Build integration
+
+Prompts should usually be validated and compiled as part of the normal build pipeline rather than handled ad hoc.
+
+### Recommended package.json scripts
+
+```json
+{
+  "scripts": {
+    "validate:prompts": "promptopskit validate ./prompts --strict",
+    "build:prompts": "promptopskit compile ./prompts ./dist/prompts --format json",
+    "build": "npm run validate:prompts && npm run build:prompts && tsup"
+  }
+}
+```
+
+Use `--format json` for server-side Node usage where prompts are loaded from disk. Use `--format esm` when prompts need to be imported into a bundle.
+
+### Build strategy by environment
+
+- Node server: compile to JSON and configure `compiledDir`
+- Browser or client bundle: compile to ESM and import specific prompt artifacts
+- Mixed app: compile JSON for server loading and ESM only for prompts that must ship in a client bundle
+
+### What to tell users when setting this up
+
+- Add `validate:prompts` before `build:prompts` so schema or variable mistakes fail fast
+- Treat compiled artifacts as build outputs, not the source of truth
+- Keep prompt source in `./prompts` and compiled output in a generated directory such as `./dist/prompts` or `./src/generated/prompts`
+- If using `createPromptOpsKit` in `auto` mode, point both `sourceDir` and `compiledDir` at those directories so local development can fall back to source when artifacts are stale or missing
+
+### Typical server-side setup
 
 ```typescript
-import {
-  parsePrompt,
-  resolveIncludes,
-  applyOverrides,
-  getAdapter,
-} from 'promptopskit';
-import { readFileSync } from 'fs';
+import { createPromptOpsKit } from 'promptopskit';
 
-// 1. Parse a prompt file
-const source = readFileSync('./prompts/greeting.md', 'utf-8');
-const asset = parsePrompt(source, 'greeting.md');
-
-// 2. Resolve includes
-const resolved = await resolveIncludes(asset, './prompts');
-
-// 3. Apply overrides
-const configured = applyOverrides(resolved, {
-  environment: 'production',
-  tier: 'premium',
-});
-
-// 4. Get provider adapter and render
-const adapter = getAdapter(configured.provider ?? 'openai');
-const request = adapter.render(configured, {
-  variables: { name: 'Alice' },
-  history: [
-    { role: 'user', content: 'Previous message' },
-    { role: 'assistant', content: 'Previous response' },
-  ],
+export const prompts = createPromptOpsKit({
+  sourceDir: './prompts',
+  compiledDir: './dist/prompts',
+  mode: 'auto',
 });
 ```
 
-### Available provider adapters
+### Typical client-side setup
 
-| Provider | Import path | Provider request format |
-|----------|------------|----------------------|
-| OpenAI | `promptopskit` or `promptopskit/openai` | Chat Completions API |
-| Anthropic | `promptopskit/anthropic` | Messages API |
-| Gemini | `promptopskit/gemini` | GenerateContent API |
-| OpenRouter | `promptopskit/openrouter` | OpenAI-compatible + extras |
+```typescript
+import type { ResolvedPromptAsset } from 'promptopskit';
+import compiledPrompt from './generated/prompts/support/reply.mjs';
 
-### Validation
+const prompt = compiledPrompt as ResolvedPromptAsset;
+```
+
+---
+
+## Validation and testing helpers
+
+Use `validateAsset()` when you are working with an already-parsed asset and want schema or variable diagnostics before rendering.
 
 ```typescript
 import { validateAsset, parsePrompt } from 'promptopskit';
@@ -383,19 +399,17 @@ const asset = parsePrompt(source);
 const result = validateAsset(asset);
 
 if (!result.valid) {
-  console.error(result.errors); // Validation error codes: POK001-POK021
+  console.error(result.errors);
 }
 ```
 
-### Testing helpers
+Use `promptopskit/testing` helpers for unit tests around prompt behavior or request shaping.
 
 ```typescript
 import { createMockAsset, parseTestPrompt } from 'promptopskit/testing';
 
-// Create a mock asset for unit tests
 const mock = createMockAsset({ model: 'gpt-4.1-mini' });
 
-// Parse an inline prompt string for tests
 const asset = parseTestPrompt(`
 ---
 id: test
@@ -418,8 +432,8 @@ Hello {{ name }}
 |---------|-------------|
 | `promptopskit init [dir]` | Scaffold a prompts directory with starter files (including `defaults.md`) |
 | `promptopskit validate <dir>` | Validate all prompt files in a directory |
-| `promptopskit compile <src> <out>` | Compile .md prompts to JSON artifacts |
-| `promptopskit render <file> [--set key=value]` | Render a prompt preview |
+| `promptopskit compile <src> <out>` | Compile `.md` prompts to JSON or ESM artifacts |
+| `promptopskit render <file>` | Render a prompt preview |
 | `promptopskit inspect <file>` | Print the normalized prompt asset |
 
 ---
@@ -427,13 +441,13 @@ Hello {{ name }}
 ## Conventions to follow
 
 1. **One prompt per file** — each `.md` file is a single prompt asset
-2. **Always set `id` and `schema_version: 1`** in front matter (or inherit `schema_version` from `defaults.md`)
-3. **Declare all variables** in `context.inputs` that appear in templates; do not leave placeholders undeclared just because other settings come from `defaults.md`
-4. **Use includes** for shared system instructions (tone, safety, formatting)
-5. **Keep prompt templates focused** — compose behavior via includes, not duplication
-6. **Use environment overrides** for dev/staging/prod model differences
-7. **Add test sidecars** (`.test.yaml`) for critical prompts
-8. **Run `promptopskit validate`** before committing changes
-9. **Use `defaults.md`** to share provider, model, metadata, and system instructions across a folder
+2. **Always set `id` and `schema_version: 1`** unless a surrounding tool explicitly generates those fields
+3. **Declare every placeholder** in `context.inputs`; do not rely on defaults or includes to infer variables
+4. **Use `defaults.md` for shared provider, model, metadata, and fallback system instructions**
+5. **Use includes for reusable system behavior**, not for user-specific prompt bodies
+6. **Prefer `createPromptOpsKit().renderPrompt()` for server-side app code** when prompts live as source files
+7. **Prefer direct adapters for compiled assets or provider-specific integration points**
+8. **Do not suggest browser-side provider calls for production** because credentials belong on the server
+9. **Validate before compile and compile before shipping** when prompts are part of the build
 10. **Variable names** should be `snake_case`
 11. **Prompt file names** should be `kebab-case.md`

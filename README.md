@@ -205,6 +205,32 @@ const request = openaiAdapter.render(prompt, {
 });
 ```
 
+In browser or client-side code, keep provider credentials on the server. Use the rendered request body with your own server endpoint, server action, or edge function rather than calling a provider directly from the client.
+
+On the server, adapters also provide async prompt-aware helpers so you can pass a prompt key plus `sourceDir` and `compiledDir` without creating a `PromptOpsKit` instance:
+
+```typescript
+import path from 'node:path';
+import { openaiAdapter } from 'promptopskit/openai';
+
+const request = await openaiAdapter.renderPrompt(
+  {
+    path: 'summarizePullRequest',
+    sourceDir: path.join(process.cwd(), 'prompts'),
+    compiledDir: path.join(process.cwd(), 'output-json'),
+  },
+  {
+    environment: 'dev',
+    variables: {
+      pull_request_body: 'Implement theming and dark mode across the app.',
+    },
+    strict: true,
+  },
+);
+```
+
+`renderPrompt()` and `validatePrompt()` use the same source-versus-compiled resolution rules as `kit.renderPrompt()`. The existing synchronous `render()` and `validate()` methods still work for already-resolved compiled or inline assets.
+
 ## Optional UsageTap Tracking
 
 PromptOpsKit can also help you track provider calls with UsageTap.com while keeping the core render API body-only.

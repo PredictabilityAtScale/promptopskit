@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import path from 'node:path';
 import { openaiAdapter } from '../src/providers/openai.js';
 import { anthropicAdapter } from '../src/providers/anthropic.js';
 import { geminiAdapter } from '../src/providers/gemini.js';
@@ -89,6 +90,67 @@ describe('OpenAI adapter', () => {
 
     const messages = result.body.messages as Array<{ role: string; content: string }>;
     expect(messages).toHaveLength(4); // system + 2 history + user
+  });
+
+  it('renders directly from a prompt path', async () => {
+    const result = await openaiAdapter.renderPrompt(
+      {
+        path: 'hello',
+        sourceDir: path.resolve('fixtures/prompts'),
+        compiledDir: path.resolve('fixtures/compiled'),
+      },
+      {
+        variables: {
+          name: 'World',
+          app_context: 'support chat',
+        },
+      },
+    );
+
+    expect(result.provider).toBe('openai');
+    expect(result.model).toBe('gpt-5.4');
+
+    const messages = result.body.messages as Array<{ role: string; content: string }>;
+    expect(messages[0]).toEqual({
+      role: 'system',
+      content: 'You are a friendly assistant helping in support chat.',
+    });
+    expect(messages[1]).toEqual({ role: 'user', content: 'Say hello to World.' });
+  });
+
+  it('validates inline prompt source with defaults applied by runtime overrides', async () => {
+    const validation = await openaiAdapter.validatePrompt(
+      {
+        source: [
+          '---',
+          'id: inline',
+          'provider: openai',
+          'model: gpt-5.4',
+          '---',
+          '',
+          '# Prompt template',
+          '',
+          'Summarize {{ subject }}.',
+        ].join('\n'),
+      },
+      {
+        environment: 'dev',
+      },
+    );
+
+    expect(validation.valid).toBe(true);
+  });
+
+  it('renders a resolved asset through renderPrompt without misclassifying source metadata', async () => {
+    const result = await openaiAdapter.renderPrompt(baseAsset, {
+      variables: { name: 'World' },
+    });
+
+    expect(result.provider).toBe('openai');
+
+    const messages = result.body.messages as Array<{ role: string; content: string }>;
+    expect(messages[0]).toEqual({ role: 'system', content: 'You are a test assistant.' });
+    expect(messages[1]).toEqual({ role: 'user', content: 'Hello World.' });
   });
 });
 

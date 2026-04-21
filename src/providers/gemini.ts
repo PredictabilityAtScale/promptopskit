@@ -7,12 +7,13 @@ import type {
 } from './types.js';
 import { renderSections } from '../renderer/index.js';
 import { resolveAssetForProvider } from './resolve-asset.js';
+import { withPromptInputSupport } from './prompt-input.js';
 
 /**
  * Google Gemini provider adapter.
  * Produces request bodies compatible with the Gemini generateContent API.
  */
-export const geminiAdapter: ProviderAdapter = {
+export const geminiAdapter: ProviderAdapter = withPromptInputSupport({
   name: 'gemini',
 
   validate(asset: ResolvedPromptAsset, runtime?: RuntimeRenderOptions): ValidationResult {
@@ -118,4 +119,4 @@ export const geminiAdapter: ProviderAdapter = {
       model: resolvedAsset.model ?? 'unknown',
     };
   },
-};
+});

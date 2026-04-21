@@ -27,4 +27,16 @@ export const openrouterAdapter: ProviderAdapter = {
       provider: 'openrouter',
     };
   },
+
+  async validatePrompt(input, runtime) {
+    return openaiAdapter.validatePrompt(input, runtime);
+  },
+
+  async renderPrompt(input, runtime) {
+    const result = await openaiAdapter.renderPrompt(input, runtime);
+    return {
+      ...result,
+      provider: 'openrouter',
+    };
+  },
 };

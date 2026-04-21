@@ -1,4 +1,12 @@
-export type { ProviderAdapter, ProviderRequest, ValidationResult, RuntimeRenderOptions } from './types.js';
+export type {
+  ProviderAdapter,
+  ProviderInlinePromptSource,
+  ProviderPromptInput,
+  ProviderPromptLookup,
+  ProviderRequest,
+  ValidationResult,
+  RuntimeRenderOptions,
+} from './types.js';
 export { openaiAdapter } from './openai.js';
 export { anthropicAdapter } from './anthropic.js';
 export { geminiAdapter } from './gemini.js';

@@ -1,5 +1,4 @@
-import { readFile } from 'node:fs/promises';
-import { existsSync, statSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 
 import { parsePrompt, loadPromptFile } from './parser/index.js';
@@ -7,16 +6,29 @@ import { resolveIncludes } from './composition/index.js';
 import { applyOverrides } from './overrides/index.js';
 import { renderSections } from './renderer/index.js';
 import { getAdapter } from './providers/index.js';
-import { validateAsset } from './validation/index.js';
+import { validateAsset, validateAssetWithIncludes } from './validation/index.js';
 import { PromptCache } from './cache.js';
 import { collectContextSizeWarnings } from './context.js';
+import {
+  loadPromptAsset,
+  resolveInlinePromptSource,
+  resolvePromptAsset,
+} from './prompt-resolution.js';
 import type { PromptAsset, PromptAssetOverrides, ResolvedPromptAsset } from './schema/index.js';
 import type { ProviderRequest, RuntimeRenderOptions } from './providers/types.js';
 import type { PromptValidationResult } from './validation/index.js';
 
 // --- Re-exports ---
 export type { PromptAsset, ResolvedPromptAsset } from './schema/index.js';
-export type { ProviderRequest, RuntimeRenderOptions, ProviderAdapter, ValidationResult } from './providers/types.js';
+export type {
+  ProviderRequest,
+  RuntimeRenderOptions,
+  ProviderAdapter,
+  ProviderInlinePromptSource,
+  ProviderPromptInput,
+  ProviderPromptLookup,
+  ValidationResult,
+} from './providers/types.js';
 export type { PromptValidationResult, ValidationError } from './validation/index.js';
 export type { RenderedSections, RenderOptions } from './renderer/index.js';
 export type { ParseResult } from './parser/index.js';
@@ -170,67 +182,7 @@ export class PromptOpsKit {
    * Load a prompt asset from compiled or source, based on mode.
    */
   async loadPrompt(promptPath: string): Promise<PromptAsset> {
-    const mode = this.config.mode;
-
-    // Try compiled first (unless source-only)
-    if (mode !== 'source-only' && this.config.compiledDir) {
-      const compiledFile = resolve(this.config.compiledDir, promptPath + '.json');
-      if (existsSync(compiledFile)) {
-        // Check for stale artifact in auto mode
-        if (mode === 'auto') {
-          const sourceFile = resolve(this.config.sourceDir, promptPath + '.md');
-          if (existsSync(sourceFile)) {
-            const compiledMtime = statSync(compiledFile).mtimeMs;
-            const sourceMtime = statSync(sourceFile).mtimeMs;
-            if (sourceMtime > compiledMtime) {
-              console.warn(
-                `[promptopskit] Warning: compiled artifact for "${promptPath}" is older than source .md file.\n` +
-                `               Run "promptopskit compile" or switch to source-only mode.`,
-              );
-            }
-          }
-        }
-        const content = await readFile(compiledFile, 'utf-8');
-        return JSON.parse(content) as PromptAsset;
-      }
-      if (mode === 'compiled-only') {
-        throw new Error(
-          `Compiled artifact not found: ${compiledFile}\n` +
-          `Run "promptopskit compile" to generate it.`,
-        );
-      }
-    }
-
-    // Fall back to source
-    if (mode !== 'compiled-only') {
-      const sourceFile = resolve(this.config.sourceDir, promptPath + '.md');
-
-      // Check cache
-      if (this.config.cache) {
-        const cached = this.promptCache.get(sourceFile);
-        if (cached) return cached;
-      }
-
-      if (!existsSync(sourceFile)) {
-        const paths = [sourceFile];
-        if (this.config.compiledDir) {
-          paths.unshift(resolve(this.config.compiledDir, promptPath + '.json'));
-        }
-        throw new Error(
-          `Prompt not found: "${promptPath}"\nSearched:\n${paths.map((p) => `  - ${p}`).join('\n')}`,
-        );
-      }
-
-      const { asset } = await loadPromptFile(sourceFile, { defaultsRoot: this.config.sourceDir });
-
-      if (this.config.cache) {
-        this.promptCache.set(sourceFile, asset);
-      }
-
-      return asset;
-    }
-
-    throw new Error(`Prompt not found: "${promptPath}"`);
+    return loadPromptAsset(promptPath, this.config, this.promptCache);
   }
 
   /**
@@ -240,22 +192,7 @@ export class PromptOpsKit {
     promptPath: string,
     options: { environment?: string; tier?: string; runtime?: Partial<PromptAssetOverrides> } = {},
   ): Promise<ResolvedPromptAsset> {
-    let asset = await this.loadPrompt(promptPath);
-
-    // Resolve includes
-    const sourceFile = resolve(this.config.sourceDir, promptPath + '.md');
-    if (asset.includes && asset.includes.length > 0 && existsSync(sourceFile)) {
-      asset = await resolveIncludes(asset, sourceFile);
-    }
-
-    // Apply overrides
-    asset = applyOverrides(asset, {
-      environment: options.environment,
-      tier: options.tier,
-      runtime: options.runtime,
-    });
-
-    return asset as ResolvedPromptAsset;
+    return resolvePromptAsset(promptPath, this.config, options, this.promptCache);
   }
 
   /**
@@ -265,14 +202,11 @@ export class PromptOpsKit {
     let resolved: ResolvedPromptAsset;
 
     if (options.source) {
-      // Inline source mode
-      const { asset } = parsePrompt(options.source);
-      const overridden = applyOverrides(asset, {
+      resolved = resolveInlinePromptSource(options.source, {
         environment: options.environment,
         tier: options.tier,
         runtime: options.runtime,
       });
-      resolved = overridden as ResolvedPromptAsset;
     } else if (options.path) {
       resolved = await this.resolvePrompt(options.path, {
         environment: options.environment,
@@ -326,7 +260,9 @@ export class PromptOpsKit {
    */
   async validatePrompt(promptPath: string): Promise<PromptValidationResult> {
     const asset = await this.loadPrompt(promptPath);
-    return validateAsset(asset, undefined, promptPath);
+
+    const sourceFile = resolve(this.config.sourceDir, promptPath + '.md');
+    return validateAssetWithIncludes(asset, sourceFile);
   }
 
   /**

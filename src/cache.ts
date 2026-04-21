@@ -32,18 +32,24 @@ export class PromptCache<T> {
       return undefined;
     }
 
+    // Refresh recency for true LRU semantics.
+    this.cache.delete(filePath);
+    this.cache.set(filePath, entry);
+
     return entry.value;
   }
 
   set(filePath: string, value: T): void {
-    // Evict oldest if at capacity
-    if (this.cache.size >= this.maxSize) {
-      const oldest = this.cache.keys().next().value;
-      if (oldest) this.cache.delete(oldest);
-    }
-
     try {
       const stat = statSync(filePath);
+
+      if (this.cache.has(filePath)) {
+        this.cache.delete(filePath);
+      } else if (this.cache.size >= this.maxSize) {
+        const oldest = this.cache.keys().next().value;
+        if (oldest) this.cache.delete(oldest);
+      }
+
       this.cache.set(filePath, { value, mtime: stat.mtimeMs });
     } catch {
       // Can't stat the file — don't cache

@@ -1,4 +1,8 @@
-import { describe, it, expect } from 'vitest';
+import { afterEach, beforeEach, describe, it, expect } from 'vitest';
+import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
+import { createPromptOpsKit } from '../src/index.js';
 import { validateAsset } from '../src/validation/validate.js';
 import { levenshtein } from '../src/validation/levenshtein.js';
 
@@ -101,5 +105,70 @@ describe('levenshtein', () => {
   it('computes distance correctly', () => {
     expect(levenshtein('temperture', 'temperature')).toBeLessThanOrEqual(2);
     expect(levenshtein('mdoel', 'model')).toBeLessThanOrEqual(2);
+  });
+});
+
+describe('PromptOpsKit.validatePrompt', () => {
+  let tmpDir: string;
+
+  beforeEach(async () => {
+    tmpDir = await mkdtemp(join(tmpdir(), 'pok-validate-'));
+  });
+
+  afterEach(async () => {
+    await rm(tmpDir, { recursive: true, force: true });
+  });
+
+  it('reports missing include files through the kit API', async () => {
+    await mkdir(join(tmpDir, 'prompts'), { recursive: true });
+    await writeFile(join(tmpDir, 'prompts', 'main.md'), `---
+id: main
+schema_version: 1
+includes:
+  - ./missing.md
+---
+
+# Prompt template
+
+Hello.
+`);
+
+    const kit = createPromptOpsKit({ sourceDir: join(tmpDir, 'prompts') });
+    const result = await kit.validatePrompt('main');
+
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((error) => error.code === 'POK020')).toBe(true);
+  });
+
+  it('reports circular includes through the kit API', async () => {
+    await mkdir(join(tmpDir, 'prompts'), { recursive: true });
+    await writeFile(join(tmpDir, 'prompts', 'a.md'), `---
+id: a
+schema_version: 1
+includes:
+  - ./b.md
+---
+
+# Prompt template
+
+A
+`);
+    await writeFile(join(tmpDir, 'prompts', 'b.md'), `---
+id: b
+schema_version: 1
+includes:
+  - ./a.md
+---
+
+# Prompt template
+
+B
+`);
+
+    const kit = createPromptOpsKit({ sourceDir: join(tmpDir, 'prompts') });
+    const result = await kit.validatePrompt('a');
+
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((error) => error.code === 'POK021')).toBe(true);
   });
 });

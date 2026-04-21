@@ -47,20 +47,50 @@ interface ProviderAdapter {
   name: string;
   validate(asset: ResolvedPromptAsset, runtime?: RuntimeRenderOptions): ValidationResult;
   render(asset: ResolvedPromptAsset, runtime: RuntimeRenderOptions): ProviderRequest;
+  validatePrompt(asset: ResolvedPromptAsset, runtime?: RuntimeRenderOptions): Promise<ValidationResult>;
+  validatePrompt(lookup: ProviderPromptLookup, runtime?: RuntimeRenderOptions): Promise<ValidationResult>;
+  validatePrompt(source: ProviderInlinePromptSource, runtime?: RuntimeRenderOptions): Promise<ValidationResult>;
+  renderPrompt(asset: ResolvedPromptAsset, runtime: RuntimeRenderOptions): Promise<ProviderRequest>;
+  renderPrompt(lookup: ProviderPromptLookup, runtime: RuntimeRenderOptions): Promise<ProviderRequest>;
+  renderPrompt(source: ProviderInlinePromptSource, runtime: RuntimeRenderOptions): Promise<ProviderRequest>;
 }
 ```
 
-Direct adapter rendering accepts the same `environment` and `tier` selectors as `kit.renderPrompt()`. This is especially useful with compiled JSON/ESM assets in browser, edge, or worker code.
+Direct adapter rendering accepts the same `environment` and `tier` selectors as `kit.renderPrompt()`. Use the synchronous `validate()` and `render()` methods when you already have a compiled `ResolvedPromptAsset`, and use the async `validatePrompt()` and `renderPrompt()` helpers when you want the adapter to resolve either markdown source or a compiled artifact from disk.
+
+Server-side example:
+
+```typescript
+import path from 'node:path';
+import { openaiAdapter } from 'promptopskit/openai';
+
+const request = await openaiAdapter.renderPrompt(
+  {
+    path: 'summarizePullRequest',
+    sourceDir: path.join(process.cwd(), 'prompts'),
+    compiledDir: path.join(process.cwd(), 'output-json'),
+  },
+  {
+    environment: 'dev',
+    variables: {
+      pull_request_body: 'Implement theming and dark mode across the app.',
+    },
+    strict: true,
+  },
+);
+```
 
 ## Browser / client-side usage
 
 The top-level `promptopskit` runtime is Node-oriented. It supports prompt loading and compilation flows that import file-system/path modules, so do not use `createPromptOpsKit()` inside browser-only code or client components.
 
-For frontend demos or browser rendering:
+For browser or client-side code:
 
-- Precompile prompts to ESM with `promptopskit compile ./prompts ./dist/prompts --format esm` and import the generated artifact, or
-- Inline a `ResolvedPromptAsset` object directly in the client bundle for a small demo.
+- Precompile prompts to ESM with `promptopskit compile ./prompts ./dist/prompts --format esm` and import the generated artifact, or inline a small `ResolvedPromptAsset`.
 - Pass `environment` and `tier` directly to `adapter.validate()` and `adapter.render()` when you need overrides on the client side.
+- Avoid `renderPrompt()` in browser-only code because resolving prompt files from disk is Node-oriented.
+- Keep provider credentials on the server. In production, use the rendered request body with a server endpoint, server action, or edge function that owns the API key.
+- If you intentionally call a provider directly from browser code, treat it as a demo-only setup and explicitly note that the key is exposed.
 
 Then render with a provider subpath adapter:
 
@@ -97,7 +127,7 @@ const { body } = openaiAdapter.render(prompt, {
   strict: true,
 });
 
-// Send `body` with the OpenAI SDK or fetch.
+// Send `body` to your own server endpoint or server action.
 ```
 
 This pattern keeps PromptOpsKit responsible for prompt rendering while leaving HTTP transport, auth, and browser-specific safety decisions in the app.

@@ -1,6 +1,6 @@
 {
   "name": "promptopskit",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Manage prompts, system instructions, tools, and model settings as code",
   "type": "module",
   "bin": {

@@ -45,10 +45,62 @@ Each adapter implements the `ProviderAdapter` interface:
 ```typescript
 interface ProviderAdapter {
   name: string;
-  validate(asset: ResolvedPromptAsset): ValidationResult;
+  validate(asset: ResolvedPromptAsset, runtime?: RuntimeRenderOptions): ValidationResult;
   render(asset: ResolvedPromptAsset, runtime: RuntimeRenderOptions): ProviderRequest;
 }
 ```
+
+Direct adapter rendering accepts the same `environment` and `tier` selectors as `kit.renderPrompt()`. This is especially useful with compiled JSON/ESM assets in browser, edge, or worker code.
+
+## Browser / client-side usage
+
+The top-level `promptopskit` runtime is Node-oriented. It supports prompt loading and compilation flows that import file-system/path modules, so do not use `createPromptOpsKit()` inside browser-only code or client components.
+
+For frontend demos or browser rendering:
+
+- Precompile prompts to ESM with `promptopskit compile ./prompts ./dist/prompts --format esm` and import the generated artifact, or
+- Inline a `ResolvedPromptAsset` object directly in the client bundle for a small demo.
+- Pass `environment` and `tier` directly to `adapter.validate()` and `adapter.render()` when you need overrides on the client side.
+
+Then render with a provider subpath adapter:
+
+```typescript
+import type { ResolvedPromptAsset } from 'promptopskit';
+import { openaiAdapter } from 'promptopskit/openai';
+
+const prompt: ResolvedPromptAsset = {
+  id: 'summarizePullRequest',
+  schema_version: 1,
+  provider: 'openai',
+  model: 'gpt-5.4',
+  context: {
+    inputs: [{ name: 'pull_request_body', max_size: 8000 }],
+  },
+  sections: {
+    system_instructions: 'You summarize pull requests clearly and concisely.',
+    prompt_template: 'Summarize this pull request:\n\n{{ pull_request_body }}',
+  },
+};
+
+const validation = openaiAdapter.validate(prompt, {
+  environment: 'prod',
+});
+if (!validation.valid) {
+  throw new Error(validation.errors.join(' '));
+}
+
+const { body } = openaiAdapter.render(prompt, {
+  environment: 'prod',
+  variables: {
+    pull_request_body: 'Implement theming and dark mode across the app.',
+  },
+  strict: true,
+});
+
+// Send `body` with the OpenAI SDK or fetch.
+```
+
+This pattern keeps PromptOpsKit responsible for prompt rendering while leaving HTTP transport, auth, and browser-specific safety decisions in the app.
 
 ## Optional UsageTap tracking
 
@@ -220,6 +272,9 @@ Each adapter validates the asset before rendering. Common checks:
 
 ```typescript
 const adapter = getAdapter('openai');
-const validation = adapter.validate(resolvedAsset);
+const validation = adapter.validate(resolvedAsset, {
+  environment: 'dev',
+  tier: 'pro',
+});
 // { valid: boolean, errors: string[], warnings: string[] }
 ```

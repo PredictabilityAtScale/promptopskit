@@ -4,6 +4,7 @@ import { loadPromptFile } from '../../parser/index.js';
 import { resolveIncludes } from '../../composition/index.js';
 import { applyOverrides } from '../../overrides/index.js';
 import { interpolate } from '../../renderer/interpolate.js';
+import { findDefaultsRoot } from './defaults-root.js';
 
 const HELP = `
 promptopskit render <file> [options]
@@ -56,7 +57,8 @@ export async function render(args: string[]): Promise<void> {
     }
   }
 
-  const { asset: parsed } = await loadPromptFile(file);
+  const defaultsRoot = findDefaultsRoot(file);
+  const { asset: parsed } = await loadPromptFile(file, { defaultsRoot });
 
   // Resolve includes (matching the library pipeline)
   const resolved = (parsed.includes && parsed.includes.length > 0)

@@ -16,8 +16,8 @@ import type {
 export const openrouterAdapter: ProviderAdapter = {
   name: 'openrouter',
 
-  validate(asset: ResolvedPromptAsset): ValidationResult {
-    return openaiAdapter.validate(asset);
+  validate(asset: ResolvedPromptAsset, runtime?: RuntimeRenderOptions): ValidationResult {
+    return openaiAdapter.validate(asset, runtime);
   },
 
   render(asset: ResolvedPromptAsset, runtime: RuntimeRenderOptions): ProviderRequest {

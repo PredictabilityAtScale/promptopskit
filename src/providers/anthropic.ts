@@ -6,6 +6,7 @@ import type {
   RuntimeRenderOptions,
 } from './types.js';
 import { renderSections } from '../renderer/index.js';
+import { resolveAssetForProvider } from './resolve-asset.js';
 
 /**
  * Anthropic provider adapter.
@@ -14,21 +15,22 @@ import { renderSections } from '../renderer/index.js';
 export const anthropicAdapter: ProviderAdapter = {
   name: 'anthropic',
 
-  validate(asset: ResolvedPromptAsset): ValidationResult {
+  validate(asset: ResolvedPromptAsset, runtime?: RuntimeRenderOptions): ValidationResult {
+    const resolvedAsset = resolveAssetForProvider(asset, runtime);
     const errors: string[] = [];
     const warnings: string[] = [];
 
-    if (!asset.model) {
+    if (!resolvedAsset.model) {
       errors.push('Anthropic adapter requires a model to be specified.');
     }
 
-    if (asset.sampling?.frequency_penalty !== undefined) {
+    if (resolvedAsset.sampling?.frequency_penalty !== undefined) {
       warnings.push('Anthropic does not support frequency_penalty. It will be ignored.');
     }
-    if (asset.sampling?.presence_penalty !== undefined) {
+    if (resolvedAsset.sampling?.presence_penalty !== undefined) {
       warnings.push('Anthropic does not support presence_penalty. It will be ignored.');
     }
-    if (asset.reasoning?.effort !== undefined) {
+    if (resolvedAsset.reasoning?.effort !== undefined) {
       warnings.push('Anthropic uses budget_tokens for thinking, not effort. effort will be mapped approximately.');
     }
 
@@ -36,7 +38,8 @@ export const anthropicAdapter: ProviderAdapter = {
   },
 
   render(asset: ResolvedPromptAsset, runtime: RuntimeRenderOptions): ProviderRequest {
-    const sections = renderSections(asset, {
+    const resolvedAsset = resolveAssetForProvider(asset, runtime);
+    const sections = renderSections(resolvedAsset, {
       variables: runtime.variables,
       strict: runtime.strict,
     });
@@ -56,7 +59,7 @@ export const anthropicAdapter: ProviderAdapter = {
     }
 
     const body: Record<string, unknown> = {
-      model: asset.model,
+      model: resolvedAsset.model,
       messages,
     };
 
@@ -66,32 +69,32 @@ export const anthropicAdapter: ProviderAdapter = {
     }
 
     // Sampling params
-    if (asset.sampling?.temperature !== undefined) body.temperature = asset.sampling.temperature;
-    if (asset.sampling?.top_p !== undefined) body.top_p = asset.sampling.top_p;
-    if (asset.sampling?.stop !== undefined) body.stop_sequences = asset.sampling.stop;
-    if (asset.sampling?.max_output_tokens !== undefined) {
-      body.max_tokens = asset.sampling.max_output_tokens;
+    if (resolvedAsset.sampling?.temperature !== undefined) body.temperature = resolvedAsset.sampling.temperature;
+    if (resolvedAsset.sampling?.top_p !== undefined) body.top_p = resolvedAsset.sampling.top_p;
+    if (resolvedAsset.sampling?.stop !== undefined) body.stop_sequences = resolvedAsset.sampling.stop;
+    if (resolvedAsset.sampling?.max_output_tokens !== undefined) {
+      body.max_tokens = resolvedAsset.sampling.max_output_tokens;
     } else {
       // Anthropic requires max_tokens
       body.max_tokens = 4096;
     }
 
     // Thinking/reasoning
-    if (asset.reasoning?.budget_tokens) {
+    if (resolvedAsset.reasoning?.budget_tokens) {
       body.thinking = {
         type: 'enabled',
-        budget_tokens: asset.reasoning.budget_tokens,
+        budget_tokens: resolvedAsset.reasoning.budget_tokens,
       };
     }
 
     // Streaming
-    if (asset.response?.stream !== undefined) {
-      body.stream = asset.response.stream;
+    if (resolvedAsset.response?.stream !== undefined) {
+      body.stream = resolvedAsset.response.stream;
     }
 
     // Tools
-    if (asset.tools && asset.tools.length > 0) {
-      body.tools = asset.tools.map((tool) => {
+    if (resolvedAsset.tools && resolvedAsset.tools.length > 0) {
+      body.tools = resolvedAsset.tools.map((tool) => {
         if (typeof tool === 'string') {
           const def = runtime.toolRegistry?.[tool];
           if (def) return def;
@@ -108,7 +111,7 @@ export const anthropicAdapter: ProviderAdapter = {
     return {
       body,
       provider: 'anthropic',
-      model: asset.model ?? 'unknown',
+      model: resolvedAsset.model ?? 'unknown',
     };
   },
 };

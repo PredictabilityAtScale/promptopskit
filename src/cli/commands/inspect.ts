@@ -1,5 +1,6 @@
 import { loadPromptFile } from '../../parser/index.js';
 import { resolveIncludes } from '../../composition/index.js';
+import { findDefaultsRoot } from './defaults-root.js';
 
 const HELP = `
 promptopskit inspect <file>
@@ -22,7 +23,8 @@ export async function inspect(args: string[]): Promise<void> {
     process.exit(1);
   }
 
-  const { asset: parsed } = await loadPromptFile(file);
+  const defaultsRoot = findDefaultsRoot(file);
+  const { asset: parsed } = await loadPromptFile(file, { defaultsRoot });
 
   // Resolve includes so the output shows the fully resolved asset
   const asset = (parsed.includes && parsed.includes.length > 0)

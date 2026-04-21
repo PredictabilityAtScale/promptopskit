@@ -182,6 +182,29 @@ import { geminiAdapter } from 'promptopskit/gemini';
 import { openrouterAdapter } from 'promptopskit/openrouter';
 ```
 
+Direct adapter rendering also accepts `environment` and `tier` selectors. This is useful for compiled JSON/ESM assets in browser, edge, or worker code:
+
+```typescript
+import type { ResolvedPromptAsset } from 'promptopskit';
+import { openaiAdapter } from 'promptopskit/openai';
+import compiledPrompt from './dist/prompts/summarizePullRequest.mjs';
+
+const prompt = compiledPrompt as ResolvedPromptAsset;
+
+const validation = openaiAdapter.validate(prompt, { environment: 'dev' });
+if (!validation.valid) {
+  throw new Error(validation.errors.join(' '));
+}
+
+const request = openaiAdapter.render(prompt, {
+  environment: 'dev',
+  variables: {
+    pull_request_body: 'Implement theming and dark mode across the app.',
+  },
+  strict: true,
+});
+```
+
 ## Optional UsageTap Tracking
 
 PromptOpsKit can also help you track provider calls with UsageTap.com while keeping the core render API body-only.

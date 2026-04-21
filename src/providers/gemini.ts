@@ -6,6 +6,7 @@ import type {
   RuntimeRenderOptions,
 } from './types.js';
 import { renderSections } from '../renderer/index.js';
+import { resolveAssetForProvider } from './resolve-asset.js';
 
 /**
  * Google Gemini provider adapter.
@@ -14,18 +15,19 @@ import { renderSections } from '../renderer/index.js';
 export const geminiAdapter: ProviderAdapter = {
   name: 'gemini',
 
-  validate(asset: ResolvedPromptAsset): ValidationResult {
+  validate(asset: ResolvedPromptAsset, runtime?: RuntimeRenderOptions): ValidationResult {
+    const resolvedAsset = resolveAssetForProvider(asset, runtime);
     const errors: string[] = [];
     const warnings: string[] = [];
 
-    if (!asset.model) {
+    if (!resolvedAsset.model) {
       errors.push('Gemini adapter requires a model to be specified.');
     }
 
-    if (asset.sampling?.frequency_penalty !== undefined) {
+    if (resolvedAsset.sampling?.frequency_penalty !== undefined) {
       warnings.push('Gemini does not support frequency_penalty. It will be ignored.');
     }
-    if (asset.sampling?.presence_penalty !== undefined) {
+    if (resolvedAsset.sampling?.presence_penalty !== undefined) {
       warnings.push('Gemini does not support presence_penalty. It will be ignored.');
     }
 
@@ -33,7 +35,8 @@ export const geminiAdapter: ProviderAdapter = {
   },
 
   render(asset: ResolvedPromptAsset, runtime: RuntimeRenderOptions): ProviderRequest {
-    const sections = renderSections(asset, {
+    const resolvedAsset = resolveAssetForProvider(asset, runtime);
+    const sections = renderSections(resolvedAsset, {
       variables: runtime.variables,
       strict: runtime.strict,
     });
@@ -72,19 +75,19 @@ export const geminiAdapter: ProviderAdapter = {
     // Generation config
     const generationConfig: Record<string, unknown> = {};
 
-    if (asset.sampling?.temperature !== undefined) generationConfig.temperature = asset.sampling.temperature;
-    if (asset.sampling?.top_p !== undefined) generationConfig.topP = asset.sampling.top_p;
-    if (asset.sampling?.max_output_tokens !== undefined) generationConfig.maxOutputTokens = asset.sampling.max_output_tokens;
-    if (asset.sampling?.stop !== undefined) generationConfig.stopSequences = asset.sampling.stop;
+    if (resolvedAsset.sampling?.temperature !== undefined) generationConfig.temperature = resolvedAsset.sampling.temperature;
+    if (resolvedAsset.sampling?.top_p !== undefined) generationConfig.topP = resolvedAsset.sampling.top_p;
+    if (resolvedAsset.sampling?.max_output_tokens !== undefined) generationConfig.maxOutputTokens = resolvedAsset.sampling.max_output_tokens;
+    if (resolvedAsset.sampling?.stop !== undefined) generationConfig.stopSequences = resolvedAsset.sampling.stop;
 
-    if (asset.response?.format === 'json') {
+    if (resolvedAsset.response?.format === 'json') {
       generationConfig.responseMimeType = 'application/json';
     }
 
     // Thinking config
-    if (asset.reasoning?.effort) {
+    if (resolvedAsset.reasoning?.effort) {
       body.thinkingConfig = {
-        thinkingBudget: asset.reasoning.effort === 'high' ? 8192 : asset.reasoning.effort === 'medium' ? 4096 : 1024,
+        thinkingBudget: resolvedAsset.reasoning.effort === 'high' ? 8192 : resolvedAsset.reasoning.effort === 'medium' ? 4096 : 1024,
       };
     }
 
@@ -93,8 +96,8 @@ export const geminiAdapter: ProviderAdapter = {
     }
 
     // Tools
-    if (asset.tools && asset.tools.length > 0) {
-      const functionDeclarations = asset.tools.map((tool) => {
+    if (resolvedAsset.tools && resolvedAsset.tools.length > 0) {
+      const functionDeclarations = resolvedAsset.tools.map((tool) => {
         if (typeof tool === 'string') {
           const def = runtime.toolRegistry?.[tool];
           if (def) return def;
@@ -112,7 +115,7 @@ export const geminiAdapter: ProviderAdapter = {
     return {
       body,
       provider: 'gemini',
-      model: asset.model ?? 'unknown',
+      model: resolvedAsset.model ?? 'unknown',
     };
   },
 };

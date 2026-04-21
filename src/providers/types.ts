@@ -1,4 +1,4 @@
-import type { ResolvedPromptAsset } from '../schema/index.js';
+import type { ResolvedPromptAsset, PromptAssetOverrides } from '../schema/index.js';
 
 /**
  * Provider-shaped request body output.
@@ -22,6 +22,9 @@ export interface ValidationResult {
  * Options passed at render time.
  */
 export interface RuntimeRenderOptions {
+  environment?: string;
+  tier?: string;
+  runtime?: Partial<PromptAssetOverrides>;
   variables?: Record<string, string>;
   history?: Array<{ role: string; content: string }>;
   toolRegistry?: Record<string, unknown>;
@@ -33,6 +36,6 @@ export interface RuntimeRenderOptions {
  */
 export interface ProviderAdapter {
   name: string;
-  validate(asset: ResolvedPromptAsset): ValidationResult;
+  validate(asset: ResolvedPromptAsset, runtime?: RuntimeRenderOptions): ValidationResult;
   render(asset: ResolvedPromptAsset, runtime: RuntimeRenderOptions): ProviderRequest;
 }

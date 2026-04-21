@@ -37,6 +37,47 @@ describe('OpenAI adapter', () => {
     expect(messages[1]).toEqual({ role: 'user', content: 'Hello World.' });
   });
 
+  it('applies environment overrides during direct adapter render', () => {
+    const result = openaiAdapter.render(
+      {
+        ...baseAsset,
+        environments: {
+          dev: {
+            model: 'gpt-5.4-mini',
+            sampling: { temperature: 0.2 },
+          },
+        },
+      },
+      {
+        environment: 'dev',
+        variables: { name: 'World' },
+      },
+    );
+
+    expect(result.model).toBe('gpt-5.4-mini');
+    expect(result.body.model).toBe('gpt-5.4-mini');
+    expect(result.body.temperature).toBe(0.2);
+  });
+
+  it('uses override-selected model during validation', () => {
+    const validation = openaiAdapter.validate(
+      {
+        ...baseAsset,
+        model: undefined,
+        environments: {
+          dev: {
+            model: 'gpt-5.4-mini',
+          },
+        },
+      },
+      {
+        environment: 'dev',
+      },
+    );
+
+    expect(validation.valid).toBe(true);
+  });
+
   it('includes history messages', () => {
     const result = openaiAdapter.render(baseAsset, {
       variables: { name: 'World' },
@@ -67,6 +108,30 @@ describe('Anthropic adapter', () => {
     expect(messages[0]).toEqual({ role: 'user', content: 'Hello World.' });
   });
 
+  it('applies environment overrides during direct adapter render', () => {
+    const result = anthropicAdapter.render(
+      {
+        ...baseAsset,
+        provider: 'anthropic',
+        model: 'claude-sonnet-4-6',
+        environments: {
+          dev: {
+            model: 'claude-haiku-4-5',
+            response: { stream: true },
+          },
+        },
+      },
+      {
+        environment: 'dev',
+        variables: { name: 'World' },
+      },
+    );
+
+    expect(result.model).toBe('claude-haiku-4-5');
+    expect(result.body.model).toBe('claude-haiku-4-5');
+    expect(result.body.stream).toBe(true);
+  });
+
   it('defaults max_tokens when not set', () => {
     const assetNoMax = { ...baseAsset, sampling: { temperature: 0.7 } };
     const result = anthropicAdapter.render(assetNoMax, { variables: { name: 'World' } });
@@ -91,6 +156,57 @@ describe('Gemini adapter', () => {
       role: 'user',
       parts: [{ text: 'Hello World.' }],
     });
+  });
+
+  it('applies tier and runtime overrides during direct adapter render', () => {
+    const result = geminiAdapter.render(
+      {
+        ...baseAsset,
+        provider: 'gemini',
+        model: 'gemini-2.5-flash',
+        tiers: {
+          pro: {
+            model: 'gemini-2.5-pro',
+            sampling: { temperature: 0.1 },
+          },
+        },
+      },
+      {
+        tier: 'pro',
+        runtime: {
+          response: { format: 'json' },
+        },
+        variables: { name: 'World' },
+      },
+    );
+
+    expect(result.model).toBe('gemini-2.5-pro');
+    expect((result.body.generationConfig as Record<string, unknown>).temperature).toBe(0.1);
+    expect((result.body.generationConfig as Record<string, unknown>).responseMimeType).toBe('application/json');
+  });
+});
+
+describe('OpenRouter adapter', () => {
+  it('applies environment overrides during direct adapter render', () => {
+    const result = getAdapter('openrouter').render(
+      {
+        ...baseAsset,
+        provider: 'openrouter',
+        environments: {
+          dev: {
+            model: 'openai/gpt-5.4-mini',
+          },
+        },
+      },
+      {
+        environment: 'dev',
+        variables: { name: 'World' },
+      },
+    );
+
+    expect(result.provider).toBe('openrouter');
+    expect(result.model).toBe('openai/gpt-5.4-mini');
+    expect(result.body.model).toBe('openai/gpt-5.4-mini');
   });
 });
 
@@ -137,5 +253,43 @@ describe('Adapter validation on render', () => {
         provider: 'openai',
       }),
     ).rejects.toThrow(/Provider validation failed/);
+  });
+
+  it('renderPrompt applies runtime overrides after environment and tier', async () => {
+    const kit = createPromptOpsKit({ sourceDir: '.', cache: false });
+
+    const result = await kit.renderPrompt({
+      source: `---
+id: runtime-test
+schema_version: 1
+provider: openai
+model: gpt-5.4
+sampling:
+  temperature: 0.7
+environments:
+  dev:
+    model: gpt-5.4-mini
+tiers:
+  pro:
+    model: gpt-5.4
+---
+
+# Prompt template
+
+Hello {{ name }}`,
+      provider: 'openai',
+      environment: 'dev',
+      tier: 'pro',
+      runtime: {
+        model: 'gpt-5.4-nano',
+        sampling: { temperature: 0 },
+      },
+      variables: { name: 'World' },
+    });
+
+    expect(result.resolved.model).toBe('gpt-5.4-nano');
+    expect(result.request.model).toBe('gpt-5.4-nano');
+    expect(result.request.body.model).toBe('gpt-5.4-nano');
+    expect(result.request.body.temperature).toBe(0);
   });
 });

@@ -6,6 +6,7 @@ import type {
   RuntimeRenderOptions,
 } from './types.js';
 import { renderSections } from '../renderer/index.js';
+import { resolveAssetForProvider } from './resolve-asset.js';
 
 /**
  * OpenAI provider adapter.
@@ -14,15 +15,16 @@ import { renderSections } from '../renderer/index.js';
 export const openaiAdapter: ProviderAdapter = {
   name: 'openai',
 
-  validate(asset: ResolvedPromptAsset): ValidationResult {
+  validate(asset: ResolvedPromptAsset, runtime?: RuntimeRenderOptions): ValidationResult {
+    const resolvedAsset = resolveAssetForProvider(asset, runtime);
     const errors: string[] = [];
     const warnings: string[] = [];
 
-    if (!asset.model) {
+    if (!resolvedAsset.model) {
       errors.push('OpenAI adapter requires a model to be specified.');
     }
 
-    if (asset.reasoning?.budget_tokens !== undefined) {
+    if (resolvedAsset.reasoning?.budget_tokens !== undefined) {
       warnings.push('OpenAI uses reasoning_effort, not budget_tokens. budget_tokens will be ignored.');
     }
 
@@ -30,7 +32,8 @@ export const openaiAdapter: ProviderAdapter = {
   },
 
   render(asset: ResolvedPromptAsset, runtime: RuntimeRenderOptions): ProviderRequest {
-    const sections = renderSections(asset, {
+    const resolvedAsset = resolveAssetForProvider(asset, runtime);
+    const sections = renderSections(resolvedAsset, {
       variables: runtime.variables,
       strict: runtime.strict,
     });
@@ -55,36 +58,36 @@ export const openaiAdapter: ProviderAdapter = {
     }
 
     const body: Record<string, unknown> = {
-      model: asset.model,
+      model: resolvedAsset.model,
       messages,
     };
 
     // Sampling params
-    if (asset.sampling?.temperature !== undefined) body.temperature = asset.sampling.temperature;
-    if (asset.sampling?.top_p !== undefined) body.top_p = asset.sampling.top_p;
-    if (asset.sampling?.frequency_penalty !== undefined) body.frequency_penalty = asset.sampling.frequency_penalty;
-    if (asset.sampling?.presence_penalty !== undefined) body.presence_penalty = asset.sampling.presence_penalty;
-    if (asset.sampling?.stop !== undefined) body.stop = asset.sampling.stop;
-    if (asset.sampling?.max_output_tokens !== undefined) body.max_tokens = asset.sampling.max_output_tokens;
+    if (resolvedAsset.sampling?.temperature !== undefined) body.temperature = resolvedAsset.sampling.temperature;
+    if (resolvedAsset.sampling?.top_p !== undefined) body.top_p = resolvedAsset.sampling.top_p;
+    if (resolvedAsset.sampling?.frequency_penalty !== undefined) body.frequency_penalty = resolvedAsset.sampling.frequency_penalty;
+    if (resolvedAsset.sampling?.presence_penalty !== undefined) body.presence_penalty = resolvedAsset.sampling.presence_penalty;
+    if (resolvedAsset.sampling?.stop !== undefined) body.stop = resolvedAsset.sampling.stop;
+    if (resolvedAsset.sampling?.max_output_tokens !== undefined) body.max_tokens = resolvedAsset.sampling.max_output_tokens;
 
     // Reasoning
-    if (asset.reasoning?.effort) {
-      body.reasoning_effort = asset.reasoning.effort;
+    if (resolvedAsset.reasoning?.effort) {
+      body.reasoning_effort = resolvedAsset.reasoning.effort;
     }
 
     // Response format
-    if (asset.response?.format === 'json') {
+    if (resolvedAsset.response?.format === 'json') {
       body.response_format = { type: 'json_object' };
     }
 
     // Streaming
-    if (asset.response?.stream !== undefined) {
-      body.stream = asset.response.stream;
+    if (resolvedAsset.response?.stream !== undefined) {
+      body.stream = resolvedAsset.response.stream;
     }
 
     // Tools
-    if (asset.tools && asset.tools.length > 0) {
-      body.tools = asset.tools.map((tool) => {
+    if (resolvedAsset.tools && resolvedAsset.tools.length > 0) {
+      body.tools = resolvedAsset.tools.map((tool) => {
         if (typeof tool === 'string') {
           // Look up from registry
           const def = runtime.toolRegistry?.[tool];
@@ -105,7 +108,7 @@ export const openaiAdapter: ProviderAdapter = {
     return {
       body,
       provider: 'openai',
-      model: asset.model ?? 'unknown',
+      model: resolvedAsset.model ?? 'unknown',
     };
   },
 };

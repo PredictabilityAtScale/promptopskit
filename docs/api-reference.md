@@ -226,9 +226,15 @@ Get a provider adapter by name.
 
 ```typescript
 const adapter = getAdapter('openai');
-const validation = adapter.validate(resolvedAsset);
-const request = adapter.render(resolvedAsset, { variables: { name: 'World' } });
+const validation = adapter.validate(resolvedAsset, { environment: 'dev' });
+const request = adapter.render(resolvedAsset, {
+  environment: 'dev',
+  tier: 'pro',
+  variables: { name: 'World' },
+});
 ```
+
+`RuntimeRenderOptions` for direct adapter rendering supports `environment`, `tier`, `runtime`, `variables`, `history`, `toolRegistry`, and `strict`.
 
 ## Standalone `renderPrompt`
 

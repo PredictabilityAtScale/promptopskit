@@ -10,7 +10,7 @@ import { getAdapter } from './providers/index.js';
 import { validateAsset } from './validation/index.js';
 import { PromptCache } from './cache.js';
 import { collectContextSizeWarnings } from './context.js';
-import type { PromptAsset, ResolvedPromptAsset } from './schema/index.js';
+import type { PromptAsset, PromptAssetOverrides, ResolvedPromptAsset } from './schema/index.js';
 import type { ProviderRequest, RuntimeRenderOptions } from './providers/types.js';
 import type { PromptValidationResult } from './validation/index.js';
 
@@ -94,6 +94,8 @@ export interface RenderPromptOptions {
   environment?: string;
   /** Tier override */
   tier?: string;
+  /** Runtime overrides applied after environment and tier */
+  runtime?: Partial<PromptAssetOverrides>;
   /** Variables for interpolation */
   variables?: Record<string, string>;
   /** Conversation history */
@@ -236,7 +238,7 @@ export class PromptOpsKit {
    */
   async resolvePrompt(
     promptPath: string,
-    options: { environment?: string; tier?: string } = {},
+    options: { environment?: string; tier?: string; runtime?: Partial<PromptAssetOverrides> } = {},
   ): Promise<ResolvedPromptAsset> {
     let asset = await this.loadPrompt(promptPath);
 
@@ -250,6 +252,7 @@ export class PromptOpsKit {
     asset = applyOverrides(asset, {
       environment: options.environment,
       tier: options.tier,
+      runtime: options.runtime,
     });
 
     return asset as ResolvedPromptAsset;
@@ -267,12 +270,14 @@ export class PromptOpsKit {
       const overridden = applyOverrides(asset, {
         environment: options.environment,
         tier: options.tier,
+        runtime: options.runtime,
       });
       resolved = overridden as ResolvedPromptAsset;
     } else if (options.path) {
       resolved = await this.resolvePrompt(options.path, {
         environment: options.environment,
         tier: options.tier,
+        runtime: options.runtime,
       });
     } else {
       throw new Error('Either "path" or "source" must be provided to renderPrompt()');

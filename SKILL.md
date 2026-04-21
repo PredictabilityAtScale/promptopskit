@@ -281,6 +281,55 @@ const kit = createPromptOpsKit({
 });
 ```
 
+### Browser / client-side demos
+
+For browser code, client components, or frontend-only demos:
+
+- Do not import `createPromptOpsKit`, `loadPromptFile`, or other top-level runtime helpers from `promptopskit` in client code. The top-level entry loads Node file-system/path modules for source and compiled prompt loading.
+- Instead, use a precompiled prompt artifact or an inlined `ResolvedPromptAsset` object and render it with a provider subpath adapter such as `promptopskit/openai`.
+- If the prompt lives in files, compile it ahead of time with `npx promptopskit compile ./prompts ./dist/prompts --format esm` and import the generated ESM artifact into the client.
+- Provider adapters accept `environment` and `tier` in `validate()` and `render()`, so use those options directly when selecting overrides for compiled or inline assets.
+- For small demos, it is acceptable to inline the resolved prompt asset directly in the client file.
+- Keep transport and auth in the application layer. If a demo intentionally calls a provider from the browser, treat that key as demo-only and note the security tradeoff.
+
+Example:
+
+```typescript
+import type { ResolvedPromptAsset } from 'promptopskit';
+import { openaiAdapter } from 'promptopskit/openai';
+
+const prompt: ResolvedPromptAsset = {
+  id: 'summarizePullRequest',
+  schema_version: 1,
+  provider: 'openai',
+  model: 'gpt-5.4',
+  context: {
+    inputs: [{ name: 'pull_request_body', max_size: 8000 }],
+  },
+  sections: {
+    system_instructions: 'You summarize pull requests clearly and concisely.',
+    prompt_template: 'Summarize this pull request:\n\n{{ pull_request_body }}',
+  },
+};
+
+const validation = openaiAdapter.validate(prompt, {
+  environment: 'prod',
+});
+if (!validation.valid) {
+  throw new Error(validation.errors.join(' '));
+}
+
+const request = openaiAdapter.render(prompt, {
+  environment: 'prod',
+  variables: {
+    pull_request_body: 'Add theming and dark mode support to the application.',
+  },
+  strict: true,
+});
+
+// request.body is ready for the OpenAI SDK or fetch.
+```
+
 ### Step-by-step API
 
 ```typescript

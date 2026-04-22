@@ -138,6 +138,20 @@ describe('validateAsset', () => {
     expect(result.warnings.some((warning) => warning.code === 'POK014')).toBe(true);
   });
 
+  it('does not warn when trim is explicitly false without max_size', () => {
+    const result = validateAsset({
+      id: 'test',
+      schema_version: 1,
+      context: {
+        inputs: [{ name: 'user_id', trim: false }],
+      },
+      sections: { prompt_template: '{{ user_id }}' },
+    });
+
+    expect(result.valid).toBe(true);
+    expect(result.warnings.some((warning) => warning.code === 'POK014')).toBe(false);
+  });
+
   it('warns when regex and allow_regex are both set', () => {
     const result = validateAsset({
       id: 'test',

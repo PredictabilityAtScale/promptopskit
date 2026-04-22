@@ -338,6 +338,41 @@ Context: {{ app_context }}
     expect(result.warnings).toHaveLength(0);
   });
 
+  it('does not trim when trim is explicitly false and still emits oversize warning', async () => {
+    const sourceDir = join(tmpDir, 'prompts');
+    await mkdir(sourceDir, { recursive: true });
+
+    await writeFile(join(sourceDir, 'untrimmed-context.md'), `---
+id: untrimmed.context
+schema_version: 1
+provider: openai
+model: gpt-5.4
+context:
+  inputs:
+    - name: app_context
+      trim: false
+      max_size: 5
+---
+
+# Prompt template
+
+Context: {{ app_context }}
+`);
+
+    const kit = createPromptOpsKit({ sourceDir, mode: 'source-only', cache: false });
+    const result = await kit.renderPrompt({
+      path: 'untrimmed-context',
+      provider: 'openai',
+      variables: { app_context: 'admin-dashboard' },
+    });
+
+    const messages = result.request.body.messages as Array<{ role: string; content: string }>;
+    expect(messages[0].content).toContain('Context: admin-dashboard');
+    expect(result.warnings).toContain(
+      'POK030: Context variable "app_context" exceeded max_size for prompt "untrimmed.context" (15 bytes > 5 bytes).',
+    );
+  });
+
   it('rejects context variables that fail regex validation', async () => {
     const sourceDir = join(tmpDir, 'prompts');
     await mkdir(sourceDir, { recursive: true });

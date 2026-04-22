@@ -58,6 +58,10 @@ export function normalizeContextInput(input: ContextInputDefinition): Normalized
 
 type TrimMode = boolean | 'start' | 'end' | 'both';
 
+function isTrimEnabled(mode: TrimMode | undefined): mode is true | 'start' | 'end' | 'both' {
+  return mode === true || mode === 'start' || mode === 'end' || mode === 'both';
+}
+
 function normalizeTrimMode(mode: TrimMode): 'start' | 'end' {
   if (mode === 'start') {
     return 'start';
@@ -135,11 +139,8 @@ export function sanitizeContextVariables(
       }
     }
 
-    if (input.trim !== undefined) {
-      const trimMode = input.trim;
-      if (input.max_size !== undefined) {
-        candidate = trimToMaxSize(candidate, input.max_size, trimMode);
-      }
+    if (isTrimEnabled(input.trim) && input.max_size !== undefined) {
+      candidate = trimToMaxSize(candidate, input.max_size, input.trim);
     }
 
     sanitized[input.name] = candidate;

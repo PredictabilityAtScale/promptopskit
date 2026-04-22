@@ -118,7 +118,7 @@ export function validateAsset(
 
   // Context regex definitions compile successfully
   for (const input of getContextInputs(asset)) {
-    if (input.trim !== undefined && input.max_size === undefined) {
+    if (input.trim !== undefined && input.trim !== false && input.max_size === undefined) {
       warnings.push({
         code: 'POK014',
         message: `Context input "${input.name}" sets trim but has no max_size; trim-to-budget will be skipped.`,

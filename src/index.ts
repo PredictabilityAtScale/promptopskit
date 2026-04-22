@@ -8,7 +8,7 @@ import { renderSections } from './renderer/index.js';
 import { getAdapter } from './providers/index.js';
 import { validateAsset, validateAssetWithIncludes } from './validation/index.js';
 import { PromptCache } from './cache.js';
-import { collectContextSizeWarnings } from './context.js';
+import { collectContextSizeWarnings, sanitizeContextVariables } from './context.js';
 import {
   DEFAULT_PROMPTS_DIR,
   loadPromptAsset,
@@ -112,6 +112,8 @@ export interface RenderPromptOptions {
   runtime?: Partial<PromptAssetOverrides>;
   /** Variables for interpolation */
   variables?: Record<string, string>;
+  /** Optional callback to transform oversized context values before warnings/rendering */
+  onContextOverflow?: RuntimeRenderOptions['onContextOverflow'];
   /** Conversation history */
   history?: Array<{ role: string; content: string }>;
   /** Tool registry for resolving tool references */
@@ -230,7 +232,11 @@ export class PromptOpsKit {
       );
     }
 
-    const contextSizeWarnings = collectContextSizeWarnings(resolved, options.variables).map((warning) =>
+    const sanitizedVariables = sanitizeContextVariables(resolved, options.variables, {
+      onContextOverflow: options.onContextOverflow,
+    });
+
+    const contextSizeWarnings = collectContextSizeWarnings(resolved, sanitizedVariables).map((warning) =>
       formatContextSizeWarning(resolved, warning),
     );
 
@@ -243,7 +249,7 @@ export class PromptOpsKit {
     }
 
     const request = adapter.render(resolved, {
-      variables: options.variables,
+      variables: sanitizedVariables,
       history: options.history,
       toolRegistry: options.toolRegistry,
       strict: options.strict,

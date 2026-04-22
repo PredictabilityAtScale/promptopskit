@@ -27,6 +27,13 @@ export interface RuntimeRenderOptions {
   tier?: string;
   runtime?: Partial<PromptAssetOverrides>;
   variables?: Record<string, string>;
+  onContextOverflow?: (info: {
+    promptId: string;
+    variable: string;
+    value: string;
+    maxSize: number;
+    actualSize: number;
+  }) => string;
   history?: Array<{ role: string; content: string }>;
   toolRegistry?: Record<string, unknown>;
   strict?: boolean;

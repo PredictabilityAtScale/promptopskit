@@ -147,7 +147,7 @@
           </article>
           <article class="card">
             <h3>Runtime context injection</h3>
-            <p><code>{{ variable }}</code> placeholders inject user data, app state, and session context at render time. Declare expected inputs in front matter — missing or extra variables are caught before the API call, not after.</p>
+            <p><code>{{ variable }}</code> placeholders inject user data, app state, and session context at render time. Add per-input controls like <code>max_size</code> + <code>trim</code>, <code>allow_regex</code>/<code>deny_regex</code>, and an <code>onContextOverflow</code> callback to keep oversized or unsafe context out of final prompts.</p>
           </article>
           <article class="card">
             <h3>Composable shared instructions</h3>
@@ -199,7 +199,10 @@ tools:
 context:
   inputs:
     - user_message
-    - app_context
+    - name: app_context
+      max_size: 64
+      trim: true
+      allow_regex: "^[A-Za-z0-9 _-]+$"
   history:
     max_items: 10
 includes:
@@ -247,6 +250,7 @@ const { request } = await kit.renderPrompt({
     user_message: 'How do I reset my password?',
     app_context: 'Account settings page',
   },
+  onContextOverflow: ({ value, maxSize }) => value.slice(0, maxSize),
 });
 
 // request.body is shaped for OpenAI — send it with your own HTTP client
@@ -297,8 +301,9 @@ const res = await fetch('https://api.openai.com/v1/chat/completions', {
             <h3>Context size warnings</h3>
             <ul>
               <li>Declare optional <code>max_size</code> per context input</li>
-              <li>Measure actual injected values in UTF-8 bytes at render time</li>
-              <li>Emit non-blocking warnings before oversized context reaches the model</li>
+              <li>Optionally <code>trim</code> oversized values to budget before interpolation</li>
+              <li>Use <code>onContextOverflow</code> to transform values (summarize/redact/truncate)</li>
+              <li>Use <code>allow_regex</code>/<code>deny_regex</code> to reduce prompt injection risk</li>
               <li>Control warning behavior globally for dev and prod environments</li>
             </ul>
           </article>
@@ -365,7 +370,7 @@ const res = await fetch('https://api.openai.com/v1/chat/completions', {
           </article>
           <article class="card">
             <h3>How does context injection work at runtime?</h3>
-            <p>Declare expected <code>inputs</code> in front matter. At render time, pass variables like user messages, app state, or session data. PromptOpsKit interpolates them into the prompt, validates declared inputs against usage, and can warn when a variable exceeds its configured <code>max_size</code>.</p>
+            <p>Declare expected <code>inputs</code> in front matter. At render time, pass variables like user messages, app state, or session data. PromptOpsKit can transform oversized values with <code>onContextOverflow</code>, trim values to <code>max_size</code>, and enforce <code>allow_regex</code>/<code>deny_regex</code> checks to block risky prompt-injection strings.</p>
           </article>
           <article class="card">
             <h3>Does it support conversation history?</h3>

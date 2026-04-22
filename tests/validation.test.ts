@@ -95,6 +95,63 @@ describe('validateAsset', () => {
     expect(result.valid).toBe(true);
     expect(result.errors).toHaveLength(0);
   });
+
+  it('fails when a context allow_regex is invalid', () => {
+    const result = validateAsset({
+      id: 'test',
+      schema_version: 1,
+      context: {
+        inputs: [{ name: 'user_id', allow_regex: '[a-z' }],
+      },
+      sections: { prompt_template: '{{ user_id }}' },
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((error) => error.code === 'POK013')).toBe(true);
+  });
+
+  it('fails when a context deny_regex is invalid', () => {
+    const result = validateAsset({
+      id: 'test',
+      schema_version: 1,
+      context: {
+        inputs: [{ name: 'user_message', deny_regex: '(?i' }],
+      },
+      sections: { prompt_template: '{{ user_message }}' },
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((error) => error.code === 'POK013')).toBe(true);
+  });
+
+  it('warns when trim is set without max_size', () => {
+    const result = validateAsset({
+      id: 'test',
+      schema_version: 1,
+      context: {
+        inputs: [{ name: 'user_id', trim: true }],
+      },
+      sections: { prompt_template: '{{ user_id }}' },
+    });
+
+    expect(result.valid).toBe(true);
+    expect(result.warnings.some((warning) => warning.code === 'POK014')).toBe(true);
+  });
+
+  it('does not warn when trim is explicitly false without max_size', () => {
+    const result = validateAsset({
+      id: 'test',
+      schema_version: 1,
+      context: {
+        inputs: [{ name: 'user_id', trim: false }],
+      },
+      sections: { prompt_template: '{{ user_id }}' },
+    });
+
+    expect(result.valid).toBe(true);
+    expect(result.warnings.some((warning) => warning.code === 'POK014')).toBe(false);
+  });
+
 });
 
 describe('levenshtein', () => {

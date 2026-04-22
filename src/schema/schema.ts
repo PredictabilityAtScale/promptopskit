@@ -58,6 +58,9 @@ export const HistorySchema = z.object({
 export const ContextInputDefinitionObjectSchema = z.object({
   name: z.string(),
   max_size: z.number().int().positive().optional(),
+  trim: z.union([z.boolean(), z.enum(['start', 'end', 'both'])]).optional(),
+  allow_regex: z.string().optional(),
+  deny_regex: z.string().optional(),
 });
 
 export const ContextInputDefinitionSchema = z.union([

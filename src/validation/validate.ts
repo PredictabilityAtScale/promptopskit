@@ -2,7 +2,7 @@ import { PromptAssetSchema } from '../schema/index.js';
 import type { PromptAsset } from '../schema/index.js';
 import { extractVariables } from '../renderer/index.js';
 import { resolveIncludes } from '../composition/index.js';
-import { getContextInputNames } from '../context.js';
+import { getContextInputs, getContextInputNames } from '../context.js';
 import { levenshtein } from './levenshtein.js';
 
 export interface ValidationError {
@@ -113,6 +113,36 @@ export function validateAsset(
         message: `Variable "${v}" is declared in context.inputs but never used`,
         filePath,
       });
+    }
+  }
+
+  // Context regex definitions compile successfully
+  for (const input of getContextInputs(asset)) {
+    if (input.trim !== undefined && input.trim !== false && input.max_size === undefined) {
+      warnings.push({
+        code: 'POK014',
+        message: `Context input "${input.name}" sets trim but has no max_size; trim-to-budget will be skipped.`,
+        filePath,
+      });
+    }
+
+    const checks: Array<{ pattern: string; kind: 'allow_regex' | 'deny_regex' }> = [];
+
+    if (input.allow_regex) checks.push({ pattern: input.allow_regex, kind: 'allow_regex' });
+    if (input.deny_regex) checks.push({ pattern: input.deny_regex, kind: 'deny_regex' });
+
+    for (const check of checks) {
+      try {
+        // eslint-disable-next-line no-new
+        new RegExp(check.pattern);
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error);
+        errors.push({
+          code: 'POK013',
+          message: `Invalid context ${check.kind} for "${input.name}": ${reason}`,
+          filePath,
+        });
+      }
     }
   }
 

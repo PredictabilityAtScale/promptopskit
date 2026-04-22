@@ -3,12 +3,27 @@ import type { PromptAsset, ResolvedPromptAsset, ContextInputDefinition } from '.
 export interface NormalizedContextInput {
   name: string;
   max_size?: number;
+  trim?: boolean | 'start' | 'end' | 'both';
+  allow_regex?: string;
+  deny_regex?: string;
 }
 
 export interface ContextSizeWarning {
   variable: string;
   maxSize: number;
   actualSize: number;
+}
+
+export interface ContextOverflowInfo {
+  promptId: string;
+  variable: string;
+  value: string;
+  maxSize: number;
+  actualSize: number;
+}
+
+export interface SanitizeContextOptions {
+  onContextOverflow?: (info: ContextOverflowInfo) => string;
 }
 
 const textEncoder = new TextEncoder();
@@ -33,7 +48,123 @@ export function normalizeContextInput(input: ContextInputDefinition): Normalized
   return {
     name: input.name,
     max_size: input.max_size,
+    trim: input.trim,
+    allow_regex: input.allow_regex,
+    deny_regex: input.deny_regex,
   };
+}
+
+type TrimMode = boolean | 'start' | 'end' | 'both';
+
+function isTrimEnabled(mode: TrimMode | undefined): mode is true | 'start' | 'end' | 'both' {
+  return mode === true || mode === 'start' || mode === 'end' || mode === 'both';
+}
+
+function normalizeTrimMode(mode: TrimMode): 'start' | 'end' {
+  if (mode === 'start') {
+    return 'start';
+  }
+  return 'end';
+}
+
+function trimToMaxSize(
+  value: string,
+  maxSize: number,
+  mode: TrimMode,
+): string {
+  const measured = measureContextValueSize(value);
+  if (measured <= maxSize) {
+    return value;
+  }
+
+  const characters = Array.from(value);
+  const normalizedMode = normalizeTrimMode(mode);
+
+  if (normalizedMode === 'start') {
+    let collected = '';
+    let size = 0;
+    for (let i = characters.length - 1; i >= 0; i -= 1) {
+      const next = characters[i];
+      const charSize = measureContextValueSize(next);
+      if (size + charSize > maxSize) {
+        break;
+      }
+      collected = next + collected;
+      size += charSize;
+    }
+    return collected;
+  }
+
+  let collected = '';
+  let size = 0;
+  for (const char of characters) {
+    const charSize = measureContextValueSize(char);
+    if (size + charSize > maxSize) {
+      break;
+    }
+    collected += char;
+    size += charSize;
+  }
+  return collected;
+}
+
+export function sanitizeContextVariables(
+  asset: Pick<PromptAsset | ResolvedPromptAsset, 'context' | 'id'>,
+  variables: Record<string, string> = {},
+  options: SanitizeContextOptions = {},
+): Record<string, string> {
+  const { onContextOverflow } = options;
+  const sanitized = { ...variables };
+
+  for (const input of getContextInputs(asset)) {
+    const value = sanitized[input.name];
+    if (value === undefined) {
+      continue;
+    }
+
+    let candidate = value;
+
+    if (input.max_size !== undefined) {
+      const actualSize = measureContextValueSize(candidate);
+      if (actualSize > input.max_size && onContextOverflow) {
+        candidate = onContextOverflow({
+          promptId: asset.id,
+          variable: input.name,
+          value: candidate,
+          maxSize: input.max_size,
+          actualSize,
+        });
+      }
+    }
+
+    if (isTrimEnabled(input.trim) && input.max_size !== undefined) {
+      candidate = trimToMaxSize(candidate, input.max_size, input.trim);
+    }
+
+    sanitized[input.name] = candidate;
+
+    if (input.allow_regex) {
+      const candidate = sanitized[input.name];
+      const matcher = new RegExp(input.allow_regex);
+      if (!matcher.test(candidate)) {
+        throw new Error(
+          `POK031: Context variable "${input.name}" failed allow_regex validation for prompt "${asset.id}".`,
+        );
+      }
+    }
+
+    if (input.deny_regex) {
+      const candidate = sanitized[input.name];
+      const matcher = new RegExp(input.deny_regex);
+      if (matcher.test(candidate)) {
+        throw new Error(
+          `POK032: Context variable "${input.name}" matched deny_regex for prompt "${asset.id}".`,
+        );
+      }
+    }
+  }
+
+  return sanitized;
 }
 
 export function measureContextValueSize(value: string): number {

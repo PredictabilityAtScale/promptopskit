@@ -11,7 +11,7 @@ Requires Node.js 20 or later.
 ## Scaffold starter prompts
 
 ```bash
-npx promptopskit init ./prompts
+npx promptopskit init
 ```
 
 This creates:

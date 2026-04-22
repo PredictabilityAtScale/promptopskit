@@ -3,12 +3,14 @@
 ## The Only Two Commands You Need
 
 ```powershell
-npm version patch      # or minor or major
+npm run release:patch  # or release:minor / release:major
 git push --follow-tags
 # done. go get a coffee.
 ```
 
 That's it. The GitHub Action does the rest — lint, test, build, publish to npm via **Trusted Publishing** (OIDC). No tokens, no OTP, no manual publish.
+
+We keep `git push --follow-tags` as a separate command on purpose. `npm run release:*` only makes the local version commit and tag. The actual push is a remote side effect, so keeping it explicit gives you one last chance to inspect the commit, confirm the branch and remote, and avoid a script silently publishing from the wrong place.
 
 ---
 
@@ -16,19 +18,20 @@ That's it. The GitHub Action does the rest — lint, test, build, publish to npm
 
 | Command             | When to use it                                      | Example          |
 |----------------------|-----------------------------------------------------|------------------|
-| `npm version patch` | Bug fixes, typos, small tweaks                      | 0.0.1 → 0.0.2   |
-| `npm version minor` | New features that don't break existing usage        | 0.0.2 → 0.1.0   |
-| `npm version major` | Breaking changes (renamed exports, removed options) | 0.1.0 → 1.0.0   |
+| `npm run release:patch` | Bug fixes, typos, small tweaks                      | 0.0.1 → 0.0.2   |
+| `npm run release:minor` | New features that don't break existing usage        | 0.0.2 → 0.1.0   |
+| `npm run release:major` | Breaking changes (renamed exports, removed options) | 0.1.0 → 1.0.0   |
 
 ## What Happens Behind the Scenes
 
-1. `npm version patch` bumps the version in `package.json` and creates a git commit + tag (`v0.0.2`)
+1. `npm run release:patch` bumps the version in `package.json` and creates a git commit + tag (`v0.0.2`)
 2. `git push --follow-tags` pushes the commit and tag to GitHub
-3. The `v*` tag triggers the **Publish** workflow (`.github/workflows/publish.yml`)
-4. The workflow runs lint → test → build → publint → attw → `npm publish`
-5. npm authenticates via **OIDC Trusted Publishing** — no secrets needed
-6. Provenance attestation is generated automatically
-7. The package appears on npm
+3. The release commit includes `[release]`, so the normal **CI** workflow skips that version-bump commit
+4. The `v*` tag triggers the **Publish** workflow (`.github/workflows/publish.yml`)
+5. The workflow runs lint → test → build → publint → attw → `npm publish`
+6. npm authenticates via **OIDC Trusted Publishing** — no secrets needed
+7. Provenance attestation is generated automatically
+8. The package appears on npm
 
 ## How Trusted Publishing Works
 
@@ -59,7 +62,7 @@ git add -A
 git commit -m "describe what you changed"
 ```
 
-Then try `npm version patch` again.
+Then try `npm run release:patch` again.
 
 ### Publish workflow didn't trigger
 
@@ -86,6 +89,10 @@ git push origin v0.0.X
 ### The workflow file must be on main BEFORE tagging
 
 If you add or change the publish workflow and tag in the same push, GitHub may not pick up the workflow. Always push the workflow change to `main` first, then create the tag.
+
+## Why CI Does Not Re-Run On Release Bumps
+
+The version bump created by `npm run release:patch` uses a commit message that includes `[release]`. The CI workflow checks for that marker and skips the branch-push run for that commit, while the tag push still triggers the publish workflow.
 
 ## Do NOT
 

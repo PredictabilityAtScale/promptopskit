@@ -92,6 +92,9 @@
     "test:watch": "vitest",
     "lint": "tsc --noEmit",
     "clean": "rimraf dist",
+    "release:patch": "npm version patch -m \"chore(release): %s [release]\"",
+    "release:minor": "npm version minor -m \"chore(release): %s [release]\"",
+    "release:major": "npm version major -m \"chore(release): %s [release]\"",
     "prepublishOnly": "npm run lint && npm run test && npm run build"
   },
   "keywords": [

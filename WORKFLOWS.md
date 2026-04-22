@@ -7,6 +7,7 @@ This document describes the GitHub Actions workflows and common development proc
 ### CI (`.github/workflows/ci.yml`)
 
 Runs on every push to `main` and on pull requests (ignoring docs/website/markdown changes).
+Release bump commits created by the `release:*` scripts are skipped so tagging a version does not run CI twice.
 
 - Tests against Node 20 and 22
 - Steps: `npm ci` → `lint` → `test` → `build` → `publint` → `attw`
@@ -34,19 +35,21 @@ Runs when `website/` or `docs/` files change on `main`, or via manual dispatch.
 
 2. Bump the version:
    ```sh
-   npm version patch   # bug fixes (0.1.1 → 0.1.2)
-   npm version minor   # new features (0.1.1 → 0.2.0)
-   npm version major   # breaking changes (0.1.1 → 1.0.0)
+   npm run release:patch   # bug fixes (0.1.1 → 0.1.2)
+   npm run release:minor   # new features (0.1.1 → 0.2.0)
+   npm run release:major   # breaking changes (0.1.1 → 1.0.0)
    ```
-   This updates `package.json`, creates a git commit, and creates a `v*` tag.
+   This updates `package.json`, creates a `[release]` git commit, and creates a `v*` tag.
 
 3. Push the commit and tag:
    ```sh
-   git push && git push --tags
+   git push --follow-tags
    ```
 
 4. The **Publish** Action triggers automatically, runs all checks, and publishes to npm.
 
 5. Monitor the run at https://github.com/PredictabilityAtScale/promptopskit/actions to confirm it succeeds.
 
-That's it — three commands: `npm version`, `git push`, `git push --tags`.
+We keep the push outside the `release:*` scripts so the remote-changing step stays explicit and reviewable.
+
+That's it — two commands: `npm run release:*`, `git push --follow-tags`.

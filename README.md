@@ -63,9 +63,14 @@ sampling:
   temperature: 0.7
 context:
   inputs:
-    - user_message
+    - name: user_message
+      non_empty: true
+      reject_secrets: true
     - name: app_context
       max_size: 2000
+      allow_regex:
+        pattern: "^[A-Za-z0-9 _-]+$"
+        flags: "i"
 includes:
   - ./shared/tone.md
 ---
@@ -127,11 +132,12 @@ Supported values for `warnings.contextSize` are `auto`, `off`, `result-only`, `c
 - **Overrides** — Environment and tier-based overrides (base → env → tier → runtime)
 - **4 provider adapters** — OpenAI, Anthropic, Gemini, OpenRouter — body-only output
 - **Validation** — Zod schema validation, Levenshtein-based "did you mean?" for typos, variable usage checks
+- **Context hardening** — structured regexes with flags, `/pattern/i` convenience syntax, and built-in `non_empty` / `reject_secrets` validators
 - **Context size guardrails** — optional per-input `max_size` metadata with non-blocking render-time warnings
 - **Warning controls** — top-level config can suppress or emit context size warnings differently in dev and prod
 - **Caching** — LRU cache with mtime-based invalidation
 - **CLI** — init, validate, compile, render, inspect, skill
-- **Compiled artifacts** — Pre-compile `.md` → JSON or ESM for production
+- **Compiled artifacts** — Pre-compile `.md` → JSON or ESM for production, with validation before artifacts are written
 
 ## Provider Adapters
 
@@ -381,10 +387,10 @@ promptopskit init [dir]
 promptopskit skill
 
 # Validate all .md files in a directory
-promptopskit validate <dir> [--strict]
+promptopskit validate [sourceDir] [--source <dir>] [--strict]
 
 # Compile .md → JSON/ESM artifacts
-promptopskit compile [src] [out] [--dry-run] [--format json|esm] [--no-clean]
+promptopskit compile [sourceDir] [outputDir] [--source <dir>] [--output <dir>] [--dry-run] [--format json|esm] [--no-clean]
 
 # Render a prompt preview (auto-loads .test.yaml sidecar)
 promptopskit render <file> [--env <name>] [--tier <name>] [--vars <file>] [--json]
@@ -507,7 +513,7 @@ Prompt files use YAML front matter with these fields:
 | `response` | `object` | `{ format, stream }` |
 | `tools` | `array` | Tool references (string names or inline definitions) |
 | `mcp` | `object` | MCP server references |
-| `context` | `object` | `{ inputs, history }` — declare expected variables, with optional per-input `max_size`, `trim`, and `allow_regex`/`deny_regex` controls |
+| `context` | `object` | `{ inputs, history }` — declare expected variables, with optional per-input `max_size`, `trim`, structured or literal `allow_regex`/`deny_regex`, and built-in `non_empty` / `reject_secrets` validators |
 | `includes` | `string[]` | Paths to included prompt files |
 | `environments` | `object` | Named environment overrides |
 | `tiers` | `object` | Named tier overrides |

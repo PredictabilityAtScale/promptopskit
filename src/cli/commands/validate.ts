@@ -2,13 +2,15 @@ import { readdir } from 'node:fs/promises';
 import { join, extname } from 'node:path';
 import { loadPromptFile } from '../../parser/index.js';
 import { validateAssetWithIncludes } from '../../validation/index.js';
+import { DEFAULT_PROMPTS_DIR } from '../../prompt-resolution.js';
 
 const HELP = `
-promptopskit validate <dir>
+promptopskit validate [sourceDir] [options]
 
 Validate all prompt .md files in a directory.
 
 Options:
+  --source, -s  Source directory (default: ./prompts)
   --strict       Treat warnings as errors
   --help, -h     Show this help
 `.trim();
@@ -19,12 +21,8 @@ export async function validate(args: string[]): Promise<void> {
     return;
   }
 
-  const dir = args.find((a) => !a.startsWith('--'));
-  if (!dir) {
-    console.error('Error: Please provide a directory to validate.');
-    process.exit(1);
-  }
-
+  const positional = getPositionalArgs(args, new Set(['--source', '-s']));
+  const dir = getFlag(args, '--source', '-s') ?? positional[0] ?? DEFAULT_PROMPTS_DIR;
   const strict = args.includes('--strict');
   const files = await collectPromptFiles(dir);
 
@@ -72,6 +70,37 @@ export async function validate(args: string[]): Promise<void> {
   if (errorCount > 0 || (strict && warnCount > 0)) {
     process.exit(1);
   }
+}
+
+function getPositionalArgs(args: string[], flagsWithValues: Set<string>): string[] {
+  const positional: string[] = [];
+
+  for (let index = 0; index < args.length; index++) {
+    const arg = args[index];
+    if (flagsWithValues.has(arg)) {
+      index += 1;
+      continue;
+    }
+
+    if (arg.startsWith('-')) {
+      continue;
+    }
+
+    positional.push(arg);
+  }
+
+  return positional;
+}
+
+function getFlag(args: string[], ...flags: string[]): string | undefined {
+  for (const flag of flags) {
+    const index = args.indexOf(flag);
+    if (index >= 0 && index + 1 < args.length) {
+      return args[index + 1];
+    }
+  }
+
+  return undefined;
 }
 
 async function collectPromptFiles(dir: string): Promise<string[]> {

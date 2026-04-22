@@ -385,7 +385,9 @@ model: gpt-5.4
 context:
   inputs:
     - name: user_id
-      allow_regex: "^user_[a-z0-9]+$"
+      allow_regex:
+        pattern: "^user_[a-z0-9]+$"
+        flags: "i"
 ---
 
 # Prompt template
@@ -416,7 +418,7 @@ model: gpt-5.4
 context:
   inputs:
     - name: user_message
-      deny_regex: "([Ii]gnore previous instructions|[Ss]ystem:)"
+      deny_regex: "/(ignore previous instructions|system:)/i"
 ---
 
 # Prompt template
@@ -433,6 +435,173 @@ Message: {{ user_message }}
     })).rejects.toThrow(
       'POK032: Context variable "user_message" matched deny_regex for prompt "deny.context".',
     );
+  });
+
+  it('rejects whitespace-only values when non_empty is enabled', async () => {
+    const sourceDir = join(tmpDir, 'prompts');
+    await mkdir(sourceDir, { recursive: true });
+
+    await writeFile(join(sourceDir, 'non-empty-context.md'), `---
+id: nonempty.context
+schema_version: 1
+provider: openai
+model: gpt-5.4
+context:
+  inputs:
+    - name: user_message
+      non_empty: true
+---
+
+# Prompt template
+
+Message: {{ user_message }}
+`);
+
+    const kit = createPromptOpsKit({ sourceDir, mode: 'source-only', cache: false });
+
+    await expect(kit.renderPrompt({
+      path: 'non-empty-context',
+      provider: 'openai',
+      variables: { user_message: '   ' },
+    })).rejects.toThrow(
+      'POK033: Context variable "user_message" failed non_empty validation for prompt "nonempty.context".',
+    );
+  });
+
+  it('rejects secret-like values when reject_secrets is enabled', async () => {
+    const sourceDir = join(tmpDir, 'prompts');
+    await mkdir(sourceDir, { recursive: true });
+
+    await writeFile(join(sourceDir, 'secret-context.md'), `---
+id: secret.context
+schema_version: 1
+provider: openai
+model: gpt-5.4
+context:
+  inputs:
+    - name: pull_request_body
+      reject_secrets: true
+---
+
+# Prompt template
+
+Body: {{ pull_request_body }}
+`);
+
+    const kit = createPromptOpsKit({ sourceDir, mode: 'source-only', cache: false });
+
+    await expect(kit.renderPrompt({
+      path: 'secret-context',
+      provider: 'openai',
+      variables: { pull_request_body: 'Contains API_KEY=abc123 for testing' },
+    })).rejects.toThrow(
+      'POK034: Context variable "pull_request_body" matched reject_secrets validation for prompt "secret.context".',
+    );
+  });
+
+  it('reports prompt, variable, field, and raw value when regex compilation fails at render time', async () => {
+    const sourceDir = join(tmpDir, 'prompts');
+    await mkdir(sourceDir, { recursive: true });
+
+    await writeFile(join(sourceDir, 'invalid-regex-context.md'), `---
+id: invalid.regex.context
+schema_version: 1
+provider: openai
+model: gpt-5.4
+context:
+  inputs:
+    - name: pull_request_body
+      deny_regex: "/secret/z"
+---
+
+# Prompt template
+
+Body: {{ pull_request_body }}
+`);
+
+    const kit = createPromptOpsKit({ sourceDir, mode: 'source-only', cache: false });
+
+    await expect(kit.renderPrompt({
+      path: 'invalid-regex-context',
+      provider: 'openai',
+      variables: { pull_request_body: 'safe body' },
+    })).rejects.toThrow(
+      'POK013: Invalid context regex for prompt "invalid.regex.context", variable "pull_request_body", field "deny_regex", value "/secret/z":',
+    );
+  });
+
+  it('rejects malformed regex literal strings at render time', async () => {
+    const sourceDir = join(tmpDir, 'prompts');
+    await mkdir(sourceDir, { recursive: true });
+
+    await writeFile(join(sourceDir, 'invalid-literal-context.md'), `---
+id: invalid.literal.context
+schema_version: 1
+provider: openai
+model: gpt-5.4
+context:
+  inputs:
+    - name: pull_request_body
+      deny_regex: "/secret"
+---
+
+# Prompt template
+
+Body: {{ pull_request_body }}
+`);
+
+    const kit = createPromptOpsKit({ sourceDir, mode: 'source-only', cache: false });
+
+    await expect(kit.renderPrompt({
+      path: 'invalid-literal-context',
+      provider: 'openai',
+      variables: { pull_request_body: 'safe body' },
+    })).rejects.toThrow(
+      'POK013: Invalid context regex for prompt "invalid.literal.context", variable "pull_request_body", field "deny_regex", value "/secret": Malformed regex literal.',
+    );
+  });
+
+  it('accepts valid values across regex, non_empty, and reject_secrets validation', async () => {
+    const sourceDir = join(tmpDir, 'prompts');
+    await mkdir(sourceDir, { recursive: true });
+
+    await writeFile(join(sourceDir, 'validated-success-context.md'), `---
+id: validated.success.context
+schema_version: 1
+provider: openai
+model: gpt-5.4
+context:
+  inputs:
+    - name: user_id
+      allow_regex:
+        pattern: "^user_[a-z0-9]+$"
+        flags: "i"
+    - name: user_message
+      deny_regex: "/(ignore previous instructions|system:)/i"
+      non_empty: true
+      reject_secrets: true
+---
+
+# Prompt template
+
+User: {{ user_id }}
+Message: {{ user_message }}
+`);
+
+    const kit = createPromptOpsKit({ sourceDir, mode: 'source-only', cache: false });
+    const result = await kit.renderPrompt({
+      path: 'validated-success-context',
+      provider: 'openai',
+      variables: {
+        user_id: 'USER_123',
+        user_message: 'Please summarize the visible changes.',
+      },
+    });
+
+    const messages = result.request.body.messages as Array<{ role: string; content: string }>;
+    expect(messages[0].content).toContain('User: USER_123');
+    expect(messages[0].content).toContain('Message: Please summarize the visible changes.');
+    expect(result.warnings).toHaveLength(0);
   });
 
   it('supports an onContextOverflow callback before size warnings and rendering', async () => {

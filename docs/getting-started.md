@@ -43,8 +43,11 @@ sampling:
   temperature: 0.7
 context:
   inputs:
-    - user_message
-    - app_context
+    - name: user_message
+      non_empty: true
+      reject_secrets: true
+    - name: app_context
+      allow_regex: "/^[A-Za-z0-9 _-]+$/i"
 includes:
   - ./shared/tone.md
 ---
@@ -114,7 +117,7 @@ Your application owns the HTTP call — PromptOpsKit produces the request body o
 npx promptopskit validate ./prompts
 ```
 
-This checks all `.md` files for schema errors, unknown front matter keys (with "did you mean?" suggestions), and variable usage mismatches.
+This checks all `.md` files for schema errors, unknown front matter keys (with "did you mean?" suggestions), variable usage mismatches, and malformed context regex definitions.
 
 ## Compile for production
 
@@ -122,7 +125,7 @@ This checks all `.md` files for schema errors, unknown front matter keys (with "
 npx promptopskit compile
 ```
 
-Pre-compiles `.md` files to JSON (or ESM) artifacts so deployments skip parsing entirely. Add to your build scripts:
+Pre-compiles `.md` files to JSON (or ESM) artifacts so deployments skip parsing entirely. Compilation validates prompt files first, so malformed regex definitions fail before artifacts are written. Add to your build scripts:
 
 ```json
 {

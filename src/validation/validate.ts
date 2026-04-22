@@ -2,7 +2,12 @@ import { PromptAssetSchema } from '../schema/index.js';
 import type { PromptAsset } from '../schema/index.js';
 import { extractVariables } from '../renderer/index.js';
 import { resolveIncludes } from '../composition/index.js';
-import { getContextInputs, getContextInputNames } from '../context.js';
+import {
+  compileContextRegex,
+  formatInvalidContextRegexMessage,
+  getContextInputs,
+  getContextInputNames,
+} from '../context.js';
 import { levenshtein } from './levenshtein.js';
 
 export interface ValidationError {
@@ -126,20 +131,26 @@ export function validateAsset(
       });
     }
 
-    const checks: Array<{ pattern: string; kind: 'allow_regex' | 'deny_regex' }> = [];
+    const checks: Array<{
+      regex: NonNullable<typeof input.allow_regex>;
+      kind: 'allow_regex' | 'deny_regex';
+    }> = [];
 
-    if (input.allow_regex) checks.push({ pattern: input.allow_regex, kind: 'allow_regex' });
-    if (input.deny_regex) checks.push({ pattern: input.deny_regex, kind: 'deny_regex' });
+    if (input.allow_regex) checks.push({ regex: input.allow_regex, kind: 'allow_regex' });
+    if (input.deny_regex) checks.push({ regex: input.deny_regex, kind: 'deny_regex' });
 
     for (const check of checks) {
       try {
-        // eslint-disable-next-line no-new
-        new RegExp(check.pattern);
+        compileContextRegex(check.regex, {
+          promptId: asset.id,
+          variable: input.name,
+          field: check.kind,
+        });
       } catch (error) {
-        const reason = error instanceof Error ? error.message : String(error);
+        const reason = error instanceof Error ? error.message.replace(/^POK013:\s*/, '') : String(error);
         errors.push({
           code: 'POK013',
-          message: `Invalid context ${check.kind} for "${input.name}": ${reason}`,
+          message: reason,
           filePath,
         });
       }

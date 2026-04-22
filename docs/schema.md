@@ -139,7 +139,7 @@ context:
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `inputs` | `Array<string | { name, max_size?, trim?, allow_regex?, deny_regex? }>` | Expected variable names, optionally with size and runtime sanitization constraints |
+| `inputs` | `Array<string | { name, max_size?, trim?, allow_regex?, deny_regex?, non_empty?, reject_secrets? }>` | Expected variable names, optionally with size and runtime sanitization constraints |
 | `history` | `object` | History settings |
 | `history.max_items` | `number` | Maximum history items |
 
@@ -156,8 +156,12 @@ Object-form inputs add optional controls:
 
 - `max_size`: checked during `renderPrompt()` and can produce `POK030` warnings.
 - `trim`: trims incoming values to the `max_size` budget before interpolation (`true`/`end` keeps leading bytes, `start` keeps trailing bytes).
-- `allow_regex`: allowlist validation before interpolation; non-matches throw `POK031`.
-- `deny_regex`: blocklist validation before interpolation; matches throw `POK032`.
+- `allow_regex`: allowlist validation before interpolation; accepts `"pattern"`, `/pattern/i`, or `{ pattern, flags }`, and non-matches throw `POK031`.
+- `deny_regex`: blocklist validation before interpolation; accepts `"pattern"`, `/pattern/i`, or `{ pattern, flags }`, and matches throw `POK032`.
+- `non_empty`: rejects blank or whitespace-only values with `POK033`.
+- `reject_secrets`: rejects common secret-like strings with `POK034`.
+
+Malformed `allow_regex` and `deny_regex` values are reported during `validate` and `compile` with `POK013`.
 
 ## `includes`
 

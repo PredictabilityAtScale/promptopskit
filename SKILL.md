@@ -66,7 +66,7 @@ the fields required by that specific file:
 | `response` | object | no | `{ format: text|json|markdown, stream: boolean }` |
 | `tools` | array | no | Tool names (strings) or inline definitions with `{ name, description, input_schema }` |
 | `mcp` | object | no | `{ servers: [string | { name, config }] }` |
-| `context.inputs` | `Array<string | { name, max_size?, trim?, allow_regex?, deny_regex? }>` | no | Declared variable names used in templates, with optional size budgets and runtime hardening controls |
+| `context.inputs` | `Array<string | { name, max_size?, trim?, allow_regex?, deny_regex?, non_empty?, reject_secrets? }>` | no | Declared variable names used in templates, with optional size budgets and runtime hardening controls |
 | `context.history` | object | no | `{ max_items: number }` |
 | `includes` | string[] | no | Relative paths to other prompt files to include |
 | `environments` | object | no | Per-environment overrides (see Overrides) |
@@ -102,6 +102,8 @@ Rules:
 - Use object-form inputs with `max_size` when a variable is likely to grow large and should trigger early warnings
 - Use `trim` to enforce byte budgets before interpolation when `max_size` is set
 - Use `allow_regex` for allowlist checks and `deny_regex` for blocklist checks on risky inputs
+- Prefer structured regexes like `{ pattern, flags }`; `/pattern/i` strings are also accepted and normalized internally
+- Use `non_empty: true` for required user text and `reject_secrets: true` for common secret redaction checks
 - Escape literal braces with `\{{` and `\}}`
 - In strict mode, missing variables throw an error
 - In permissive mode, unresolved placeholders are left intact
@@ -118,6 +120,8 @@ context:
 
 If a rendered value exceeds `max_size`, `renderPrompt()` emits a non-blocking `POK030` warning.
 At render time, callers can also pass `onContextOverflow` to transform oversized values before warnings/rendering.
+
+Malformed `allow_regex` and `deny_regex` values fail during `validate` and `compile`, not just at render time. When regex compilation fails, the error includes the prompt id, variable name, field name, and raw configured value.
 
 Example: this is the minimal valid shape for a prompt that references
 `{{ pull_request }}` even when provider/model are inherited from defaults:

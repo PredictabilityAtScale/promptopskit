@@ -87,7 +87,7 @@ describe('validateAsset', () => {
       id: 'test',
       schema_version: 1,
       context: {
-        inputs: [{ name: 'account_summary', max_size: 2048 }],
+        inputs: [{ name: 'account_summary', max_size: 2048, non_empty: true, reject_secrets: true }],
       },
       sections: { prompt_template: '{{ account_summary }}' },
     });
@@ -101,13 +101,16 @@ describe('validateAsset', () => {
       id: 'test',
       schema_version: 1,
       context: {
-        inputs: [{ name: 'user_id', allow_regex: '[a-z' }],
+        inputs: [{ name: 'user_id', allow_regex: { pattern: '[a-z', flags: 'i' } }],
       },
       sections: { prompt_template: '{{ user_id }}' },
     });
 
     expect(result.valid).toBe(false);
     expect(result.errors.some((error) => error.code === 'POK013')).toBe(true);
+    expect(result.errors[0]?.message).toContain('prompt "test"');
+    expect(result.errors[0]?.message).toContain('variable "user_id"');
+    expect(result.errors[0]?.message).toContain('field "allow_regex"');
   });
 
   it('fails when a context deny_regex is invalid', () => {
@@ -115,13 +118,47 @@ describe('validateAsset', () => {
       id: 'test',
       schema_version: 1,
       context: {
-        inputs: [{ name: 'user_message', deny_regex: '(?i' }],
+        inputs: [{ name: 'user_message', deny_regex: '/secret/z' }],
       },
       sections: { prompt_template: '{{ user_message }}' },
     });
 
     expect(result.valid).toBe(false);
     expect(result.errors.some((error) => error.code === 'POK013')).toBe(true);
+    expect(result.errors[0]?.message).toContain('value "/secret/z"');
+  });
+
+  it('fails when a regex literal string is malformed', () => {
+    const result = validateAsset({
+      id: 'test',
+      schema_version: 1,
+      context: {
+        inputs: [{ name: 'user_message', deny_regex: '/secret' }],
+      },
+      sections: { prompt_template: '{{ user_message }}' },
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((error) => error.code === 'POK013')).toBe(true);
+    expect(result.errors[0]?.message).toContain('value "/secret"');
+    expect(result.errors[0]?.message).toContain('Malformed regex literal');
+  });
+
+  it('accepts regex objects with flags and regex literal strings', () => {
+    const result = validateAsset({
+      id: 'test',
+      schema_version: 1,
+      context: {
+        inputs: [
+          { name: 'user_id', allow_regex: { pattern: '^user_[a-z0-9]+$', flags: 'i' } },
+          { name: 'user_message', deny_regex: '/ignore previous instructions/i' },
+        ],
+      },
+      sections: { prompt_template: '{{ user_id }} {{ user_message }}' },
+    });
+
+    expect(result.valid).toBe(true);
+    expect(result.errors).toHaveLength(0);
   });
 
   it('warns when trim is set without max_size', () => {
@@ -195,6 +232,31 @@ Hello.
 
     expect(result.valid).toBe(false);
     expect(result.errors.some((error) => error.code === 'POK020')).toBe(true);
+  });
+
+  it('reports invalid context regex definitions through the kit API', async () => {
+    await mkdir(join(tmpDir, 'prompts'), { recursive: true });
+    await writeFile(join(tmpDir, 'prompts', 'invalid-regex.md'), `---
+id: invalid.regex
+schema_version: 1
+context:
+  inputs:
+    - name: pull_request_body
+      deny_regex: "/secret/z"
+---
+
+# Prompt template
+
+{{ pull_request_body }}
+`);
+
+    const kit = createPromptOpsKit({ sourceDir: join(tmpDir, 'prompts') });
+    const result = await kit.validatePrompt('invalid-regex');
+
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((error) => error.code === 'POK013')).toBe(true);
+    expect(result.errors[0]?.message).toContain('prompt "invalid.regex"');
+    expect(result.errors[0]?.message).toContain('field "deny_regex"');
   });
 
   it('reports circular includes through the kit API', async () => {

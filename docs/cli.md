@@ -36,12 +36,13 @@ Existing files are skipped. If a `package.json` exists, suggests adding a `build
 Validate all prompt `.md` files in a directory.
 
 ```bash
-promptopskit validate <dir> [--strict]
+promptopskit validate [sourceDir] [--source <dir>] [--strict]
 ```
 
 | Option | Description |
 |--------|-------------|
-| `<dir>` | Directory to validate (required) |
+| `<sourceDir>` | Source directory to validate (defaults to `./prompts`) |
+| `--source`, `-s` | Explicit source directory override |
 | `--strict` | Treat warnings as errors (exit code 1) |
 
 Checks:
@@ -49,6 +50,7 @@ Checks:
 - Missing required fields (`id`, body sections)
 - Unknown front matter keys with Levenshtein-based "did you mean?" suggestions
 - Variable usage — used but undeclared, declared but unused
+- Context regex compilation for `allow_regex` and `deny_regex`
 - Include resolution — missing files, circular includes
 - Folder defaults inheritance from `defaults.md` (provider, model, metadata, system instructions)
 
@@ -65,13 +67,13 @@ Output per file:
 Compile `.md` prompt files to JSON or ESM artifacts.
 
 ```bash
-promptopskit compile [src] [out] [--dry-run] [--format json|esm] [--no-clean]
+promptopskit compile [sourceDir] [outputDir] [--source <dir>] [--output <dir>] [--dry-run] [--format json|esm] [--no-clean]
 ```
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `<src>` | `./prompts` | Source directory |
-| `<out>` | `./.generated-prompts/json` | Output directory |
+| `<sourceDir>` | `./prompts` | Source directory |
+| `<outputDir>` | `./.generated-prompts/json` | Output directory |
 | `--source`, `-s` | — | Explicit source directory override |
 | `--output`, `-o` | — | Explicit output directory override |
 | `--format` | `json` | Output format: `json` or `esm` |
@@ -79,6 +81,8 @@ promptopskit compile [src] [out] [--dry-run] [--format json|esm] [--no-clean]
 | `--no-clean` | — | Don't clear the output directory before compiling |
 
 Includes are resolved during compilation so compiled artifacts are self-sufficient. The output directory is cleared by default before compiling (unless `--no-clean` is set).
+
+Compilation runs validation before writing artifacts. Invalid `allow_regex` or `deny_regex` definitions fail the compile step early with `POK013` instead of surfacing later during `renderPrompt()`.
 
 If you omit `<out>`, the CLI chooses `./.generated-prompts/json` for `json` and `./.generated-prompts/esm` for `esm`.
 

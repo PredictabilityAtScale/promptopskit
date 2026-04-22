@@ -169,14 +169,18 @@ Each entry can be either a string variable name or an object with:
 - `name` — the template variable name
 - `max_size` — optional UTF-8 byte limit for the injected value
 - `trim` — optional trim-to-budget (`true`/`end` keeps first bytes, `start` keeps trailing bytes) applied when `max_size` is set
-- `allow_regex` — optional allowlist regex; input must match (throws `POK031` on mismatch)
-- `deny_regex` — optional blocklist regex; input must not match (throws `POK032` on match)
+- `allow_regex` — optional allowlist regex; accepts `"pattern"`, `/pattern/i`, or `{ pattern, flags }` and throws `POK031` on mismatch
+- `deny_regex` — optional blocklist regex; accepts `"pattern"`, `/pattern/i`, or `{ pattern, flags }` and throws `POK032` on match
+- `non_empty` — optional boolean validator; throws `POK033` when the final value is blank or whitespace-only
+- `reject_secrets` — optional boolean validator; throws `POK034` when the value matches the built-in secret detector
 
 The validator warns about:
 - Variables used in templates but not declared in `context.inputs`
 - Variables declared in `context.inputs` but never used
 
 At render time, PromptOpsKit also emits a non-blocking `POK030` warning when a provided variable exceeds its declared `max_size`. In source and auto modes, the warning is also written to `console.warn` to make local development issues visible early.
+
+Malformed `allow_regex` and `deny_regex` values fail during `validate` and `compile` with `POK013`, so bad patterns are caught before runtime.
 
 Example hardened input definition:
 
@@ -186,7 +190,13 @@ context:
     - name: user_id
       trim: true
       max_size: 24
-      allow_regex: "^user_[a-z0-9]+$"
+      allow_regex:
+        pattern: "^user_[a-z0-9]+$"
+        flags: "i"
+    - name: pull_request_body
+      non_empty: true
+      reject_secrets: true
+      deny_regex: "/(ignore previous instructions|system:)/i"
 ```
 
 ## Minimal example

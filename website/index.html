@@ -147,7 +147,7 @@
           </article>
           <article class="card">
             <h3>Runtime context injection</h3>
-            <p><code>{{ variable }}</code> placeholders inject user data, app state, and session context at render time. Add per-input controls like <code>max_size</code> + <code>trim</code>, <code>allow_regex</code>/<code>deny_regex</code>, and an <code>onContextOverflow</code> callback to keep oversized or unsafe context out of final prompts.</p>
+            <p><code>{{ variable }}</code> placeholders inject user data, app state, and session context at render time. Add per-input controls like <code>max_size</code> + <code>trim</code>, structured or literal <code>allow_regex</code>/<code>deny_regex</code>, built-in <code>non_empty</code> / <code>reject_secrets</code>, and an <code>onContextOverflow</code> callback to keep oversized or unsafe context out of final prompts.</p>
           </article>
           <article class="card">
             <h3>Composable shared instructions</h3>
@@ -198,11 +198,15 @@ tools:
   - reset_password
 context:
   inputs:
-    - user_message
+    - name: user_message
+      non_empty: true
+      reject_secrets: true
     - name: app_context
       max_size: 64
       trim: true
-      allow_regex: "^[A-Za-z0-9 _-]+$"
+      allow_regex:
+        pattern: "^[A-Za-z0-9 _-]+$"
+        flags: "i"
   history:
     max_items: 10
 includes:
@@ -303,7 +307,8 @@ const res = await fetch('https://api.openai.com/v1/chat/completions', {
               <li>Declare optional <code>max_size</code> per context input</li>
               <li>Optionally <code>trim</code> oversized values to budget before interpolation</li>
               <li>Use <code>onContextOverflow</code> to transform values (summarize/redact/truncate)</li>
-              <li>Use <code>allow_regex</code>/<code>deny_regex</code> to reduce prompt injection risk</li>
+              <li>Use structured regexes with flags or <code>/pattern/i</code> literals for allow/block rules</li>
+              <li>Use built-in <code>non_empty</code> and <code>reject_secrets</code> validators for common hardening cases</li>
               <li>Control warning behavior globally for dev and prod environments</li>
             </ul>
           </article>
@@ -370,7 +375,7 @@ const res = await fetch('https://api.openai.com/v1/chat/completions', {
           </article>
           <article class="card">
             <h3>How does context injection work at runtime?</h3>
-            <p>Declare expected <code>inputs</code> in front matter. At render time, pass variables like user messages, app state, or session data. PromptOpsKit can transform oversized values with <code>onContextOverflow</code>, trim values to <code>max_size</code>, and enforce <code>allow_regex</code>/<code>deny_regex</code> checks to block risky prompt-injection strings.</p>
+            <p>Declare expected <code>inputs</code> in front matter. At render time, pass variables like user messages, app state, or session data. PromptOpsKit can transform oversized values with <code>onContextOverflow</code>, trim values to <code>max_size</code>, enforce structured or literal <code>allow_regex</code>/<code>deny_regex</code> checks, and apply built-in <code>non_empty</code> / <code>reject_secrets</code> validators to block risky content.</p>
           </article>
           <article class="card">
             <h3>Does it support conversation history?</h3>

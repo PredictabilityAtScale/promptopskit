@@ -55,12 +55,22 @@ export const HistorySchema = z.object({
   max_items: z.number().int().positive().optional(),
 });
 
+export const ContextRegexSchema = z.union([
+  z.string(),
+  z.object({
+    pattern: z.string(),
+    flags: z.string().optional(),
+  }),
+]);
+
 export const ContextInputDefinitionObjectSchema = z.object({
   name: z.string(),
   max_size: z.number().int().positive().optional(),
   trim: z.union([z.boolean(), z.enum(['start', 'end', 'both'])]).optional(),
-  allow_regex: z.string().optional(),
-  deny_regex: z.string().optional(),
+  allow_regex: ContextRegexSchema.optional(),
+  deny_regex: ContextRegexSchema.optional(),
+  non_empty: z.boolean().optional(),
+  reject_secrets: z.boolean().optional(),
 });
 
 export const ContextInputDefinitionSchema = z.union([
@@ -69,6 +79,7 @@ export const ContextInputDefinitionSchema = z.union([
 ]);
 
 export type ContextInputDefinition = z.infer<typeof ContextInputDefinitionSchema>;
+export type ContextRegexDefinition = z.infer<typeof ContextRegexSchema>;
 
 export const ContextSchema = z.object({
   inputs: z.array(ContextInputDefinitionSchema).optional(),

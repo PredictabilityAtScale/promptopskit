@@ -1,11 +1,25 @@
-import type { PromptAsset, ResolvedPromptAsset, ContextInputDefinition } from './schema/index.js';
+import type {
+  PromptAsset,
+  ResolvedPromptAsset,
+  ContextInputDefinition,
+  ContextRegexDefinition,
+} from './schema/index.js';
+
+export interface NormalizedContextRegex {
+  pattern: string;
+  flags: string;
+  raw: string;
+  invalidLiteral?: boolean;
+}
 
 export interface NormalizedContextInput {
   name: string;
   max_size?: number;
   trim?: boolean | 'start' | 'end' | 'both';
-  allow_regex?: string;
-  deny_regex?: string;
+  allow_regex?: NormalizedContextRegex;
+  deny_regex?: NormalizedContextRegex;
+  non_empty?: boolean;
+  reject_secrets?: boolean;
 }
 
 export interface ContextSizeWarning {
@@ -27,6 +41,8 @@ export interface SanitizeContextOptions {
 }
 
 const textEncoder = new TextEncoder();
+const REJECT_SECRETS_PATTERN = '(secret|api[_-]?key|password)';
+const REJECT_SECRETS_FLAGS = 'i';
 
 export function getContextInputs(
   asset: Pick<PromptAsset | ResolvedPromptAsset, 'context'>,
@@ -49,8 +65,115 @@ export function normalizeContextInput(input: ContextInputDefinition): Normalized
     name: input.name,
     max_size: input.max_size,
     trim: input.trim,
-    allow_regex: input.allow_regex,
-    deny_regex: input.deny_regex,
+    allow_regex: normalizeContextRegex(input.allow_regex),
+    deny_regex: normalizeContextRegex(input.deny_regex),
+    non_empty: input.non_empty,
+    reject_secrets: input.reject_secrets,
+  };
+}
+
+export function normalizeContextRegex(
+  value: ContextRegexDefinition | undefined,
+): NormalizedContextRegex | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (typeof value === 'string') {
+    const literal = parseRegexLiteral(value);
+    if (value.startsWith('/') && !literal) {
+      return {
+        pattern: value,
+        flags: '',
+        raw: value,
+        invalidLiteral: true,
+      };
+    }
+
+    return {
+      pattern: literal?.pattern ?? value,
+      flags: literal?.flags ?? '',
+      raw: value,
+    };
+  }
+
+  return {
+    pattern: value.pattern,
+    flags: value.flags ?? '',
+    raw: JSON.stringify(value),
+  };
+}
+
+function parseRegexLiteral(value: string): { pattern: string; flags: string } | undefined {
+  if (!value.startsWith('/')) {
+    return undefined;
+  }
+
+  for (let index = value.length - 1; index > 0; index -= 1) {
+    if (value[index] !== '/') {
+      continue;
+    }
+
+    let backslashCount = 0;
+    for (let cursor = index - 1; cursor >= 0 && value[cursor] === '\\'; cursor -= 1) {
+      backslashCount += 1;
+    }
+
+    if (backslashCount % 2 === 1) {
+      continue;
+    }
+
+    return {
+      pattern: value.slice(1, index),
+      flags: value.slice(index + 1),
+    };
+  }
+
+  return undefined;
+}
+
+export function formatInvalidContextRegexMessage(details: {
+  promptId: string;
+  variable: string;
+  field: string;
+  raw: string;
+  reason: string;
+}): string {
+  return [
+    `Invalid context regex for prompt "${details.promptId}"`,
+    `variable "${details.variable}"`,
+    `field "${details.field}"`,
+    `value ${JSON.stringify(details.raw)}: ${details.reason}`,
+  ].join(', ');
+}
+
+export function compileContextRegex(
+  regex: NormalizedContextRegex,
+  details: { promptId: string; variable: string; field: string },
+): RegExp {
+  if (regex.invalidLiteral) {
+    throw new Error(
+      `POK013: ${formatInvalidContextRegexMessage({
+        ...details,
+        raw: regex.raw,
+        reason: 'Malformed regex literal. Use /pattern/flags or { pattern, flags }.',
+      })}`,
+    );
+  }
+
+  try {
+    return new RegExp(regex.pattern, regex.flags);
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    throw new Error(`POK013: ${formatInvalidContextRegexMessage({ ...details, raw: regex.raw, reason })}`);
+  }
+}
+
+function getRejectSecretsRegex(): NormalizedContextRegex {
+  return {
+    pattern: REJECT_SECRETS_PATTERN,
+    flags: REJECT_SECRETS_FLAGS,
+    raw: JSON.stringify({ pattern: REJECT_SECRETS_PATTERN, flags: REJECT_SECRETS_FLAGS }),
   };
 }
 
@@ -145,7 +268,11 @@ export function sanitizeContextVariables(
 
     if (input.allow_regex) {
       const candidate = sanitized[input.name];
-      const matcher = new RegExp(input.allow_regex);
+      const matcher = compileContextRegex(input.allow_regex, {
+        promptId: asset.id,
+        variable: input.name,
+        field: 'allow_regex',
+      });
       if (!matcher.test(candidate)) {
         throw new Error(
           `POK031: Context variable "${input.name}" failed allow_regex validation for prompt "${asset.id}".`,
@@ -155,10 +282,33 @@ export function sanitizeContextVariables(
 
     if (input.deny_regex) {
       const candidate = sanitized[input.name];
-      const matcher = new RegExp(input.deny_regex);
+      const matcher = compileContextRegex(input.deny_regex, {
+        promptId: asset.id,
+        variable: input.name,
+        field: 'deny_regex',
+      });
       if (matcher.test(candidate)) {
         throw new Error(
           `POK032: Context variable "${input.name}" matched deny_regex for prompt "${asset.id}".`,
+        );
+      }
+    }
+
+    if (input.non_empty && candidate.trim().length === 0) {
+      throw new Error(
+        `POK033: Context variable "${input.name}" failed non_empty validation for prompt "${asset.id}".`,
+      );
+    }
+
+    if (input.reject_secrets) {
+      const matcher = compileContextRegex(getRejectSecretsRegex(), {
+        promptId: asset.id,
+        variable: input.name,
+        field: 'reject_secrets',
+      });
+      if (matcher.test(candidate)) {
+        throw new Error(
+          `POK034: Context variable "${input.name}" matched reject_secrets validation for prompt "${asset.id}".`,
         );
       }
     }

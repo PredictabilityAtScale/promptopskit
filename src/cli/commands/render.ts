@@ -25,7 +25,8 @@ export async function render(args: string[]): Promise<void> {
     return;
   }
 
-  const file = args.find((a) => !a.startsWith('--'));
+  const positional = getPositionalArgs(args, new Set(['--env', '--tier', '--vars']));
+  const file = positional[0];
   if (!file) {
     console.error('Error: Please provide a prompt file to render.');
     process.exit(1);
@@ -112,6 +113,26 @@ export async function render(args: string[]): Promise<void> {
   }
   console.log(`Model:  ${overridden.model ?? 'not set'}`);
   console.log('─'.repeat(60));
+}
+
+function getPositionalArgs(args: string[], flagsWithValues: Set<string>): string[] {
+  const positional: string[] = [];
+
+  for (let index = 0; index < args.length; index++) {
+    const arg = args[index];
+    if (flagsWithValues.has(arg)) {
+      index += 1;
+      continue;
+    }
+
+    if (arg.startsWith('-')) {
+      continue;
+    }
+
+    positional.push(arg);
+  }
+
+  return positional;
 }
 
 function getFlag(args: string[], flag: string): string | undefined {

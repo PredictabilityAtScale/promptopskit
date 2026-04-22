@@ -114,7 +114,7 @@ const result = await kit.validatePrompt('support/reply');
 // { valid: boolean, errors: ValidationError[], warnings: ValidationError[] }
 ```
 
-`validatePrompt()` covers schema, include-graph, and variable declaration issues. Render-time context size warnings are produced by `renderPrompt()`, not validation.
+`validatePrompt()` covers schema, include-graph, variable declaration issues, and context regex compilation. Render-time context size warnings are produced by `renderPrompt()`, not validation.
 
 ## `kit.clearCache()`
 
@@ -218,6 +218,8 @@ Validate a parsed prompt asset.
 const result = validateAsset(asset, ['id', 'schema_version', 'model'], 'hello.md');
 // { valid: boolean, errors: ValidationError[], warnings: ValidationError[] }
 ```
+
+`validateAsset()` reports malformed `allow_regex` and `deny_regex` values before runtime, including the prompt id, variable name, field name, and raw configured value in the error message.
 
 ### `validateAssetWithIncludes(asset, filePath, frontMatterKeys?)`
 

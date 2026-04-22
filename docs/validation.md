@@ -1,6 +1,6 @@
 # Validation
 
-PromptOpsKit validates prompts at multiple levels — schema structure, front matter keys, variable usage, and include graphs. Render-time context size limits are checked separately during prompt rendering.
+PromptOpsKit validates prompts at multiple levels — schema structure, front matter keys, variable usage, context regex compilation, and include graphs. Render-time context size limits are checked separately during prompt rendering.
 
 ## Quick start
 
@@ -34,8 +34,10 @@ const result = await kit.validatePrompt('support/reply');
 | `POK010` | Warning | Unknown front matter key (with "did you mean?" suggestion) |
 | `POK011` | Warning | Variable used in template but not declared in `context.inputs` |
 | `POK012` | Warning | Variable declared in `context.inputs` but never used |
-| `POK013` | Error | Invalid context regex pattern (`allow_regex` or `deny_regex`) |
+| `POK013` | Error | Invalid context regex pattern (`allow_regex` or `deny_regex`), including prompt id, variable name, field name, and raw configured value |
 | `POK014` | Warning | `trim` configured without `max_size` (trim-to-budget skipped) |
+| `POK033` | Runtime error | `non_empty` validation failed |
+| `POK034` | Runtime error | `reject_secrets` validation matched |
 | `POK020` | Error | Include resolution failed (missing file) |
 | `POK021` | Error | Circular include detected |
 
@@ -96,16 +98,24 @@ context:
   inputs:
     - name: user_id
       trim: true
-      allow_regex: "^user_[a-z0-9]+$"
+      allow_regex:
+        pattern: "^user_[a-z0-9]+$"
+        flags: "i"
     - name: user_message
-      deny_regex: "([Ii]gnore previous instructions|[Ss]ystem:)"
+      deny_regex: "/(ignore previous instructions|system:)/i"
+      non_empty: true
+      reject_secrets: true
 ```
 
 - `trim` trims values to the `max_size` byte budget before interpolation.
 - `allow_regex` enforces an allowlist pattern before interpolation and throws `POK031` when a value fails validation.
 - `deny_regex` enforces a blocklist pattern before interpolation and throws `POK032` when a value matches.
-- During static validation, malformed `allow_regex` or `deny_regex` patterns are reported as `POK013`.
+- `non_empty` rejects blank or whitespace-only values with `POK033`.
+- `reject_secrets` rejects common secret-like strings with `POK034`.
+- During static validation and compilation, malformed `allow_regex` or `deny_regex` patterns are reported as `POK013`.
 - During static validation, `trim` without `max_size` returns a `POK014` warning.
+
+Regex compilation errors include the prompt id, variable name, field name, and raw configured value to make bad prompt definitions easy to locate.
 
 You can override that behavior at the kit level:
 

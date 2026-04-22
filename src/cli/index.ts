@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+
 import { validate } from './commands/validate.js';
 import { compile } from './commands/compile.js';
 import { render } from './commands/render.js';
@@ -13,8 +15,9 @@ Usage:
 
 Commands:
   init [dir]                           Scaffold a prompts directory with starter files
-  validate <dir>                       Validate prompt files
-  compile [src] [out] [options]        Compile .md prompts to JSON/ESM artifacts
+  validate [sourceDir] [options]       Validate prompt files
+  compile [sourceDir] [outputDir] [options]
+                                       Compile .md prompts to JSON/ESM artifacts
   render <file> [options]              Render a prompt preview
   inspect <file>                       Print normalized prompt asset
   skill [options]                      Deploy AI agent instructions into your project
@@ -36,8 +39,10 @@ async function main() {
   }
 
   if (command === '--version' || command === '-v') {
-    // Dynamic import to read version from package.json
-    console.log('0.0.1');
+    const pkg = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf-8')) as {
+      version: string;
+    };
+    console.log(pkg.version);
     process.exit(0);
   }
 

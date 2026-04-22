@@ -2,6 +2,7 @@ import { readdir, writeFile, mkdir, rm } from 'node:fs/promises';
 import { join, extname, relative, dirname } from 'node:path';
 import { loadPromptFile } from '../../parser/index.js';
 import { resolveIncludes } from '../../composition/index.js';
+import { validateAssetWithIncludes } from '../../validation/index.js';
 import { DEFAULT_PROMPTS_DIR, defaultCompiledDirForFormat } from '../../prompt-resolution.js';
 
 const HELP = `
@@ -59,7 +60,12 @@ export async function compile(args: string[]): Promise<void> {
     const outPath = join(outputDir, rel + outExt);
 
     try {
-      const { asset: parsed } = await loadPromptFile(file, { defaultsRoot: sourceDir });
+      const { asset: parsed, raw } = await loadPromptFile(file, { defaultsRoot: sourceDir });
+
+      const validation = await validateAssetWithIncludes(parsed, file, Object.keys(raw.frontMatter));
+      if (validation.errors.length > 0) {
+        throw new Error(validation.errors.map((error) => `${error.code}: ${error.message}`).join('\n    '));
+      }
 
       // Resolve includes so compiled artifacts are self-sufficient
       const asset = (parsed.includes && parsed.includes.length > 0)

@@ -34,7 +34,7 @@ npm install promptopskit
 ### 1. Scaffold starter prompts
 
 ```bash
-npx promptopskit init ./prompts
+npx promptopskit init
 npx promptopskit skill
 ```
 
@@ -84,7 +84,7 @@ You are a helpful support assistant working in {{ app_context }}.
 ```typescript
 import { createPromptOpsKit } from 'promptopskit';
 
-const kit = createPromptOpsKit({ sourceDir: './prompts' });
+const kit = createPromptOpsKit();
 
 const result = await kit.renderPrompt({
   path: 'support/reply',
@@ -110,7 +110,6 @@ You can control context size warning behavior at the kit level:
 
 ```typescript
 const kit = createPromptOpsKit({
-  sourceDir: './prompts',
   warnings: {
     contextSize: process.env.NODE_ENV === 'production' ? 'off' : 'console-and-result',
   },
@@ -141,7 +140,7 @@ Each adapter produces a `{ body, provider, model }` object shaped for the target
 ```typescript
 // OpenAI
 import { createPromptOpsKit } from 'promptopskit';
-const kit = createPromptOpsKit({ sourceDir: './prompts' });
+const kit = createPromptOpsKit();
 const { request } = await kit.renderPrompt({
   path: 'hello',
   provider: 'openai',
@@ -207,17 +206,14 @@ const request = openaiAdapter.render(prompt, {
 
 In browser or client-side code, keep provider credentials on the server. Use the rendered request body with your own server endpoint, server action, or edge function rather than calling a provider directly from the client.
 
-On the server, adapters also provide async prompt-aware helpers so you can pass a prompt key plus `sourceDir` and `compiledDir` without creating a `PromptOpsKit` instance:
+On the server, adapters also provide async prompt-aware helpers so you can use the default `./prompts` and `./.generated-prompts/json` directories without creating a `PromptOpsKit` instance:
 
 ```typescript
-import path from 'node:path';
 import { openaiAdapter } from 'promptopskit/openai';
 
 const request = await openaiAdapter.renderPrompt(
   {
     path: 'summarizePullRequest',
-    sourceDir: path.join(process.cwd(), 'prompts'),
-    compiledDir: path.join(process.cwd(), '.generated-prompts', 'json'),
   },
   {
     environment: 'dev',
@@ -228,6 +224,8 @@ const request = await openaiAdapter.renderPrompt(
   },
 );
 ```
+
+If you need a different layout, keep passing `sourceDir` and `compiledDir` explicitly.
 
 `renderPrompt()` and `validatePrompt()` use the same source-versus-compiled resolution rules as `kit.renderPrompt()`. The existing synchronous `render()` and `validate()` methods still work for already-resolved compiled or inline assets.
 

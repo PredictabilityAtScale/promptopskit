@@ -16,7 +16,7 @@ PromptOpsKit ships four provider adapters. Each produces a `{ body, provider, mo
 ```typescript
 import { createPromptOpsKit } from 'promptopskit';
 
-const kit = createPromptOpsKit({ sourceDir: './prompts' });
+const kit = createPromptOpsKit();
 
 const { request } = await kit.renderPrompt({
   path: 'hello',
@@ -61,14 +61,11 @@ Direct adapter rendering accepts the same `environment` and `tier` selectors as 
 Server-side example:
 
 ```typescript
-import path from 'node:path';
 import { openaiAdapter } from 'promptopskit/openai';
 
 const request = await openaiAdapter.renderPrompt(
   {
     path: 'summarizePullRequest',
-    sourceDir: path.join(process.cwd(), 'prompts'),
-    compiledDir: path.join(process.cwd(), '.generated-prompts', 'json'),
   },
   {
     environment: 'dev',
@@ -79,6 +76,32 @@ const request = await openaiAdapter.renderPrompt(
   },
 );
 ```
+
+Pass `sourceDir` and `compiledDir` only when you want to override the default `./prompts` and `./.generated-prompts/json` locations.
+
+## Choosing JSON vs ESM
+
+PromptOpsKit's path-based runtime lookup reads compiled `.json` files from disk. That makes JSON the natural server default when you want to resolve prompts by key at runtime with `renderPrompt({ path })` or `createPromptOpsKit().renderPrompt({ path })`.
+
+ESM is the better fit when prompts should be imported into code and bundled with the application instead of discovered from the filesystem at runtime.
+
+| Format | Best when | Advantages | Tradeoffs |
+|--------|-----------|------------|-----------|
+| `json` | You want runtime lookup by prompt key on a Node server | Matches the built-in `compiledDir` lookup path, easy to regenerate, works well with the default `./.generated-prompts/json` layout | Depends on filesystem access, deployment packaging, and stable working-directory-relative paths |
+| `esm` | You want prompts bundled as imports | Better for bundlers, browser-safe import flows, and deployments where static imports are more reliable than runtime fs reads | Not used by the built-in path lookup flow; you import the compiled prompt and call `adapter.render()` or `adapter.validate()` directly |
+
+Deployment guidance:
+
+- AWS Lambda: use `json` if you ship prompt artifacts alongside the function and want runtime lookup by path; use `esm` if your Lambda is bundled and you want prompts embedded via imports.
+- Cloudflare Workers: prefer `esm` or inline prompt assets. Workers-style runtimes are bundle-oriented and do not match the filesystem-based `renderPrompt()` lookup model.
+- Vercel: prefer `esm` for Edge or heavily bundled serverless functions; `json` is fine for Node functions only when the compiled asset directory is reliably included.
+- Railway and container-style Node hosting: `json` is usually the simplest choice because the runtime filesystem layout is predictable.
+- Browser or client-only code: use `esm` imports or inline prompt assets; do not rely on `renderPrompt()` filesystem lookup.
+
+Rule of thumb:
+
+- Choose `json` for server-side prompt resolution by file path.
+- Choose `esm` for import-based rendering and bundle-oriented deployments.
 
 ## Browser / client-side usage
 

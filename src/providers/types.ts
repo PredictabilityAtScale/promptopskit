@@ -34,7 +34,7 @@ export interface RuntimeRenderOptions {
 
 export interface ProviderPromptLookup {
   path: string;
-  sourceDir: string;
+  sourceDir?: string;
   compiledDir?: string;
   mode?: PromptResolutionMode;
   cache?: boolean;

@@ -11,7 +11,7 @@ import type {
 type SyncProviderAdapter = Omit<ProviderAdapter, 'validatePrompt' | 'renderPrompt'>;
 
 function isPromptLookup(input: ProviderPromptInput): input is Extract<ProviderPromptInput, { path: string }> {
-  return 'path' in input && typeof input.path === 'string' && 'sourceDir' in input;
+  return 'path' in input && typeof input.path === 'string';
 }
 
 function isInlinePromptSource(input: ProviderPromptInput): input is Extract<ProviderPromptInput, { source: string }> {

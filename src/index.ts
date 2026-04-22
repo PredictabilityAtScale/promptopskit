@@ -10,9 +10,11 @@ import { validateAsset, validateAssetWithIncludes } from './validation/index.js'
 import { PromptCache } from './cache.js';
 import { collectContextSizeWarnings } from './context.js';
 import {
+  DEFAULT_PROMPTS_DIR,
   loadPromptAsset,
   resolveInlinePromptSource,
   resolvePromptAsset,
+  withPromptResolutionDefaults,
 } from './prompt-resolution.js';
 import type { PromptAsset, PromptAssetOverrides, ResolvedPromptAsset } from './schema/index.js';
 import type { ProviderRequest, RuntimeRenderOptions } from './providers/types.js';
@@ -84,7 +86,7 @@ export {
 // --- Config ---
 
 export interface PromptOpsKitConfig {
-  sourceDir: string;
+  sourceDir?: string;
   compiledDir?: string;
   mode?: 'auto' | 'compiled-only' | 'source-only';
   cache?: boolean;
@@ -170,10 +172,11 @@ export class PromptOpsKit {
   private promptCache: PromptCache<PromptAsset>;
 
   constructor(config: PromptOpsKitConfig) {
+    const resolvedConfig = withPromptResolutionDefaults(config);
     this.config = {
-      ...config,
-      mode: config.mode ?? 'auto',
-      cache: config.cache ?? true,
+      ...resolvedConfig,
+      mode: resolvedConfig.mode ?? 'auto',
+      cache: resolvedConfig.cache ?? true,
     };
     this.promptCache = new PromptCache();
   }
@@ -275,7 +278,7 @@ export class PromptOpsKit {
 
 // --- Factory ---
 
-export function createPromptOpsKit(config: PromptOpsKitConfig): PromptOpsKit {
+export function createPromptOpsKit(config: PromptOpsKitConfig = {}): PromptOpsKit {
   return new PromptOpsKit(config);
 }
 
@@ -283,7 +286,7 @@ export function createPromptOpsKit(config: PromptOpsKitConfig): PromptOpsKit {
 
 /**
  * Standalone renderPrompt for quick usage without creating a PromptOpsKit instance.
- * Requires either `source` (inline) or `path` + implicit sourceDir of '.'.
+ * Requires either `source` (inline) or `path` + implicit sourceDir of ./prompts.
  */
 export async function renderPrompt(
   options: RenderPromptOptions & {
@@ -292,7 +295,7 @@ export async function renderPrompt(
   },
 ): Promise<RenderResult> {
   const kit = createPromptOpsKit({
-    sourceDir: options.sourceDir ?? '.',
+    sourceDir: options.sourceDir ?? DEFAULT_PROMPTS_DIR,
     cache: false,
     warnings: options.warnings,
   });

@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { openaiAdapter } from '../src/providers/openai.js';
 import { anthropicAdapter } from '../src/providers/anthropic.js';
@@ -116,6 +118,64 @@ describe('OpenAI adapter', () => {
       content: 'You are a friendly assistant helping in support chat.',
     });
     expect(messages[1]).toEqual({ role: 'user', content: 'Say hello to World.' });
+  });
+
+  it('renders directly from a prompt path using default folders', async () => {
+    const cwd = process.cwd();
+    const tmpDir = await mkdtemp(path.join(tmpdir(), 'pok-provider-'));
+    const promptsDir = path.join(tmpDir, 'prompts');
+    const compiledDir = path.join(tmpDir, '.generated-prompts', 'json');
+
+    await mkdir(compiledDir, { recursive: true });
+    await mkdir(promptsDir, { recursive: true });
+
+    await writeFile(path.join(promptsDir, 'hello.md'), `---
+id: hello
+schema_version: 1
+provider: openai
+model: gpt-5.4
+---
+
+# Prompt template
+
+Hello {{ name }}.
+`);
+
+    await writeFile(path.join(compiledDir, 'hello.json'), `${JSON.stringify({
+      id: 'hello',
+      schema_version: 1,
+      provider: 'openai',
+      model: 'gpt-5.4',
+      sections: {
+        system_instructions: 'From compiled.',
+        prompt_template: 'Hello {{ name }}.',
+      },
+    }, null, 2)}\n`);
+
+    process.chdir(tmpDir);
+
+    try {
+      const result = await openaiAdapter.renderPrompt(
+        {
+          path: 'hello',
+        },
+        {
+          variables: {
+            name: 'World',
+          },
+        },
+      );
+
+      expect(result.provider).toBe('openai');
+      expect(result.model).toBe('gpt-5.4');
+
+      const messages = result.body.messages as Array<{ role: string; content: string }>;
+      expect(messages[0]).toEqual({ role: 'system', content: 'From compiled.' });
+      expect(messages[1]).toEqual({ role: 'user', content: 'Hello World.' });
+    } finally {
+      process.chdir(cwd);
+      await rm(tmpDir, { recursive: true, force: true });
+    }
   });
 
   it('validates inline prompt source with defaults applied by runtime overrides', async () => {

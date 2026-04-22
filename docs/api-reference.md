@@ -7,6 +7,20 @@ Creates a `PromptOpsKit` instance.
 ```typescript
 import { createPromptOpsKit } from 'promptopskit';
 
+const kit = createPromptOpsKit();
+```
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `sourceDir` | `string` | `./prompts` | Path to prompt `.md` files |
+| `compiledDir` | `string` | `./.generated-prompts/json` | Path to compiled artifacts |
+| `mode` | `'auto' \| 'compiled-only' \| 'source-only'` | `'auto'` | Resolution strategy |
+| `cache` | `boolean` | `true` | Enable LRU cache with mtime invalidation |
+| `warnings.contextSize` | `'auto' \| 'off' \| 'result-only' \| 'console' \| 'console-and-result'` | `'auto'` | Control whether render-time context size warnings are returned, logged, both, or suppressed |
+
+Example with overrides:
+
+```typescript
 const kit = createPromptOpsKit({
   sourceDir: './prompts',
   compiledDir: './.generated-prompts/json',
@@ -17,14 +31,6 @@ const kit = createPromptOpsKit({
   },
 });
 ```
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `sourceDir` | `string` | — | Path to prompt `.md` files (required) |
-| `compiledDir` | `string` | — | Path to compiled artifacts |
-| `mode` | `'auto' \| 'compiled-only' \| 'source-only'` | `'auto'` | Resolution strategy |
-| `cache` | `boolean` | `true` | Enable LRU cache with mtime invalidation |
-| `warnings.contextSize` | `'auto' \| 'off' \| 'result-only' \| 'console' \| 'console-and-result'` | `'auto'` | Control whether render-time context size warnings are returned, logged, both, or suppressed |
 
 ### Resolution modes
 
@@ -247,7 +253,7 @@ const result = await renderPrompt({
   source: '---\nid: inline\nschema_version: 1\n---\n\nHello {{ name }}!',
   provider: 'openai',
   variables: { name: 'World' },
-  sourceDir: './prompts',  // defaults to '.'
+  sourceDir: './prompts',  // defaults to ./prompts
   warnings: { contextSize: 'result-only' },
 });
 ```
@@ -278,6 +284,6 @@ import type {
 
 Provider helper types:
 
-- `ProviderPromptLookup` — `{ path, sourceDir, compiledDir?, mode?, cache? }` for adapter-managed source or compiled lookup
+- `ProviderPromptLookup` — `{ path, sourceDir?, compiledDir?, mode?, cache? }` for adapter-managed source or compiled lookup
 - `ProviderInlinePromptSource` — `{ source }` for adapter-managed inline prompt source
 - `ProviderPromptInput` — union of `ResolvedPromptAsset`, `ProviderPromptLookup`, and `ProviderInlinePromptSource`

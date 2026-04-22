@@ -10,11 +10,34 @@ import type { PromptAsset, PromptAssetOverrides, ResolvedPromptAsset } from './s
 
 export type PromptResolutionMode = 'auto' | 'compiled-only' | 'source-only';
 
+export const DEFAULT_PROMPTS_DIR = './prompts';
+export const DEFAULT_COMPILED_JSON_DIR = './.generated-prompts/json';
+export const DEFAULT_COMPILED_ESM_DIR = './.generated-prompts/esm';
+
 export interface PromptResolutionConfig {
-  sourceDir: string;
+  sourceDir?: string;
   compiledDir?: string;
   mode?: PromptResolutionMode;
   cache?: boolean;
+}
+
+export interface ResolvedPromptResolutionConfig {
+  sourceDir: string;
+  compiledDir: string;
+  mode?: PromptResolutionMode;
+  cache?: boolean;
+}
+
+export function defaultCompiledDirForFormat(format: 'json' | 'esm'): string {
+  return format === 'esm' ? DEFAULT_COMPILED_ESM_DIR : DEFAULT_COMPILED_JSON_DIR;
+}
+
+export function withPromptResolutionDefaults(config: PromptResolutionConfig): ResolvedPromptResolutionConfig {
+  return {
+    ...config,
+    sourceDir: config.sourceDir ?? DEFAULT_PROMPTS_DIR,
+    compiledDir: config.compiledDir ?? DEFAULT_COMPILED_JSON_DIR,
+  };
 }
 
 const sharedPromptCache = new PromptCache<PromptAsset>();
@@ -24,13 +47,14 @@ export async function loadPromptAsset(
   config: PromptResolutionConfig,
   promptCache: PromptCache<PromptAsset> = sharedPromptCache,
 ): Promise<PromptAsset> {
-  const mode = config.mode ?? 'auto';
+  const resolvedConfig = withPromptResolutionDefaults(config);
+  const mode = resolvedConfig.mode ?? 'auto';
 
-  if (mode !== 'source-only' && config.compiledDir) {
-    const compiledFile = resolve(config.compiledDir, promptPath + '.json');
+  if (mode !== 'source-only' && resolvedConfig.compiledDir) {
+    const compiledFile = resolve(resolvedConfig.compiledDir, promptPath + '.json');
     if (existsSync(compiledFile)) {
       if (mode === 'auto') {
-        const sourceFile = resolve(config.sourceDir, promptPath + '.md');
+        const sourceFile = resolve(resolvedConfig.sourceDir, promptPath + '.md');
         if (existsSync(sourceFile)) {
           const compiledMtime = statSync(compiledFile).mtimeMs;
           const sourceMtime = statSync(sourceFile).mtimeMs;
@@ -56,9 +80,9 @@ export async function loadPromptAsset(
   }
 
   if (mode !== 'compiled-only') {
-    const sourceFile = resolve(config.sourceDir, promptPath + '.md');
+    const sourceFile = resolve(resolvedConfig.sourceDir, promptPath + '.md');
 
-    if (config.cache !== false) {
+    if (resolvedConfig.cache !== false) {
       const cached = promptCache.get(sourceFile);
       if (cached) {
         return cached;
@@ -67,8 +91,8 @@ export async function loadPromptAsset(
 
     if (!existsSync(sourceFile)) {
       const paths = [sourceFile];
-      if (config.compiledDir) {
-        paths.unshift(resolve(config.compiledDir, promptPath + '.json'));
+      if (resolvedConfig.compiledDir) {
+        paths.unshift(resolve(resolvedConfig.compiledDir, promptPath + '.json'));
       }
 
       throw new Error(
@@ -76,9 +100,9 @@ export async function loadPromptAsset(
       );
     }
 
-    const { asset } = await loadPromptFile(sourceFile, { defaultsRoot: config.sourceDir });
+    const { asset } = await loadPromptFile(sourceFile, { defaultsRoot: resolvedConfig.sourceDir });
 
-    if (config.cache !== false) {
+    if (resolvedConfig.cache !== false) {
       promptCache.set(sourceFile, asset);
     }
 
@@ -94,9 +118,10 @@ export async function resolvePromptAsset(
   options: { environment?: string; tier?: string; runtime?: Partial<PromptAssetOverrides> } = {},
   promptCache: PromptCache<PromptAsset> = sharedPromptCache,
 ): Promise<ResolvedPromptAsset> {
-  let asset = await loadPromptAsset(promptPath, config, promptCache);
+  const resolvedConfig = withPromptResolutionDefaults(config);
+  let asset = await loadPromptAsset(promptPath, resolvedConfig, promptCache);
 
-  const sourceFile = resolve(config.sourceDir, promptPath + '.md');
+  const sourceFile = resolve(resolvedConfig.sourceDir, promptPath + '.md');
   if (asset.includes && asset.includes.length > 0 && existsSync(sourceFile)) {
     asset = await resolveIncludes(asset, sourceFile);
   }

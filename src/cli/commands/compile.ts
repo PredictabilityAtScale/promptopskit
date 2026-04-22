@@ -2,6 +2,7 @@ import { readdir, writeFile, mkdir, rm } from 'node:fs/promises';
 import { join, extname, relative, dirname } from 'node:path';
 import { loadPromptFile } from '../../parser/index.js';
 import { resolveIncludes } from '../../composition/index.js';
+import { DEFAULT_PROMPTS_DIR, defaultCompiledDirForFormat } from '../../prompt-resolution.js';
 
 const HELP = `
 promptopskit compile [sourceDir] [outputDir] [options]
@@ -33,8 +34,8 @@ export async function compile(args: string[]): Promise<void> {
     process.exit(1);
   }
 
-  const sourceDir = getFlag(args, '--source', '-s') ?? positional[0] ?? './prompts';
-  const outputDir = getFlag(args, '--output', '-o') ?? positional[1] ?? defaultOutputDirForFormat(format);
+  const sourceDir = getFlag(args, '--source', '-s') ?? positional[0] ?? DEFAULT_PROMPTS_DIR;
+  const outputDir = getFlag(args, '--output', '-o') ?? positional[1] ?? defaultCompiledDirForFormat(format);
 
   // Collect prompt files
   const files = await collectPromptFiles(sourceDir);
@@ -98,11 +99,6 @@ export async function compile(args: string[]): Promise<void> {
     process.exit(1);
   }
 }
-
-function defaultOutputDirForFormat(format: 'json' | 'esm'): string {
-  return format === 'esm' ? './.generated-prompts/esm' : './.generated-prompts/json';
-}
-
 function getPositionalArgs(args: string[], flagsWithValues: Set<string>): string[] {
   const positional: string[] = [];
 

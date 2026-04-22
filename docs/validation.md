@@ -34,6 +34,9 @@ const result = await kit.validatePrompt('support/reply');
 | `POK010` | Warning | Unknown front matter key (with "did you mean?" suggestion) |
 | `POK011` | Warning | Variable used in template but not declared in `context.inputs` |
 | `POK012` | Warning | Variable declared in `context.inputs` but never used |
+| `POK013` | Error | Invalid context regex pattern (`allow_regex`, `deny_regex`, or legacy `regex`) |
+| `POK014` | Warning | `trim` configured without `max_size` (trim-to-budget skipped) |
+| `POK015` | Warning | Both `regex` and `allow_regex` set (`allow_regex` takes precedence) |
 | `POK020` | Error | Include resolution failed (missing file) |
 | `POK021` | Error | Circular include detected |
 
@@ -74,6 +77,38 @@ context:
 ```
 
 If `account_summary` is rendered with a value larger than 4096 UTF-8 bytes, `renderPrompt()` returns a `POK030` warning. In source and auto modes, PromptOpsKit also writes the warning to `console.warn` so oversized context is visible during local development.
+
+If you want to transform oversized values before warnings/rendering (for example, summarize or redact), pass `onContextOverflow` at render time:
+
+```typescript
+const result = await kit.renderPrompt({
+  path: 'support/reply',
+  provider: 'openai',
+  variables: { account_summary: veryLargeText },
+  onContextOverflow: ({ variable, value, maxSize }) =>
+    `${variable} truncated to fit ${maxSize} bytes: ${value.slice(0, 50)}...`,
+});
+```
+
+You can also add basic input hardening directly in `context.inputs`:
+
+```yaml
+context:
+  inputs:
+    - name: user_id
+      trim: true
+      allow_regex: "^user_[a-z0-9]+$"
+    - name: user_message
+      deny_regex: "([Ii]gnore previous instructions|[Ss]ystem:)"
+```
+
+- `trim` trims values to the `max_size` byte budget before interpolation.
+- `allow_regex` enforces an allowlist pattern before interpolation and throws `POK031` when a value fails validation.
+- `deny_regex` enforces a blocklist pattern before interpolation and throws `POK032` when a value matches.
+- `regex` remains as a legacy alias for `allow_regex`.
+- During static validation, malformed `allow_regex`, `deny_regex`, or `regex` patterns are reported as `POK013`.
+- During static validation, `trim` without `max_size` returns a `POK014` warning.
+- During static validation, setting both `regex` and `allow_regex` returns a `POK015` warning (`allow_regex` wins).
 
 You can override that behavior at the kit level:
 

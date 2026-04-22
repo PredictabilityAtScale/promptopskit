@@ -65,6 +65,7 @@ const result = await kit.renderPrompt({
 | `source` | `string` | Inline prompt source (alternative to `path`) |
 | `provider` | `string` | `'openai'`, `'anthropic'`, `'gemini'`, `'openrouter'` (required) |
 | `variables` | `Record<string, string>` | Template variables |
+| `onContextOverflow` | `(info) => string` | Optional callback to transform an oversized context value before rendering |
 | `environment` | `string` | Environment override name |
 | `tier` | `string` | Tier override name |
 | `history` | `Array<{ role, content }>` | Conversation history |
@@ -240,7 +241,7 @@ const request = adapter.render(resolvedAsset, {
 });
 ```
 
-`RuntimeRenderOptions` for direct adapter rendering supports `environment`, `tier`, `runtime`, `variables`, `history`, `toolRegistry`, and `strict`.
+`RuntimeRenderOptions` for direct adapter rendering supports `environment`, `tier`, `runtime`, `variables`, `onContextOverflow`, `history`, `toolRegistry`, and `strict`.
 
 ## Standalone `renderPrompt`
 

@@ -1,5 +1,6 @@
 import { resolveInlinePromptSource, resolvePromptAsset } from '../prompt-resolution.js';
 import type { ResolvedPromptAsset } from '../schema/index.js';
+import { sanitizeContextVariables } from '../context.js';
 import type {
   ProviderAdapter,
   ProviderPromptInput,
@@ -41,7 +42,13 @@ export function withPromptInputSupport(adapter: SyncProviderAdapter): ProviderAd
 
   const renderPrompt: RenderPromptMethod = async (input, runtime) => {
     const resolved = await resolveProviderPromptInput(input, runtime);
-    return adapter.render(resolved, runtime);
+    const variables = sanitizeContextVariables(resolved, runtime.variables, {
+      onContextOverflow: runtime.onContextOverflow,
+    });
+    return adapter.render(resolved, {
+      ...runtime,
+      variables,
+    });
   };
 
   return {

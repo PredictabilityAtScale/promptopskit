@@ -474,6 +474,7 @@ Renders a prompt for a specific provider. Returns `{ resolved, request, warnings
 | `source` | `string` | Inline prompt source (alternative to path) |
 | `provider` | `string` | `'openai'`, `'anthropic'`, `'gemini'`, `'openrouter'` |
 | `variables` | `Record<string, string>` | Template variables |
+| `onContextOverflow` | `(info) => string` | Optional callback to transform oversized context values before rendering |
 | `environment` | `string` | Environment override name |
 | `tier` | `string` | Tier override name |
 | `history` | `Array<{ role, content }>` | Conversation history |
@@ -506,7 +507,7 @@ Prompt files use YAML front matter with these fields:
 | `response` | `object` | `{ format, stream }` |
 | `tools` | `array` | Tool references (string names or inline definitions) |
 | `mcp` | `object` | MCP server references |
-| `context` | `object` | `{ inputs, history }` — declare expected variables, with optional per-input `max_size` budgets |
+| `context` | `object` | `{ inputs, history }` — declare expected variables, with optional per-input `max_size`, `trim`, `allow_regex`/`deny_regex`, and legacy `regex` controls |
 | `includes` | `string[]` | Paths to included prompt files |
 | `environments` | `object` | Named environment overrides |
 | `tiers` | `object` | Named tier overrides |

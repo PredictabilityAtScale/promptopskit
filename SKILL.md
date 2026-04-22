@@ -66,7 +66,7 @@ the fields required by that specific file:
 | `response` | object | no | `{ format: text|json|markdown, stream: boolean }` |
 | `tools` | array | no | Tool names (strings) or inline definitions with `{ name, description, input_schema }` |
 | `mcp` | object | no | `{ servers: [string | { name, config }] }` |
-| `context.inputs` | `Array<string | { name, max_size? }>` | no | Declared variable names used in templates, with optional size budgets |
+| `context.inputs` | `Array<string | { name, max_size?, trim?, allow_regex?, deny_regex?, regex? }>` | no | Declared variable names used in templates, with optional size budgets and runtime hardening controls |
 | `context.history` | object | no | `{ max_items: number }` |
 | `includes` | string[] | no | Relative paths to other prompt files to include |
 | `environments` | object | no | Per-environment overrides (see Overrides) |
@@ -100,6 +100,8 @@ Rules:
 - Before finishing a new prompt file, scan the body for every `{{ variable }}` and
   ensure each exact variable name appears in `context.inputs`
 - Use object-form inputs with `max_size` when a variable is likely to grow large and should trigger early warnings
+- Use `trim` to enforce byte budgets before interpolation when `max_size` is set
+- Use `allow_regex` (or legacy `regex`) for allowlist checks and `deny_regex` for blocklist checks on risky inputs
 - Escape literal braces with `\{{` and `\}}`
 - In strict mode, missing variables throw an error
 - In permissive mode, unresolved placeholders are left intact
@@ -115,6 +117,7 @@ context:
 ```
 
 If a rendered value exceeds `max_size`, `renderPrompt()` emits a non-blocking `POK030` warning.
+At render time, callers can also pass `onContextOverflow` to transform oversized values before warnings/rendering.
 
 Example: this is the minimal valid shape for a prompt that references
 `{{ pull_request }}` even when provider/model are inherited from defaults:

@@ -139,7 +139,7 @@ context:
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `inputs` | `Array<string | { name, max_size? }>` | Expected variable names, optionally with a UTF-8 byte budget for render-time warnings |
+| `inputs` | `Array<string | { name, max_size?, trim?, allow_regex?, deny_regex?, regex? }>` | Expected variable names, optionally with size and runtime sanitization constraints |
 | `history` | `object` | History settings |
 | `history.max_items` | `number` | Maximum history items |
 
@@ -152,7 +152,13 @@ context:
     - account_summary
 ```
 
-Object-form inputs add optional `max_size`, which is checked during `renderPrompt()` and can produce a `POK030` warning when the injected value exceeds the declared budget.
+Object-form inputs add optional controls:
+
+- `max_size`: checked during `renderPrompt()` and can produce `POK030` warnings.
+- `trim`: trims incoming values to the `max_size` budget before interpolation (`true`/`end` keeps leading bytes, `start` keeps trailing bytes).
+- `allow_regex`: allowlist validation before interpolation; non-matches throw `POK031`.
+- `deny_regex`: blocklist validation before interpolation; matches throw `POK032`.
+- `regex`: legacy alias of `allow_regex`.
 
 ## `includes`
 

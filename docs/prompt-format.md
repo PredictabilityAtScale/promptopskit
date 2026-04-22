@@ -168,12 +168,27 @@ Each entry can be either a string variable name or an object with:
 
 - `name` — the template variable name
 - `max_size` — optional UTF-8 byte limit for the injected value
+- `trim` — optional trim-to-budget (`true`/`end` keeps first bytes, `start` keeps trailing bytes) applied when `max_size` is set
+- `allow_regex` — optional allowlist regex; input must match (throws `POK031` on mismatch)
+- `deny_regex` — optional blocklist regex; input must not match (throws `POK032` on match)
+- `regex` — legacy alias for `allow_regex`
 
 The validator warns about:
 - Variables used in templates but not declared in `context.inputs`
 - Variables declared in `context.inputs` but never used
 
 At render time, PromptOpsKit also emits a non-blocking `POK030` warning when a provided variable exceeds its declared `max_size`. In source and auto modes, the warning is also written to `console.warn` to make local development issues visible early.
+
+Example hardened input definition:
+
+```yaml
+context:
+  inputs:
+    - name: user_id
+      trim: true
+      max_size: 24
+      allow_regex: "^user_[a-z0-9]+$"
+```
 
 ## Minimal example
 

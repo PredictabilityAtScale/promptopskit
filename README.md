@@ -64,7 +64,8 @@ sampling:
 context:
   inputs:
     - name: user_message
-      non_empty: true
+      non_empty:
+        return_message: "Please enter a message before continuing."
       reject_secrets: true
     - name: app_context
       max_size: 2000
@@ -100,6 +101,10 @@ const result = await kit.renderPrompt({
   },
 });
 
+if (result.returnMessage) {
+  return result.returnMessage;
+}
+
 // result.request.body is ready for fetch()
 const response = await fetch('https://api.openai.com/v1/chat/completions', {
   method: 'POST',
@@ -133,6 +138,7 @@ Supported values for `warnings.contextSize` are `auto`, `off`, `result-only`, `c
 - **4 provider adapters** — OpenAI, Anthropic, Gemini, OpenRouter — body-only output
 - **Validation** — Zod schema validation, Levenshtein-based "did you mean?" for typos, variable usage checks
 - **Context hardening** — structured regexes with flags, `/pattern/i` convenience syntax, and built-in `non_empty` / `reject_secrets` validators
+- **Optional short-circuit messages** — validators can return a structured `returnMessage` instead of throwing when configured
 - **Context size guardrails** — optional per-input `max_size` metadata with non-blocking render-time warnings
 - **Warning controls** — top-level config can suppress or emit context size warnings differently in dev and prod
 - **Caching** — LRU cache with mtime-based invalidation
@@ -147,35 +153,40 @@ Each adapter produces a `{ body, provider, model }` object shaped for the target
 // OpenAI
 import { createPromptOpsKit } from 'promptopskit';
 const kit = createPromptOpsKit();
-const { request } = await kit.renderPrompt({
+let result = await kit.renderPrompt({
   path: 'hello',
   provider: 'openai',
   variables: { name: 'World', app_context: 'Welcome screen' },
 });
+if (!result.request) throw new Error(result.returnMessage ?? 'Prompt rendering failed.');
+const { request } = result;
 // request.body → { model, messages, temperature, reasoning_effort, ... }
 
 // Anthropic — system is a top-level field, max_tokens defaults to 4096
-const { request } = await kit.renderPrompt({
+result = await kit.renderPrompt({
   path: 'hello',
   provider: 'anthropic',
   variables: { name: 'World', app_context: 'Welcome screen' },
 });
+if (!result.request) throw new Error(result.returnMessage ?? 'Prompt rendering failed.');
 // request.body → { model, messages, system, max_tokens, ... }
 
 // Gemini — contents/systemInstruction/generationConfig structure
-const { request } = await kit.renderPrompt({
+result = await kit.renderPrompt({
   path: 'hello',
   provider: 'gemini',
   variables: { name: 'World', app_context: 'Welcome screen' },
 });
+if (!result.request) throw new Error(result.returnMessage ?? 'Prompt rendering failed.');
 // request.body → { contents, systemInstruction, generationConfig, ... }
 
 // OpenRouter — same shape as OpenAI, different provider label
-const { request } = await kit.renderPrompt({
+result = await kit.renderPrompt({
   path: 'hello',
   provider: 'openrouter',
   variables: { name: 'World', app_context: 'Welcome screen' },
 });
+if (!result.request) throw new Error(result.returnMessage ?? 'Prompt rendering failed.');
 ```
 
 Provider adapters are also available as direct imports:
@@ -217,7 +228,7 @@ On the server, adapters also provide async prompt-aware helpers so you can use t
 ```typescript
 import { openaiAdapter } from 'promptopskit/openai';
 
-const request = await openaiAdapter.renderPrompt(
+const result = await openaiAdapter.renderPrompt(
   {
     path: 'summarizePullRequest',
   },
@@ -229,6 +240,12 @@ const request = await openaiAdapter.renderPrompt(
     strict: true,
   },
 );
+
+if (!('body' in result)) {
+  throw new Error(result.returnMessage ?? 'Prompt rendering failed.');
+}
+
+const request = result;
 ```
 
 If you need a different layout, keep passing `sourceDir` and `compiledDir` explicitly.
@@ -246,7 +263,7 @@ import { createUsageTapClient, runOpenAIWithUsageTap } from 'promptopskit/usaget
 const kit = createPromptOpsKit({ sourceDir: './prompts' });
 const usageTap = createUsageTapClient({ apiKey: process.env.USAGETAP_API_KEY! });
 
-const { request } = await kit.renderPrompt({
+const result = await kit.renderPrompt({
   path: 'support/reply',
   provider: 'openai',
   variables: {
@@ -254,6 +271,12 @@ const { request } = await kit.renderPrompt({
     app_context: 'Account settings page',
   },
 });
+
+if (!result.request) {
+  throw new Error(result.returnMessage ?? 'Prompt rendering failed.');
+}
+
+const { request } = result;
 
 const tracked = await runOpenAIWithUsageTap(usageTap, {
   begin: {
@@ -472,7 +495,7 @@ Creates a `PromptOpsKit` instance.
 
 ### `kit.renderPrompt(options)`
 
-Renders a prompt for a specific provider. Returns `{ resolved, request, warnings }`.
+Renders a prompt for a specific provider. Returns `{ resolved, request?, returnMessage?, warnings }`.
 
 | Option | Type | Description |
 |--------|------|-------------|

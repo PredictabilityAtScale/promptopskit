@@ -598,10 +598,136 @@ Message: {{ user_message }}
       },
     });
 
-    const messages = result.request.body.messages as Array<{ role: string; content: string }>;
+    expect(result.returnMessage).toBeUndefined();
+    const messages = result.request!.body.messages as Array<{ role: string; content: string }>;
     expect(messages[0].content).toContain('User: USER_123');
     expect(messages[0].content).toContain('Message: Please summarize the visible changes.');
     expect(result.warnings).toHaveLength(0);
+  });
+
+  it('returns a structured returnMessage instead of throwing when configured', async () => {
+    const sourceDir = join(tmpDir, 'prompts');
+    await mkdir(sourceDir, { recursive: true });
+
+    await writeFile(join(sourceDir, 'return-message-context.md'), `---
+id: return.message.context
+schema_version: 1
+provider: openai
+model: gpt-5.4
+context:
+  inputs:
+    - name: user_message
+      non_empty:
+        return_message: "Please enter a non-empty message."
+---
+
+# Prompt template
+
+Message: {{ user_message }}
+`);
+
+    const kit = createPromptOpsKit({ sourceDir, mode: 'source-only', cache: false });
+    const result = await kit.renderPrompt({
+      path: 'return-message-context',
+      provider: 'openai',
+      variables: { user_message: '   ' },
+    });
+
+    expect(result.returnMessage).toBe('Please enter a non-empty message.');
+    expect(result.request).toBeUndefined();
+    expect(result.warnings).toHaveLength(0);
+  });
+
+  it('returns a structured returnMessage for regex validation when configured', async () => {
+    const sourceDir = join(tmpDir, 'prompts');
+    await mkdir(sourceDir, { recursive: true });
+
+    await writeFile(join(sourceDir, 'regex-return-message-context.md'), `---
+id: regex.return.message.context
+schema_version: 1
+provider: openai
+model: gpt-5.4
+context:
+  inputs:
+    - name: user_id
+      allow_regex:
+        pattern: "^user_[a-z0-9]+$"
+        flags: "i"
+        return_message: "User IDs must use the user_123 format."
+---
+
+# Prompt template
+
+User: {{ user_id }}
+`);
+
+    const kit = createPromptOpsKit({ sourceDir, mode: 'source-only', cache: false });
+    const result = await kit.renderPrompt({
+      path: 'regex-return-message-context',
+      provider: 'openai',
+      variables: { user_id: 'DROP TABLE users;' },
+    });
+
+    expect(result.returnMessage).toBe('User IDs must use the user_123 format.');
+    expect(result.request).toBeUndefined();
+  });
+
+  it('returns a structured returnMessage for reject_secrets when configured', async () => {
+    const sourceDir = join(tmpDir, 'prompts');
+    await mkdir(sourceDir, { recursive: true });
+
+    await writeFile(join(sourceDir, 'secret-return-message-context.md'), `---
+id: secret.return.message.context
+schema_version: 1
+provider: openai
+model: gpt-5.4
+context:
+  inputs:
+    - name: pull_request_body
+      reject_secrets:
+        return_message: "Potential secrets detected. Please remove them and try again."
+---
+
+# Prompt template
+
+Body: {{ pull_request_body }}
+`);
+
+    const kit = createPromptOpsKit({ sourceDir, mode: 'source-only', cache: false });
+    const result = await kit.renderPrompt({
+      path: 'secret-return-message-context',
+      provider: 'openai',
+      variables: { pull_request_body: 'Contains password=abc123 for testing' },
+    });
+
+    expect(result.returnMessage).toBe('Potential secrets detected. Please remove them and try again.');
+    expect(result.request).toBeUndefined();
+  });
+
+  it('returns a structured returnMessage from the standalone renderPrompt helper when configured', async () => {
+    const result = await renderPrompt({
+      sourceDir: '.',
+      source: `---
+id: inline.return.message
+schema_version: 1
+provider: openai
+model: gpt-5.4
+context:
+  inputs:
+    - name: user_message
+      non_empty:
+        return_message: "Please enter a non-empty message."
+---
+
+# Prompt template
+
+Message: {{ user_message }}`,
+      provider: 'openai',
+      variables: { user_message: '   ' },
+    });
+
+    expect(result.returnMessage).toBe('Please enter a non-empty message.');
+    expect(result.request).toBeUndefined();
   });
 
   it('supports an onContextOverflow callback before size warnings and rendering', async () => {

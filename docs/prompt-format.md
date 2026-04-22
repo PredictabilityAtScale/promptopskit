@@ -169,10 +169,10 @@ Each entry can be either a string variable name or an object with:
 - `name` — the template variable name
 - `max_size` — optional UTF-8 byte limit for the injected value
 - `trim` — optional trim-to-budget (`true`/`end` keeps first bytes, `start` keeps trailing bytes) applied when `max_size` is set
-- `allow_regex` — optional allowlist regex; accepts `"pattern"`, `/pattern/i`, or `{ pattern, flags }` and throws `POK031` on mismatch
-- `deny_regex` — optional blocklist regex; accepts `"pattern"`, `/pattern/i`, or `{ pattern, flags }` and throws `POK032` on match
-- `non_empty` — optional boolean validator; throws `POK033` when the final value is blank or whitespace-only
-- `reject_secrets` — optional boolean validator; throws `POK034` when the value matches the built-in secret detector
+- `allow_regex` — optional allowlist regex; accepts `"pattern"`, `/pattern/i`, or `{ pattern, flags, return_message? }` and throws `POK031` on mismatch unless `return_message` is configured
+- `deny_regex` — optional blocklist regex; accepts `"pattern"`, `/pattern/i`, or `{ pattern, flags, return_message? }` and throws `POK032` on match unless `return_message` is configured
+- `non_empty` — optional boolean or object validator; use `true` to throw `POK033`, or `{ return_message }` to short-circuit rendering with a structured message
+- `reject_secrets` — optional boolean or object validator; use `true` to throw `POK034`, or `{ return_message }` to short-circuit rendering with a structured message
 
 The validator warns about:
 - Variables used in templates but not declared in `context.inputs`
@@ -193,8 +193,10 @@ context:
       allow_regex:
         pattern: "^user_[a-z0-9]+$"
         flags: "i"
+        return_message: "User IDs must use the user_123 format."
     - name: pull_request_body
-      non_empty: true
+      non_empty:
+        return_message: "Pull request content is required."
       reject_secrets: true
       deny_regex: "/(ignore previous instructions|system:)/i"
 ```

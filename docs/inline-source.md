@@ -25,6 +25,10 @@ Hello {{ name }}!`,
   provider: 'openai',
   variables: { name: 'World' },
 });
+
+if (!result.request) {
+  throw new Error(result.returnMessage ?? 'Prompt rendering failed.');
+}
 ```
 
 ## With overrides
@@ -51,6 +55,10 @@ Hello {{ name }}!`,
   variables: { name: 'World' },
 });
 
+if (!result.request) {
+  throw new Error(result.returnMessage ?? 'Prompt rendering failed.');
+}
+
 // result.request.body.model === 'gpt-5.4-mini'
 ```
 
@@ -73,6 +81,10 @@ schema_version: 1
   provider: 'openai',
   variables: { question: 'What is 2+2?' },
 });
+
+if (!result.request) {
+  throw new Error(result.returnMessage ?? 'Prompt rendering failed.');
+}
 ```
 
 ## Limitations

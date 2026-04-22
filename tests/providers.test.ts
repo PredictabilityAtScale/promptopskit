@@ -5,10 +5,13 @@ import path from 'node:path';
 import { openaiAdapter } from '../src/providers/openai.js';
 import { anthropicAdapter } from '../src/providers/anthropic.js';
 import { geminiAdapter } from '../src/providers/gemini.js';
+import { openrouterAdapter } from '../src/providers/openrouter.js';
 import { getAdapter } from '../src/providers/index.js';
 import { PromptAssetSchema } from '../src/schema/index.js';
 import type { ResolvedPromptAsset } from '../src/schema/index.js';
 import { createPromptOpsKit } from '../src/index.js';
+
+const adaptersWithPromptInput = [openaiAdapter, anthropicAdapter, geminiAdapter, openrouterAdapter] as const;
 
 const baseAsset: ResolvedPromptAsset = {
   id: 'test',
@@ -111,8 +114,9 @@ describe('OpenAI adapter', () => {
 
     expect(result.provider).toBe('openai');
     expect(result.model).toBe('gpt-5.4');
+    expect(result.returnMessage).toBeUndefined();
 
-    const messages = result.body.messages as Array<{ role: string; content: string }>;
+    const messages = result.body!.messages as Array<{ role: string; content: string }>;
     expect(messages[0]).toEqual({
       role: 'system',
       content: 'You are a friendly assistant helping in support chat.',
@@ -168,8 +172,9 @@ Hello {{ name }}.
 
       expect(result.provider).toBe('openai');
       expect(result.model).toBe('gpt-5.4');
+      expect(result.returnMessage).toBeUndefined();
 
-      const messages = result.body.messages as Array<{ role: string; content: string }>;
+      const messages = result.body!.messages as Array<{ role: string; content: string }>;
       expect(messages[0]).toEqual({ role: 'system', content: 'From compiled.' });
       expect(messages[1]).toEqual({ role: 'user', content: 'Hello World.' });
     } finally {
@@ -207,10 +212,40 @@ Hello {{ name }}.
     });
 
     expect(result.provider).toBe('openai');
+    expect(result.returnMessage).toBeUndefined();
 
-    const messages = result.body.messages as Array<{ role: string; content: string }>;
+    const messages = result.body!.messages as Array<{ role: string; content: string }>;
     expect(messages[0]).toEqual({ role: 'system', content: 'You are a test assistant.' });
     expect(messages[1]).toEqual({ role: 'user', content: 'Hello World.' });
+  });
+
+  it('returns a structured returnMessage from adapter.renderPrompt when configured', async () => {
+    const result = await openaiAdapter.renderPrompt(
+      {
+        source: `---
+id: inline-return-message
+provider: openai
+model: gpt-5.4
+context:
+  inputs:
+    - name: user_message
+      non_empty:
+        return_message: "Please enter a non-empty message."
+---
+
+# Prompt template
+
+Message: {{ user_message }}`,
+      },
+      {
+        variables: { user_message: '   ' },
+      },
+    );
+
+    expect(result.provider).toBe('openai');
+    expect(result.model).toBe('gpt-5.4');
+    expect(result.returnMessage).toBe('Please enter a non-empty message.');
+    expect(result.body).toBeUndefined();
   });
 });
 
@@ -259,6 +294,40 @@ describe('Anthropic adapter', () => {
     const result = anthropicAdapter.render(assetNoMax, { variables: { name: 'World' } });
     expect(result.body.max_tokens).toBe(4096);
   });
+});
+
+describe('shared prompt-input validation across providers', () => {
+  it.each(adaptersWithPromptInput)(
+    'returns returnMessage before provider shaping for %s',
+    async (adapter) => {
+      const result = await adapter.renderPrompt(
+        {
+          source: `---
+id: shared-return-message
+schema_version: 1
+provider: any
+model: gpt-5.4
+context:
+  inputs:
+    - name: user_message
+      non_empty:
+        return_message: "Please enter a non-empty message."
+---
+
+# Prompt template
+
+Message: {{ user_message }}`,
+        },
+        {
+          variables: { user_message: '   ' },
+        },
+      );
+
+      expect(result.provider).toBe(adapter.name);
+      expect(result.returnMessage).toBe('Please enter a non-empty message.');
+      expect('body' in result ? result.body : undefined).toBeUndefined();
+    },
+  );
 });
 
 describe('Gemini adapter', () => {

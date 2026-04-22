@@ -24,6 +24,7 @@ import type { PromptValidationResult } from './validation/index.js';
 export type { PromptAsset, ResolvedPromptAsset } from './schema/index.js';
 export type {
   ProviderRequest,
+  ProviderPromptRenderResult,
   RuntimeRenderOptions,
   ProviderAdapter,
   ProviderInlinePromptSource,
@@ -126,7 +127,8 @@ export interface RenderPromptOptions {
 
 export interface RenderResult {
   resolved: ResolvedPromptAsset;
-  request: ProviderRequest;
+  request?: ProviderRequest;
+  returnMessage?: string;
   warnings: string[];
 }
 
@@ -232,11 +234,19 @@ export class PromptOpsKit {
       );
     }
 
-    const sanitizedVariables = sanitizeContextVariables(resolved, options.variables, {
+    const sanitization = sanitizeContextVariables(resolved, options.variables, {
       onContextOverflow: options.onContextOverflow,
     });
 
-    const contextSizeWarnings = collectContextSizeWarnings(resolved, sanitizedVariables).map((warning) =>
+    if (sanitization.shortCircuit) {
+      return {
+        resolved,
+        returnMessage: sanitization.shortCircuit.returnMessage,
+        warnings: validation.warnings,
+      };
+    }
+
+    const contextSizeWarnings = collectContextSizeWarnings(resolved, sanitization.variables).map((warning) =>
       formatContextSizeWarning(resolved, warning),
     );
 
@@ -249,7 +259,7 @@ export class PromptOpsKit {
     }
 
     const request = adapter.render(resolved, {
-      variables: sanitizedVariables,
+      variables: sanitization.variables,
       history: options.history,
       toolRegistry: options.toolRegistry,
       strict: options.strict,

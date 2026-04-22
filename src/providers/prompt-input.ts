@@ -42,12 +42,21 @@ export function withPromptInputSupport(adapter: SyncProviderAdapter): ProviderAd
 
   const renderPrompt: RenderPromptMethod = async (input, runtime) => {
     const resolved = await resolveProviderPromptInput(input, runtime);
-    const variables = sanitizeContextVariables(resolved, runtime.variables, {
+    const sanitization = sanitizeContextVariables(resolved, runtime.variables, {
       onContextOverflow: runtime.onContextOverflow,
     });
+
+    if (sanitization.shortCircuit) {
+      return {
+        provider: adapter.name,
+        model: resolved.model ?? '',
+        returnMessage: sanitization.shortCircuit.returnMessage,
+      };
+    }
+
     return adapter.render(resolved, {
       ...runtime,
-      variables,
+      variables: sanitization.variables,
     });
   };
 

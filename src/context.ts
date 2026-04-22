@@ -1,15 +1,33 @@
 import type {
   PromptAsset,
   ResolvedPromptAsset,
+  ContextBuiltInValidatorDefinition,
   ContextInputDefinition,
   ContextRegexDefinition,
 } from './schema/index.js';
+
+export interface ContextValidationShortCircuit {
+  returnMessage: string;
+  code: 'POK031' | 'POK032' | 'POK033' | 'POK034';
+  variable: string;
+  field: 'allow_regex' | 'deny_regex' | 'non_empty' | 'reject_secrets';
+}
+
+export interface SanitizedContextVariablesResult {
+  variables: Record<string, string>;
+  shortCircuit?: ContextValidationShortCircuit;
+}
 
 export interface NormalizedContextRegex {
   pattern: string;
   flags: string;
   raw: string;
   invalidLiteral?: boolean;
+  returnMessage?: string;
+}
+
+export interface NormalizedContextBuiltInValidator {
+  returnMessage?: string;
 }
 
 export interface NormalizedContextInput {
@@ -18,8 +36,8 @@ export interface NormalizedContextInput {
   trim?: boolean | 'start' | 'end' | 'both';
   allow_regex?: NormalizedContextRegex;
   deny_regex?: NormalizedContextRegex;
-  non_empty?: boolean;
-  reject_secrets?: boolean;
+  non_empty?: NormalizedContextBuiltInValidator;
+  reject_secrets?: NormalizedContextBuiltInValidator;
 }
 
 export interface ContextSizeWarning {
@@ -67,8 +85,8 @@ export function normalizeContextInput(input: ContextInputDefinition): Normalized
     trim: input.trim,
     allow_regex: normalizeContextRegex(input.allow_regex),
     deny_regex: normalizeContextRegex(input.deny_regex),
-    non_empty: input.non_empty,
-    reject_secrets: input.reject_secrets,
+    non_empty: normalizeBuiltInValidator(input.non_empty),
+    reject_secrets: normalizeBuiltInValidator(input.reject_secrets),
   };
 }
 
@@ -101,6 +119,23 @@ export function normalizeContextRegex(
     pattern: value.pattern,
     flags: value.flags ?? '',
     raw: JSON.stringify(value),
+    returnMessage: value.return_message,
+  };
+}
+
+export function normalizeBuiltInValidator(
+  value: ContextBuiltInValidatorDefinition | undefined,
+): NormalizedContextBuiltInValidator | undefined {
+  if (value === undefined || value === false) {
+    return undefined;
+  }
+
+  if (value === true) {
+    return {};
+  }
+
+  return {
+    returnMessage: value.return_message,
   };
 }
 
@@ -235,7 +270,7 @@ export function sanitizeContextVariables(
   asset: Pick<PromptAsset | ResolvedPromptAsset, 'context' | 'id'>,
   variables: Record<string, string> = {},
   options: SanitizeContextOptions = {},
-): Record<string, string> {
+): SanitizedContextVariablesResult {
   const { onContextOverflow } = options;
   const sanitized = { ...variables };
 
@@ -274,6 +309,18 @@ export function sanitizeContextVariables(
         field: 'allow_regex',
       });
       if (!matcher.test(candidate)) {
+        if (input.allow_regex.returnMessage) {
+          return {
+            variables: sanitized,
+            shortCircuit: {
+              returnMessage: input.allow_regex.returnMessage,
+              code: 'POK031',
+              variable: input.name,
+              field: 'allow_regex',
+            },
+          };
+        }
+
         throw new Error(
           `POK031: Context variable "${input.name}" failed allow_regex validation for prompt "${asset.id}".`,
         );
@@ -288,6 +335,18 @@ export function sanitizeContextVariables(
         field: 'deny_regex',
       });
       if (matcher.test(candidate)) {
+        if (input.deny_regex.returnMessage) {
+          return {
+            variables: sanitized,
+            shortCircuit: {
+              returnMessage: input.deny_regex.returnMessage,
+              code: 'POK032',
+              variable: input.name,
+              field: 'deny_regex',
+            },
+          };
+        }
+
         throw new Error(
           `POK032: Context variable "${input.name}" matched deny_regex for prompt "${asset.id}".`,
         );
@@ -295,6 +354,18 @@ export function sanitizeContextVariables(
     }
 
     if (input.non_empty && candidate.trim().length === 0) {
+      if (input.non_empty.returnMessage) {
+        return {
+          variables: sanitized,
+          shortCircuit: {
+            returnMessage: input.non_empty.returnMessage,
+            code: 'POK033',
+            variable: input.name,
+            field: 'non_empty',
+          },
+        };
+      }
+
       throw new Error(
         `POK033: Context variable "${input.name}" failed non_empty validation for prompt "${asset.id}".`,
       );
@@ -307,6 +378,18 @@ export function sanitizeContextVariables(
         field: 'reject_secrets',
       });
       if (matcher.test(candidate)) {
+        if (input.reject_secrets.returnMessage) {
+          return {
+            variables: sanitized,
+            shortCircuit: {
+              returnMessage: input.reject_secrets.returnMessage,
+              code: 'POK034',
+              variable: input.name,
+              field: 'reject_secrets',
+            },
+          };
+        }
+
         throw new Error(
           `POK034: Context variable "${input.name}" matched reject_secrets validation for prompt "${asset.id}".`,
         );
@@ -314,7 +397,7 @@ export function sanitizeContextVariables(
     }
   }
 
-  return sanitized;
+  return { variables: sanitized };
 }
 
 export function measureContextValueSize(value: string): number {

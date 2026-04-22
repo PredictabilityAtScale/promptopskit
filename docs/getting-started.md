@@ -79,6 +79,10 @@ const result = await kit.renderPrompt({
   },
 });
 
+if (!result.request) {
+  return result.returnMessage;
+}
+
 // result.request.body is ready for fetch()
 const response = await fetch('https://api.openai.com/v1/chat/completions', {
   method: 'POST',

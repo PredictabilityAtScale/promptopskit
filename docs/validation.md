@@ -108,16 +108,18 @@ context:
 ```
 
 - `trim` trims values to the `max_size` byte budget before interpolation.
-- `allow_regex` enforces an allowlist pattern before interpolation and throws `POK031` when a value fails validation.
-- `deny_regex` enforces a blocklist pattern before interpolation and throws `POK032` when a value matches.
-- `non_empty` rejects blank or whitespace-only values with `POK033`.
-- `reject_secrets` rejects common secret-like strings with `POK034`.
+- `allow_regex` enforces an allowlist pattern before interpolation and throws `POK031` when a value fails validation, unless `return_message` is configured.
+- `deny_regex` enforces a blocklist pattern before interpolation and throws `POK032` when a value matches, unless `return_message` is configured.
+- `non_empty` rejects blank or whitespace-only values with `POK033`, unless `return_message` is configured.
+- `reject_secrets` rejects common secret-like strings with `POK034`, unless `return_message` is configured.
 - During static validation and compilation, malformed `allow_regex` or `deny_regex` patterns are reported as `POK013`.
 - During static validation, `trim` without `max_size` returns a `POK014` warning.
 
 Regex compilation errors include the prompt id, variable name, field name, and raw configured value to make bad prompt definitions easy to locate.
 
-You can override that behavior at the kit level:
+If a validator declares `return_message`, `renderPrompt()` returns that message in a structured result and omits the provider request instead of throwing.
+
+Context size warning emission is configured separately at the kit level:
 
 ```typescript
 const kit = createPromptOpsKit({

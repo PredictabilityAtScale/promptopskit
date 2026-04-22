@@ -104,6 +104,7 @@ Rules:
 - Use `allow_regex` for allowlist checks and `deny_regex` for blocklist checks on risky inputs
 - Prefer structured regexes like `{ pattern, flags }`; `/pattern/i` strings are also accepted and normalized internally
 - Use `non_empty: true` for required user text and `reject_secrets: true` for common secret redaction checks
+- When the caller should receive a structured fallback message instead of an exception, use object form with `return_message` on `allow_regex`, `deny_regex`, `non_empty`, or `reject_secrets`
 - Escape literal braces with `\{{` and `\}}`
 - In strict mode, missing variables throw an error
 - In permissive mode, unresolved placeholders are left intact
@@ -120,6 +121,8 @@ context:
 
 If a rendered value exceeds `max_size`, `renderPrompt()` emits a non-blocking `POK030` warning.
 At render time, callers can also pass `onContextOverflow` to transform oversized values before warnings/rendering.
+
+If a validator declares `return_message`, `renderPrompt()` returns that message in a structured result and omits the provider request instead of throwing for that validation failure. Invalid regex definitions still fail during `validate` and `compile` as `POK013` prompt-authoring errors.
 
 Malformed `allow_regex` and `deny_regex` values fail during `validate` and `compile`, not just at render time. When regex compilation fails, the error includes the prompt id, variable name, field name, and raw configured value.
 
@@ -271,7 +274,7 @@ const kit = createPromptOpsKit({
   },
 });
 
-const { request } = await kit.renderPrompt({
+const result = await kit.renderPrompt({
   path: 'support/reply',
   provider: 'openai',
   environment: 'production',
@@ -280,6 +283,16 @@ const { request } = await kit.renderPrompt({
     app_context: 'Account settings',
   },
 });
+
+if (result.returnMessage) {
+  return result.returnMessage;
+}
+
+if (!result.request) {
+  throw new Error('Prompt rendering did not produce a provider request.');
+}
+
+const { request } = result;
 ```
 
 ### Use `adapter.renderPrompt()` when:
@@ -292,7 +305,7 @@ const { request } = await kit.renderPrompt({
 import path from 'node:path';
 import { openaiAdapter } from 'promptopskit/openai';
 
-const request = await openaiAdapter.renderPrompt(
+const result = await openaiAdapter.renderPrompt(
   {
     path: 'support/reply',
     sourceDir: path.join(process.cwd(), 'prompts'),
@@ -307,6 +320,16 @@ const request = await openaiAdapter.renderPrompt(
     strict: true,
   },
 );
+
+if (result.returnMessage) {
+  return result.returnMessage;
+}
+
+if (!('body' in result)) {
+  throw new Error('Prompt rendering did not produce a provider request.');
+}
+
+const request = result;
 ```
 
 ### Use `adapter.render()` when:
@@ -438,7 +461,7 @@ Hello {{ name }}
 | Command | Description |
 |---------|-------------|
 | `promptopskit init [dir]` | Scaffold a prompts directory with starter files (including `defaults.md`) |
-| `promptopskit validate <dir>` | Validate all prompt files in a directory |
+| `promptopskit validate [sourceDir] [options]` | Validate all prompt files in a directory, defaulting to `./prompts` |
 | `promptopskit compile [src] [out]` | Compile `.md` prompts to JSON or ESM artifacts |
 | `promptopskit render <file>` | Render a prompt preview |
 | `promptopskit inspect <file>` | Print the normalized prompt asset |

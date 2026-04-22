@@ -60,6 +60,14 @@ export const ContextRegexSchema = z.union([
   z.object({
     pattern: z.string(),
     flags: z.string().optional(),
+    return_message: z.string().optional(),
+  }),
+]);
+
+export const ContextBuiltInValidatorSchema = z.union([
+  z.boolean(),
+  z.object({
+    return_message: z.string().optional(),
   }),
 ]);
 
@@ -69,8 +77,8 @@ export const ContextInputDefinitionObjectSchema = z.object({
   trim: z.union([z.boolean(), z.enum(['start', 'end', 'both'])]).optional(),
   allow_regex: ContextRegexSchema.optional(),
   deny_regex: ContextRegexSchema.optional(),
-  non_empty: z.boolean().optional(),
-  reject_secrets: z.boolean().optional(),
+  non_empty: ContextBuiltInValidatorSchema.optional(),
+  reject_secrets: ContextBuiltInValidatorSchema.optional(),
 });
 
 export const ContextInputDefinitionSchema = z.union([
@@ -80,6 +88,7 @@ export const ContextInputDefinitionSchema = z.union([
 
 export type ContextInputDefinition = z.infer<typeof ContextInputDefinitionSchema>;
 export type ContextRegexDefinition = z.infer<typeof ContextRegexSchema>;
+export type ContextBuiltInValidatorDefinition = z.infer<typeof ContextBuiltInValidatorSchema>;
 
 export const ContextSchema = z.object({
   inputs: z.array(ContextInputDefinitionSchema).optional(),

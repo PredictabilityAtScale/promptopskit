@@ -156,10 +156,10 @@ Object-form inputs add optional controls:
 
 - `max_size`: checked during `renderPrompt()` and can produce `POK030` warnings.
 - `trim`: trims incoming values to the `max_size` budget before interpolation (`true`/`end` keeps leading bytes, `start` keeps trailing bytes).
-- `allow_regex`: allowlist validation before interpolation; accepts `"pattern"`, `/pattern/i`, or `{ pattern, flags }`, and non-matches throw `POK031`.
-- `deny_regex`: blocklist validation before interpolation; accepts `"pattern"`, `/pattern/i`, or `{ pattern, flags }`, and matches throw `POK032`.
-- `non_empty`: rejects blank or whitespace-only values with `POK033`.
-- `reject_secrets`: rejects common secret-like strings with `POK034`.
+- `allow_regex`: allowlist validation before interpolation; accepts `"pattern"`, `/pattern/i`, or `{ pattern, flags, return_message? }`. Non-matches throw `POK031` unless `return_message` is configured.
+- `deny_regex`: blocklist validation before interpolation; accepts `"pattern"`, `/pattern/i`, or `{ pattern, flags, return_message? }`. Matches throw `POK032` unless `return_message` is configured.
+- `non_empty`: accepts `true` or `{ return_message }`; blank values throw `POK033` unless `return_message` is configured.
+- `reject_secrets`: accepts `true` or `{ return_message }`; secret-like values throw `POK034` unless `return_message` is configured.
 
 Malformed `allow_regex` and `deny_regex` values are reported during `validate` and `compile` with `POK013`.
 

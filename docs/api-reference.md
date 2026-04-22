@@ -42,7 +42,7 @@ const kit = createPromptOpsKit({
 
 ## `kit.renderPrompt(options)`
 
-Renders a prompt for a specific provider. Returns `{ resolved, request, warnings }`.
+Renders a prompt for a specific provider. Returns `{ resolved, request?, returnMessage?, warnings }`.
 
 ```typescript
 const result = await kit.renderPrompt({
@@ -79,12 +79,15 @@ Either `path` or `source` must be provided.
 ```typescript
 interface RenderResult {
   resolved: ResolvedPromptAsset;  // Fully resolved asset
-  request: ProviderRequest;       // { body, provider, model }
+  request?: ProviderRequest;      // { body, provider, model } when rendering continues
+  returnMessage?: string;         // Short-circuit message from context validation when configured
   warnings: string[];             // Non-fatal provider and render-time warnings
 }
 ```
 
 `warnings` may include provider adapter warnings and render-time `POK030` context size warnings when configured to be included in results.
+
+If a context validator fails and that validator declares `return_message`, `renderPrompt()` returns `returnMessage` and omits `request` instead of throwing.
 
 ## `kit.loadPrompt(path)`
 

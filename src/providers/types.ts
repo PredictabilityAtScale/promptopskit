@@ -10,6 +10,15 @@ export interface ProviderRequest {
   model: string;
 }
 
+export interface ProviderPromptReturnMessageResult {
+  provider: string;
+  model: string;
+  body?: undefined;
+  returnMessage: string;
+}
+
+export type ProviderPromptRenderResult = ProviderRequest | ProviderPromptReturnMessageResult;
+
 /**
  * Result of validating an asset against a provider.
  */
@@ -60,9 +69,9 @@ export interface ValidatePromptMethod {
 }
 
 export interface RenderPromptMethod {
-  (asset: ResolvedPromptAsset, runtime: RuntimeRenderOptions): Promise<ProviderRequest>;
-  (lookup: ProviderPromptLookup, runtime: RuntimeRenderOptions): Promise<ProviderRequest>;
-  (source: ProviderInlinePromptSource, runtime: RuntimeRenderOptions): Promise<ProviderRequest>;
+  (asset: ResolvedPromptAsset, runtime: RuntimeRenderOptions): Promise<ProviderPromptRenderResult>;
+  (lookup: ProviderPromptLookup, runtime: RuntimeRenderOptions): Promise<ProviderPromptRenderResult>;
+  (source: ProviderInlinePromptSource, runtime: RuntimeRenderOptions): Promise<ProviderPromptRenderResult>;
 }
 
 /**

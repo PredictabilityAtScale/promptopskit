@@ -1,6 +1,6 @@
 # Provider Adapters
 
-PromptOpsKit ships four provider adapters. Each produces a `{ body, provider, model }` object shaped for the target API. You handle the HTTP call — no auth, no headers, no HTTP client opinions.
+PromptOpsKit ships four provider adapters. Direct `render()` calls always produce a `{ body, provider, model }` object shaped for the target API. Async `renderPrompt()` helpers may instead return `{ provider, model, returnMessage }` when context validation is configured to short-circuit before request shaping. You handle the HTTP call — no auth, no headers, no HTTP client opinions.
 
 ## Supported providers
 
@@ -18,11 +18,17 @@ import { createPromptOpsKit } from 'promptopskit';
 
 const kit = createPromptOpsKit();
 
-const { request } = await kit.renderPrompt({
+const result = await kit.renderPrompt({
   path: 'hello',
   provider: 'openai',
   variables: { name: 'World', app_context: 'Welcome screen' },
 });
+
+if (!result.request) {
+  throw new Error(result.returnMessage ?? 'Prompt rendering failed.');
+}
+
+const { request } = result;
 
 // request.body is ready for fetch()
 // request.provider is 'openai'
@@ -50,20 +56,20 @@ interface ProviderAdapter {
   validatePrompt(asset: ResolvedPromptAsset, runtime?: RuntimeRenderOptions): Promise<ValidationResult>;
   validatePrompt(lookup: ProviderPromptLookup, runtime?: RuntimeRenderOptions): Promise<ValidationResult>;
   validatePrompt(source: ProviderInlinePromptSource, runtime?: RuntimeRenderOptions): Promise<ValidationResult>;
-  renderPrompt(asset: ResolvedPromptAsset, runtime: RuntimeRenderOptions): Promise<ProviderRequest>;
-  renderPrompt(lookup: ProviderPromptLookup, runtime: RuntimeRenderOptions): Promise<ProviderRequest>;
-  renderPrompt(source: ProviderInlinePromptSource, runtime: RuntimeRenderOptions): Promise<ProviderRequest>;
+  renderPrompt(asset: ResolvedPromptAsset, runtime: RuntimeRenderOptions): Promise<ProviderPromptRenderResult>;
+  renderPrompt(lookup: ProviderPromptLookup, runtime: RuntimeRenderOptions): Promise<ProviderPromptRenderResult>;
+  renderPrompt(source: ProviderInlinePromptSource, runtime: RuntimeRenderOptions): Promise<ProviderPromptRenderResult>;
 }
 ```
 
-Direct adapter rendering accepts the same `environment` and `tier` selectors as `kit.renderPrompt()`. Use the synchronous `validate()` and `render()` methods when you already have a compiled `ResolvedPromptAsset`, and use the async `validatePrompt()` and `renderPrompt()` helpers when you want the adapter to resolve either markdown source or a compiled artifact from disk.
+Direct adapter rendering accepts the same `environment` and `tier` selectors as `kit.renderPrompt()`. Use the synchronous `validate()` and `render()` methods when you already have a compiled `ResolvedPromptAsset`, and use the async `validatePrompt()` and `renderPrompt()` helpers when you want the adapter to resolve either markdown source or a compiled artifact from disk. Context input validation runs through the same shared prompt-input wrapper for OpenAI, Anthropic, Gemini, and OpenRouter, so `allow_regex`, `deny_regex`, `non_empty`, `reject_secrets`, and `return_message` behave consistently across all four.
 
 Server-side example:
 
 ```typescript
 import { openaiAdapter } from 'promptopskit/openai';
 
-const request = await openaiAdapter.renderPrompt(
+const result = await openaiAdapter.renderPrompt(
   {
     path: 'summarizePullRequest',
   },
@@ -75,6 +81,12 @@ const request = await openaiAdapter.renderPrompt(
     strict: true,
   },
 );
+
+if (!('body' in result)) {
+  throw new Error(result.returnMessage ?? 'Prompt rendering failed.');
+}
+
+const request = result;
 ```
 
 Pass `sourceDir` and `compiledDir` only when you want to override the default `./prompts` and `./.generated-prompts/json` locations.
@@ -269,7 +281,7 @@ Your application is responsible for setting the different base URL and any extra
 Pass conversation history via the `history` option:
 
 ```typescript
-const { request } = await kit.renderPrompt({
+const result = await kit.renderPrompt({
   path: 'chat',
   provider: 'openai',
   variables: { user_message: 'Thanks!' },
@@ -278,6 +290,12 @@ const { request } = await kit.renderPrompt({
     { role: 'assistant', content: 'Hi! How can I help?' },
   ],
 });
+
+if (!result.request) {
+  throw new Error(result.returnMessage ?? 'Prompt rendering failed.');
+}
+
+const { request } = result;
 ```
 
 History messages are inserted between system instructions and the prompt template in the messages array. For Gemini, role `assistant` is mapped to `model`.
@@ -301,7 +319,7 @@ tools:
 String tool references are looked up in the `toolRegistry` passed at render time:
 
 ```typescript
-const { request } = await kit.renderPrompt({
+const result = await kit.renderPrompt({
   path: 'support/reply',
   provider: 'openai',
   variables: { user_message: '...' },
@@ -312,6 +330,12 @@ const { request } = await kit.renderPrompt({
     },
   },
 });
+
+if (!result.request) {
+  throw new Error(result.returnMessage ?? 'Prompt rendering failed.');
+}
+
+const { request } = result;
 ```
 
 If a string tool name is not found in the registry, a minimal stub is generated (`{ type: "function", function: { name } }` for OpenAI, `{ name }` for Anthropic/Gemini).

@@ -7,6 +7,7 @@ export {
   ContextSchema,
   ContextInputDefinitionSchema,
   ContextInputDefinitionObjectSchema,
+  ContextBuiltInValidatorSchema,
   ContextRegexSchema,
   HistorySchema,
   MetadataSchema,
@@ -27,5 +28,6 @@ export type {
   InlineToolDef,
   MCPServerRef,
   ContextInputDefinition,
+  ContextBuiltInValidatorDefinition,
   ContextRegexDefinition,
 } from './schema.js';

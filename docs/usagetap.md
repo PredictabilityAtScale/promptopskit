@@ -47,7 +47,7 @@ import { createUsageTapClient, runOpenAIWithUsageTap } from 'promptopskit/usaget
 const kit = createPromptOpsKit({ sourceDir: './prompts' });
 const usageTap = createUsageTapClient({ apiKey: process.env.USAGETAP_API_KEY! });
 
-const { request } = await kit.renderPrompt({
+const result = await kit.renderPrompt({
   path: 'support/reply',
   provider: 'openai',
   variables: {
@@ -55,6 +55,12 @@ const { request } = await kit.renderPrompt({
     app_context: 'Account settings page',
   },
 });
+
+if (!result.request) {
+  throw new Error(result.returnMessage ?? 'Prompt rendering failed.');
+}
+
+const { request } = result;
 
 const tracked = await runOpenAIWithUsageTap(usageTap, {
   begin: {

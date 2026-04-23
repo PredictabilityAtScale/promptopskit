@@ -285,34 +285,16 @@ h2 {
 }
 
 .card-featured-optional {
-  background:
-    radial-gradient(circle at top right, rgba(15, 23, 42, 0.08), transparent 35%),
-    linear-gradient(180deg, #fffaf0 0%, #fffdf8 100%);
-  border-color: #d6bbfb;
-  padding: 1.1rem;
+  background: var(--surface);
+  border-color: var(--line);
 }
 
 .card-featured-optional h3 {
-  font-size: 1.45rem;
+  font-size: 1.25rem;
 }
 
 .card-featured-optional p {
   font-size: 0.95rem;
-}
-
-.card-featured-optional .card-kicker {
-  display: inline-block;
-  margin: 0 0 0.6rem;
-  padding: 0.1rem 0.44rem;
-  border: 1px solid #e9d7fe;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.9);
-  color: #6941c6;
-  font-size: 0.68rem;
-  line-height: 1.2;
-  font-weight: 700;
-  letter-spacing: 0.015em;
-  text-transform: uppercase;
 }
 
 .card-featured-optional p:last-child {

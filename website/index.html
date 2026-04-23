@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>PromptOpsKit | Centralize AI Prompt Behavior in Your Codebase</title>
+    <title>PromptOpsKit | Repo-Native Prompt Ops for Production AI Apps</title>
     <meta
       name="description"
-      content="PromptOpsKit centralizes prompts, system instructions, tools, and model settings into reusable, environment-aware assets — rendered for OpenAI, Anthropic, Gemini, and OpenRouter."
+      content="PromptOpsKit turns hardcoded prompt strings, model settings, tools, and environment overrides into structured Markdown assets that ship with your app."
     />
     <meta
       name="keywords"
@@ -17,19 +17,19 @@
     <link rel="canonical" href="https://github.com/PredictabilityAtScale/promptopskit" />
 
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="PromptOpsKit | Centralize AI Behavior Without Leaving Your Codebase" />
+    <meta property="og:title" content="PromptOpsKit | Repo-Native Prompt Ops for Production AI Apps" />
     <meta
       property="og:description"
-      content="Turn hardcoded prompt strings, system instructions, tools, and model settings into reusable, environment-aware assets — rendered for any provider and shipped with your app."
+      content="Turn hardcoded prompt strings, model settings, tools, and environment overrides into structured Markdown assets that ship with your app."
     />
     <meta property="og:url" content="https://github.com/PredictabilityAtScale/promptopskit" />
     <meta property="og:site_name" content="PromptOpsKit" />
 
     <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="PromptOpsKit | Centralize AI Behavior Without Leaving Your Codebase" />
+    <meta name="twitter:title" content="PromptOpsKit | Repo-Native Prompt Ops for Production AI Apps" />
     <meta
       name="twitter:description"
-      content="Turn hardcoded prompt strings and scattered model settings into reusable, environment-aware assets — rendered for OpenAI, Anthropic, Gemini, and OpenRouter."
+      content="Turn hardcoded prompt strings, model settings, tools, and environment overrides into structured Markdown assets that ship with your app."
     />
 
     <script type="application/ld+json">
@@ -85,17 +85,78 @@
       <!-- ─── HERO ─── -->
       <section class="hero container">
         <p class="eyebrow">Open-source prompt infrastructure</p>
-        <h1>Centralize AI behavior without leaving your codebase.</h1>
+        <h1>Repo-native prompt ops for production AI apps</h1>
         <p class="lead">
-          Turn hardcoded prompt strings, system instructions, tools, and model settings
-          into reusable, environment-aware assets — rendered for OpenAI, Anthropic, Gemini,
-          and OpenRouter, and shipped with your app.
+          Turn hardcoded prompt strings, model settings, tools, and environment overrides
+          into structured Markdown assets that ship with your app. Render for OpenAI,
+          Anthropic, Gemini, and OpenRouter. Validate in CI. Compile for production.
+          Keep your own transport.
         </p>
         <div class="hero-actions">
           <a class="button button-primary" href="https://www.npmjs.com/package/promptopskit">Install from npm</a>
           <a class="button" href="#quickstart">Quick start</a>
         </div>
+        <p class="hero-supporting-line">Your prompts are already in Git. PromptOpsKit makes them manageable.</p>
         <pre><code>npm install promptopskit</code></pre>
+        <div class="best-for-strip" aria-label="Best fit teams">
+          <p class="best-for-label">Best for</p>
+          <ul class="chip-list">
+            <li>Teams with prompts embedded in app code</li>
+            <li>Teams using multiple models or providers</li>
+            <li>Teams dealing with tool or function drift</li>
+            <li>Teams that want Git + CI, not a separate dashboard</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="container section section-orientation" aria-labelledby="orientation-title">
+        <h2 id="orientation-title">Make prompt behavior a real application asset</h2>
+        <div class="grid two comparison-grid">
+          <article class="card comparison-card comparison-card-before">
+            <p class="comparison-label">Before</p>
+            <h3>Prompt behavior is scattered across the app</h3>
+            <ul>
+              <li>Prompt string lives inline in code</li>
+              <li>Model config lives somewhere else</li>
+              <li>Tool definitions drift in separate files</li>
+              <li>Validation checks are hand-coded after input context is assembled</li>
+              <li>Environment logic hides in if/else branches</li>
+            </ul>
+          </article>
+          <article class="card comparison-card comparison-card-after">
+            <p class="comparison-label">After</p>
+            <h3>One structured asset ships with the app</h3>
+            <ul>
+              <li>One PromptOpsKit <code>.md</code> file holds prompt plus settings</li>
+              <li><code>includes</code> and <code>defaults.md</code> keep shared instructions in sync</li>
+              <li>Input validation rules like length limits and allow or deny checks live in the prompt file</li>
+              <li><code>environments</code> and <code>tiers</code> handle release-aware overrides</li>
+              <li>Render at runtime and compile for production when you need it</li>
+            </ul>
+          </article>
+        </div>
+        <article class="card stack-fit-card">
+          <p class="comparison-label">Fits alongside</p>
+          <h3>PromptOpsKit owns the repo-native prompt layer, not the whole stack</h3>
+          <div class="stack-fit-grid">
+            <div>
+              <strong>Promptfoo</strong>
+              <p>Use it for evals, CI checks, and security testing.</p>
+            </div>
+            <div>
+              <strong>Langfuse</strong>
+              <p>Use it for tracing and observability around live traffic.</p>
+            </div>
+            <div>
+              <strong>Your SDK or HTTP layer</strong>
+              <p>PromptOpsKit returns request-body payloads only, so transport stays in your app.</p>
+            </div>
+            <div>
+              <strong>GitHub Actions</strong>
+              <p>Run <code>promptopskit validate</code> and compile prompts in CI before deploy.</p>
+            </div>
+          </div>
+        </article>
       </section>
 
       <section id="demo" class="container section section-demo">
@@ -109,7 +170,7 @@
         </div>
         <div class="video-frame">
           <iframe
-            src="https://www.youtube-nocookie.com/embed/U7W_Uv-Ly0M"
+            src="https://www.youtube-nocookie.com/embed/eUVmlbrjdKc"
             title="PromptOpsKit demo video"
             loading="lazy"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"

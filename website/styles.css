@@ -92,9 +92,93 @@ nav a:hover,
   padding: 5rem 0 3rem;
 }
 
+.hero-supporting-line {
+  margin-bottom: 0;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.best-for-strip {
+  margin-top: 1.5rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at top right, rgba(15, 23, 42, 0.05), transparent 40%),
+    linear-gradient(180deg, #fcfcfd 0%, #f8fafc 100%);
+}
+
+.best-for-label,
+.comparison-label {
+  margin: 0 0 0.75rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chip-list li {
+  padding: 0.5rem 0.8rem;
+  border: 1px solid #d0d5dd;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
 .section-demo {
   padding-top: 0;
   border-top: 0;
+}
+
+.section-orientation {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.comparison-grid {
+  margin-bottom: 1rem;
+}
+
+.comparison-card {
+  min-height: 100%;
+}
+
+.comparison-card-before {
+  background: linear-gradient(180deg, #fffdf8 0%, #fff8ee 100%);
+}
+
+.comparison-card-after {
+  background:
+    radial-gradient(circle at top right, rgba(15, 23, 42, 0.06), transparent 38%),
+    linear-gradient(180deg, #f8fafc 0%, #eef4ff 100%);
+}
+
+.stack-fit-card {
+  background:
+    radial-gradient(circle at top left, rgba(15, 23, 42, 0.05), transparent 38%),
+    #ffffff;
+}
+
+.stack-fit-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.stack-fit-grid p,
+.comparison-card li {
+  color: var(--muted);
 }
 
 .demo-copy {
@@ -357,6 +441,10 @@ ul {
 
   .grid.two,
   .grid.three {
+    grid-template-columns: 1fr;
+  }
+
+  .stack-fit-grid {
     grid-template-columns: 1fr;
   }
 

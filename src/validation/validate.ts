@@ -257,7 +257,7 @@ export function validateAsset(
   }
 
   for (const [envName, overrides] of Object.entries(asset.environments ?? {})) {
-    if (asset.cache && !overrides.cache) {
+    if (asset.cache && (!isRecord(overrides) || !overrides.cache)) {
       warnings.push({
         code: 'POK045',
         message: `Environment "${envName}" does not override cache while prompt-level cache is defined.`,
@@ -268,7 +268,7 @@ export function validateAsset(
   }
 
   for (const [tierName, overrides] of Object.entries(asset.tiers ?? {})) {
-    if (asset.cache && !overrides.cache) {
+    if (asset.cache && (!isRecord(overrides) || !overrides.cache)) {
       warnings.push({
         code: 'POK045',
         message: `Tier "${tierName}" does not override cache while prompt-level cache is defined.`,
@@ -279,7 +279,7 @@ export function validateAsset(
   }
 
   for (const tool of asset.tools ?? []) {
-    if (typeof tool !== 'string') {
+    if (isRecord(tool)) {
       if (!tool.description) {
         warnings.push({
           code: 'POK047',
@@ -352,4 +352,8 @@ function findClosestMatch(input: string, candidates: Set<string>): string | unde
   }
 
   return best;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

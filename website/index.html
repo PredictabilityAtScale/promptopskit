@@ -14,23 +14,41 @@
     />
     <meta name="robots" content="index,follow,max-image-preview:large" />
     <meta name="author" content="Predictability at Scale, Inc." />
-    <link rel="canonical" href="https://github.com/PredictabilityAtScale/promptopskit" />
+    <link
+      rel="canonical"
+      href="https://github.com/PredictabilityAtScale/promptopskit"
+    />
 
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="PromptOpsKit | Repo-Native Prompt Ops for Production AI Apps" />
+    <meta
+      property="og:title"
+      content="PromptOpsKit | Repo-Native Prompt Ops for Production AI Apps"
+    />
     <meta
       property="og:description"
       content="Turn hardcoded prompt strings, model settings, tools, and environment overrides into structured Markdown assets that ship with your app."
     />
-    <meta property="og:url" content="https://github.com/PredictabilityAtScale/promptopskit" />
+    <meta
+      property="og:url"
+      content="https://github.com/PredictabilityAtScale/promptopskit"
+    />
     <meta property="og:site_name" content="PromptOpsKit" />
 
     <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="PromptOpsKit | Repo-Native Prompt Ops for Production AI Apps" />
+    <meta
+      name="twitter:title"
+      content="PromptOpsKit | Repo-Native Prompt Ops for Production AI Apps"
+    />
     <meta
       name="twitter:description"
       content="Turn hardcoded prompt strings, model settings, tools, and environment overrides into structured Markdown assets that ship with your app."
     />
+
+    <script>
+      if (window.location.pathname === "/docs" || window.location.pathname === "/docs/") {
+        window.location.replace(`/docs/index.html${window.location.search}${window.location.hash}`);
+      }
+    </script>
 
     <script type="application/ld+json">
       {
@@ -51,12 +69,14 @@
       }
     </script>
 
-    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
     <header class="site-header">
       <div class="container nav">
-        <a class="brand" href="#top" aria-label="PromptOpsKit home">PromptOpsKit</a>
+        <a class="brand" href="#top" aria-label="PromptOpsKit home"
+          >PromptOpsKit</a
+        >
 
         <button
           class="menu-toggle"
@@ -76,7 +96,11 @@
           <a href="#features">Features</a>
           <a href="#faq">FAQ</a>
           <a href="/docs/index.html">Docs</a>
-          <a class="button button-primary nav-github" href="https://github.com/PredictabilityAtScale/promptopskit">GitHub</a>
+          <a
+            class="button button-primary nav-github"
+            href="https://github.com/PredictabilityAtScale/promptopskit"
+            >GitHub</a
+          >
         </nav>
       </div>
     </header>
@@ -87,30 +111,51 @@
         <p class="eyebrow">Open-source prompt infrastructure</p>
         <h1>Repo-native prompt ops for production AI apps</h1>
         <p class="lead">
-          Turn hardcoded prompt strings, model settings, tools, and environment overrides
-          into structured Markdown assets that ship with your app. Render for OpenAI,
-          Anthropic, Gemini, and OpenRouter. Validate in CI. Compile for production.
-          Keep your own transport.
+          Turn hardcoded prompt strings, model settings, tools, and environment
+          overrides into structured Markdown assets that ship with your app.
+          Render for OpenAI Chat, OpenAI Responses, Anthropic, Gemini, and OpenRouter. Validate in CI.
+          Compile for production. Keep your own transport.
         </p>
         <div class="hero-actions">
-          <a class="button button-primary" href="https://www.npmjs.com/package/promptopskit">Install from npm</a>
+          <a
+            class="button button-primary"
+            href="https://www.npmjs.com/package/promptopskit"
+            >Install from npm</a
+          >
           <a class="button" href="#quickstart">Quick start</a>
         </div>
-        <p class="hero-supporting-line">Your prompts are already in Git. PromptOpsKit makes them manageable.</p>
-        <pre><code>npm install promptopskit</code></pre>
+        <p class="hero-supporting-line">
+          Your prompts are already in Git. PromptOpsKit makes them manageable.
+        </p>
+        <pre><code>npm install promptopskit
+npx promptopskit init
+npx promptopskit skill</code></pre>
         <div class="best-for-strip" aria-label="Best fit teams">
           <p class="best-for-label">Best for</p>
           <ul class="chip-list">
-            <li>Teams with prompts embedded in app code</li>
-            <li>Teams using multiple models or providers</li>
-            <li>Teams dealing with tool or function drift</li>
-            <li>Teams that want Git + CI, not a separate dashboard</li>
+            <li>Teams turning hardcoded prompts into reviewable assets</li>
+            <li>
+              Teams managing prompts, models, tools, inputs, and environments
+              together
+            </li>
+            <li>
+              Teams supporting multiple LLM providers without duplicating prompt
+              logic
+            </li>
+            <li>
+              Teams that want Git + CI governance instead of another dashboard
+            </li>
           </ul>
         </div>
       </section>
 
-      <section class="container section section-orientation" aria-labelledby="orientation-title">
-        <h2 id="orientation-title">Make prompt behavior a real application asset</h2>
+      <section
+        class="container section section-orientation"
+        aria-labelledby="orientation-title"
+      >
+        <h2 id="orientation-title">
+          Make prompt behavior a real application asset
+        </h2>
         <div class="grid two comparison-grid">
           <article class="card comparison-card comparison-card-before">
             <p class="comparison-label">Before</p>
@@ -119,7 +164,10 @@
               <li>Prompt string lives inline in code</li>
               <li>Model config lives somewhere else</li>
               <li>Tool definitions drift in separate files</li>
-              <li>Validation checks are hand-coded after input context is assembled</li>
+              <li>
+                Validation checks are hand-coded after input context is
+                assembled
+              </li>
               <li>Environment logic hides in if/else branches</li>
             </ul>
           </article>
@@ -127,33 +175,61 @@
             <p class="comparison-label">After</p>
             <h3>One structured asset ships with the app</h3>
             <ul>
-              <li>One PromptOpsKit <code>.md</code> file holds prompt plus settings</li>
-              <li><code>includes</code> and <code>defaults.md</code> keep shared instructions in sync</li>
-              <li>Input validation rules like length limits and allow or deny checks live in the prompt file</li>
-              <li><code>environments</code> and <code>tiers</code> handle release-aware overrides</li>
-              <li>Render at runtime and compile for production when you need it</li>
+              <li>
+                One PromptOpsKit <code>.md</code> file holds prompt plus
+                settings
+              </li>
+              <li>
+                <code>includes</code> and <code>defaults.md</code> keep shared
+                instructions in sync
+              </li>
+              <li>
+                Input validation rules like length limits and allow or deny
+                checks live in the prompt file
+              </li>
+              <li>
+                <code>environments</code> and <code>tiers</code> handle
+                release-aware overrides
+              </li>
+              <li>
+                Render at runtime and compile for production when you need it
+              </li>
             </ul>
           </article>
         </div>
         <article class="card stack-fit-card">
           <p class="comparison-label">Fits alongside</p>
-          <h3>PromptOpsKit owns the repo-native prompt layer, not the whole stack</h3>
+          <h3>
+            PromptOpsKit owns the repo-native prompt layer, not the whole stack
+          </h3>
           <div class="stack-fit-grid">
             <div>
               <strong>Evaluation & red-team tools</strong>
-              <p>Use Promptfoo, DeepEval, Giskard, or Garak for regressions, CI checks, and adversarial testing.</p>
+              <p>
+                Use Promptfoo, DeepEval, Giskard, or Garak for regressions, CI
+                checks, and adversarial testing.
+              </p>
             </div>
             <div>
               <strong>Tracing & observability tools</strong>
-              <p>Use Langfuse or Arize Phoenix to inspect live behavior, latency, and token usage.</p>
+              <p>
+                Use Langfuse or Arize Phoenix to inspect live behavior, latency,
+                and token usage.
+              </p>
             </div>
             <div>
               <strong>Your SDK or HTTP layer</strong>
-              <p>PromptOpsKit returns request-body payloads only, so transport stays in your app.</p>
+              <p>
+                PromptOpsKit returns request-body payloads only, so transport
+                stays in your app.
+              </p>
             </div>
             <div>
               <strong>GitHub Actions</strong>
-              <p>Run <code>promptopskit validate</code> and compile prompts in CI before deploy.</p>
+              <p>
+                Run <code>promptopskit validate</code> and compile prompts in CI
+                before deploy.
+              </p>
             </div>
           </div>
         </article>
@@ -164,8 +240,9 @@
           <p class="eyebrow">See it working</p>
           <h2>Watch the PromptOpsKit demo</h2>
           <p class="section-intro">
-            A quick walkthrough of how PromptOpsKit structures prompts, shared instructions,
-            and provider-specific rendering inside a normal codebase.
+            A quick walkthrough of how PromptOpsKit structures prompts, shared
+            instructions, and provider-specific rendering inside a normal
+            codebase.
           </p>
         </div>
         <div class="video-frame">
@@ -173,7 +250,15 @@
             src="https://www.youtube-nocookie.com/embed/eUVmlbrjdKc"
             title="PromptOpsKit demo video"
             loading="lazy"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allow="
+              accelerometer;
+              autoplay;
+              clipboard-write;
+              encrypted-media;
+              gyroscope;
+              picture-in-picture;
+              web-share;
+            "
             referrerpolicy="strict-origin-when-cross-origin"
             allowfullscreen
           ></iframe>
@@ -184,24 +269,40 @@
       <section id="why" class="container section">
         <h2>Your prompts are already in Git. They're just not managed.</h2>
         <p class="section-intro">
-          Prompts are already in your codebase — as scattered strings and provider-specific glue.
-          Model parameters live in separate config objects. Tool definitions drift independently.
-          Environment differences are handled with ad-hoc if/else branches. Shared instructions
-          get copy-pasted across features. Every change is buried in application commits with
-          no clear ownership or review path.
+          Prompts are already in your codebase — as scattered strings and
+          provider-specific glue. Model parameters live in separate config
+          objects. Tool definitions drift independently. Environment differences
+          are handled with ad-hoc if/else branches. Shared instructions get
+          copy-pasted across features. Every change is buried in application
+          commits with no clear ownership or review path.
         </p>
         <div class="grid three">
           <article class="card">
             <h3>Changing a model touches everything</h3>
-            <p>Swapping from <code>gpt-4o</code> to <code>gpt-5.4</code> means finding every file that references the model name, the temperature, the max tokens. One missed spot and you're running two models in production without knowing it.</p>
+            <p>
+              Swapping from <code>gpt-5.1</code> to <code>gpt-5.4</code> means
+              finding every file that references the model name, the
+              temperature, the max tokens. One missed spot and you're running
+              two models in production without knowing it.
+            </p>
           </article>
           <article class="card">
             <h3>Settings, tools, and prompts drift apart</h3>
-            <p>The prompt string lives in one file. Model config lives in another. Tool definitions live in a third. When someone updates the prompt but forgets the tool list, the model hallucinates tool calls that don't exist.</p>
+            <p>
+              The prompt string lives in one file. Model config lives in
+              another. Tool definitions live in a third. When someone updates
+              the prompt but forgets the tool list, the model hallucinates tool
+              calls that don't exist.
+            </p>
           </article>
           <article class="card">
             <h3>Every environment is a fork</h3>
-            <p>Dev uses a cheaper model. Prod uses a bigger one. Free-tier users get lower output limits. Without structured overrides, each combination becomes another copy of the same prompt with slightly different settings.</p>
+            <p>
+              Dev uses a cheaper model. Prod uses a bigger one. Free-tier users
+              get lower output limits. Without structured overrides, each
+              combination becomes another copy of the same prompt with slightly
+              different settings.
+            </p>
           </article>
         </div>
       </section>
@@ -210,38 +311,76 @@
       <section id="what" class="container section">
         <h2>A control layer for prompt-driven applications</h2>
         <p class="section-intro">
-          PromptOpsKit separates prompt operations from application code — without taking them
-          out of source control. Each prompt becomes a structured, reusable asset that captures
-          model settings, tools, context rules, overrides, and composable instructions in one file.
+          PromptOpsKit separates prompt operations from application code —
+          without taking them out of source control. Each prompt becomes a
+          structured, reusable asset that captures model settings, tools,
+          context rules, overrides, and composable instructions in one file.
         </p>
         <div class="grid two">
           <article class="card">
             <h3>One file. Everything that matters.</h3>
-            <p>Prompt text, model name, sampling parameters, reasoning effort, tool definitions, and context rules live together in a single <code>.md</code> file with YAML front matter. Change the model in one line — it applies everywhere that prompt is used.</p>
+            <p>
+              Prompt text, model name, sampling parameters, reasoning effort,
+              tool definitions, and context rules live together in a single
+              <code>.md</code> file with YAML front matter. Change the model in
+              one line — it applies everywhere that prompt is used.
+            </p>
           </article>
           <article class="card">
             <h3>Environment and tier overrides</h3>
-            <p>Define <code>environments</code> and <code>tiers</code> in front matter. Dev gets <code>gpt-5.4-mini</code> with low temperature. Prod gets <code>gpt-5.4</code>. Free-tier caps output tokens. One prompt file handles all variations — no forks, no duplication.</p>
+            <p>
+              Define <code>environments</code> and <code>tiers</code> in front
+              matter. Dev gets <code>gpt-5.4-mini</code> with low temperature.
+              Prod gets <code>gpt-5.4</code>. Free-tier caps output tokens. One
+              prompt file handles all variations — no forks, no duplication.
+            </p>
           </article>
           <article class="card">
             <h3>Tools and MCP declared with the prompt</h3>
-            <p>Bind tool definitions and MCP server references directly in front matter. When the prompt ships, its tools ship with it. No separate config to keep in sync, no drift between prompt intent and available capabilities.</p>
+            <p>
+              Bind tool definitions and MCP server references directly in front
+              matter. When the prompt ships, its tools ship with it. No separate
+              config to keep in sync, no drift between prompt intent and
+              available capabilities.
+            </p>
           </article>
           <article class="card">
             <h3>Runtime context injection</h3>
-            <p><code>{{ variable }}</code> placeholders inject user data, app state, and session context at render time. Add per-input controls like <code>max_size</code> + <code>trim</code>, structured or literal <code>allow_regex</code>/<code>deny_regex</code>, built-in <code>non_empty</code> / <code>reject_secrets</code>, and an <code>onContextOverflow</code> callback to keep oversized or unsafe context out of final prompts.</p>
+            <p>
+              <code>{{ variable }}</code> placeholders inject user data, app
+              state, and session context at render time. Add per-input controls
+              like <code>max_size</code> + <code>trim</code>, structured or
+              literal <code>allow_regex</code>/<code>deny_regex</code>, built-in
+              <code>non_empty</code> / <code>reject_secrets</code>, and an
+              <code>onContextOverflow</code> callback to keep oversized or
+              unsafe context out of final prompts.
+            </p>
           </article>
           <article class="card">
             <h3>Composable shared instructions</h3>
-            <p><code>includes</code> lets you define tone, policy, or safety instructions once and compose them into any prompt. Update the shared file and every prompt that includes it gets the change — no copy-paste, no drift.</p>
+            <p>
+              <code>includes</code> lets you define tone, policy, or safety
+              instructions once and compose them into any prompt. Update the
+              shared file and every prompt that includes it gets the change — no
+              copy-paste, no drift.
+            </p>
           </article>
           <article class="card">
             <h3>Folder-level defaults</h3>
-            <p>Add <code>defaults.md</code> to any prompt folder to define shared <code>provider</code>, <code>model</code>, <code>metadata</code>, and <code># System instructions</code>. Subfolders can override parent defaults, and prompt-local values still take priority.</p>
+            <p>
+              Add <code>defaults.md</code> to any prompt folder to define shared
+              <code>provider</code>, <code>model</code>, <code>metadata</code>,
+              and <code># System instructions</code>. Subfolders can override
+              parent defaults, and prompt-local values still take priority.
+            </p>
           </article>
           <article class="card">
             <h3>Render for any provider</h3>
-            <p>Write one prompt. Render it for OpenAI, Anthropic, Gemini, or OpenRouter. Each adapter produces the correct request body shape — you own the HTTP call, auth, and transport.</p>
+            <p>
+              Write one prompt. Render it for OpenAI, Anthropic, Gemini, or
+              OpenRouter. Each adapter produces the correct request body shape —
+              you own the HTTP call, auth, and transport.
+            </p>
           </article>
         </div>
       </section>
@@ -256,16 +395,25 @@
             <pre><code>npm install promptopskit
 npx promptopskit init
 npx promptopskit skill</code></pre>
-            <p>Creates a <code>prompts/</code> directory with starter files, a shared instructions folder, and deploys AI agent instructions so coding assistants know how to work with your prompts.</p>
+            <p>
+              Creates a <code>prompts/</code> directory with starter files, a
+              shared instructions folder, and deploys AI agent instructions so
+              coding assistants know how to work with your prompts.
+            </p>
             <details class="ai-prompt-tip">
-              <summary>Or, give this prompt to your AI coding assistant</summary>
+              <summary>
+                Or, give this prompt to your AI coding assistant
+              </summary>
               <pre><code>Install promptopskit, run `npx promptopskit init` to scaffold starter prompt files, run `npx promptopskit skill` to deploy AI agent instructions, and add a "build:prompts": "promptopskit compile" script to package.json.</code></pre>
             </details>
           </article>
 
           <article class="card">
             <h3>2. Write a prompt file</h3>
-            <p>One Markdown file defines everything: model, parameters, tools, context, overrides, includes, and prompt text.</p>
+            <p>
+              One Markdown file defines everything: model, parameters, tools,
+              context, overrides, includes, and prompt text.
+            </p>
             <pre><code>---
 id: support/reply
 schema_version: 1
@@ -322,7 +470,10 @@ Use tools to look up account details before answering.
 
           <article class="card">
             <h3>3. Render for any provider</h3>
-            <p>Load the prompt, supply variables, and get a ready-to-send request body.</p>
+            <p>
+              Load the prompt, supply variables, and get a ready-to-send request
+              body.
+            </p>
             <pre><code>import { createPromptOpsKit } from 'promptopskit';
 
 const kit = createPromptOpsKit({ sourceDir: './prompts' });
@@ -387,11 +538,26 @@ const res = await fetch('https://api.openai.com/v1/chat/completions', {
             <h3>Context size warnings</h3>
             <ul>
               <li>Declare optional <code>max_size</code> per context input</li>
-              <li>Optionally <code>trim</code> oversized values to budget before interpolation</li>
-              <li>Use <code>onContextOverflow</code> to transform values (summarize/redact/truncate)</li>
-              <li>Use structured regexes with flags or <code>/pattern/i</code> literals for allow/block rules</li>
-              <li>Use built-in <code>non_empty</code> and <code>reject_secrets</code> validators for common hardening cases</li>
-              <li>Control warning behavior globally for dev and prod environments</li>
+              <li>
+                Optionally <code>trim</code> oversized values to budget before
+                interpolation
+              </li>
+              <li>
+                Use <code>onContextOverflow</code> to transform values
+                (summarize/redact/truncate)
+              </li>
+              <li>
+                Use structured regexes with flags or
+                <code>/pattern/i</code> literals for allow/block rules
+              </li>
+              <li>
+                Use built-in <code>non_empty</code> and
+                <code>reject_secrets</code> validators for common hardening
+                cases
+              </li>
+              <li>
+                Control warning behavior globally for dev and prod environments
+              </li>
             </ul>
           </article>
           <article class="card">
@@ -399,7 +565,10 @@ const res = await fetch('https://api.openai.com/v1/chat/completions', {
             <ul>
               <li><code>init</code> — scaffold starter prompts</li>
               <li><code>validate</code> — check all prompts before merge</li>
-              <li><code>compile</code> — pre-compile <code>.md</code> → JSON or ESM</li>
+              <li>
+                <code>compile</code> — pre-compile <code>.md</code> → JSON or
+                ESM
+              </li>
               <li><code>render</code> — preview output with test variables</li>
               <li><code>inspect</code> — print normalized prompt as JSON</li>
               <li><code>skill</code> — deploy AI agent instructions</li>
@@ -408,15 +577,23 @@ const res = await fetch('https://api.openai.com/v1/chat/completions', {
           <article class="card">
             <h3>Compiled artifacts for production</h3>
             <ul>
-              <li>Pre-compile prompts to JSON or ESM — skip parsing at runtime</li>
-              <li>Auto mode loads compiled when available, falls back to source</li>
-              <li>LRU cache with mtime-based invalidation during development</li>
+              <li>
+                Pre-compile prompts to JSON or ESM — skip parsing at runtime
+              </li>
+              <li>
+                Auto mode loads compiled when available, falls back to source
+              </li>
+              <li>
+                LRU cache with mtime-based invalidation during development
+              </li>
             </ul>
           </article>
           <article class="card">
             <h3>No transport lock-in</h3>
             <ul>
-              <li>Adapters return request body only — no HTTP client bundled</li>
+              <li>
+                Adapters return request body only — no HTTP client bundled
+              </li>
               <li>You control auth, retries, headers, and observability</li>
               <li>Works with any fetch wrapper, SDK, or infrastructure</li>
             </ul>
@@ -424,13 +601,18 @@ const res = await fetch('https://api.openai.com/v1/chat/completions', {
           <article class="card card-featured-optional">
             <h3>Usage-based billing and entitlement checks</h3>
             <p>
-              PromptOpsKit can optionally pair with <a href="https://usagetap.com">usagetap.com</a> when you need usage metering,
-              per-call entitlement checks, spend-aware AI feature gating, or a path from free
-              usage to PAYG and committed plans. PromptOpsKit still owns prompt rendering;
-              <a href="https://usagetap.com">usagetap.com</a> adds billing and control around the LLM call.
+              PromptOpsKit can optionally pair with
+              <a href="https://usagetap.com">usagetap.com</a> when you need
+              usage metering, per-call entitlement checks, spend-aware AI
+              feature gating, or a path from free usage to PAYG and committed
+              plans. PromptOpsKit still owns prompt rendering;
+              <a href="https://usagetap.com">usagetap.com</a> adds billing and
+              control around the LLM call.
             </p>
             <p>
-              <a href="/docs/index.html#/usagetap">Read the usagetap.com docs</a>
+              <a href="/docs/index.html#/usagetap"
+                >Read the usagetap.com docs</a
+              >
               ·
               <a href="https://usagetap.com">Learn about usagetap.com</a>
             </p>
@@ -444,35 +626,74 @@ const res = await fetch('https://api.openai.com/v1/chat/completions', {
         <div class="grid two">
           <article class="card">
             <h3>What happens when I need to change models?</h3>
-            <p>Change one line in the prompt file's front matter. The model, parameters, and any per-environment overrides update together. No hunting through application code for scattered references.</p>
+            <p>
+              Change one line in the prompt file's front matter. The model,
+              parameters, and any per-environment overrides update together. No
+              hunting through application code for scattered references.
+            </p>
           </article>
           <article class="card">
             <h3>How do environment and tier overrides work?</h3>
-            <p>Define <code>environments</code> (dev/staging/prod) and <code>tiers</code> (free/pro/enterprise) in front matter. At render time, pass <code>environment</code> and <code>tier</code> — PromptOpsKit merges the right model, sampling, and tool settings. Precedence: base → env → tier → runtime.</p>
+            <p>
+              Define <code>environments</code> (dev/staging/prod) and
+              <code>tiers</code> (free/pro/enterprise) in front matter. At
+              render time, pass <code>environment</code> and <code>tier</code> —
+              PromptOpsKit merges the right model, sampling, and tool settings.
+              Precedence: base → env → tier → runtime.
+            </p>
           </article>
           <article class="card">
             <h3>How do tools work with prompts?</h3>
-            <p>List tool names or inline tool definitions in front matter under <code>tools</code>. They travel with the prompt and appear in the rendered request body — no separate wiring needed in your app.</p>
+            <p>
+              List tool names or inline tool definitions in front matter under
+              <code>tools</code>. They travel with the prompt and appear in the
+              rendered request body — no separate wiring needed in your app.
+            </p>
           </article>
           <article class="card">
             <h3>How does context injection work at runtime?</h3>
-            <p>Declare expected <code>inputs</code> in front matter. At render time, pass variables like user messages, app state, or session data. PromptOpsKit can transform oversized values with <code>onContextOverflow</code>, trim values to <code>max_size</code>, enforce structured or literal <code>allow_regex</code>/<code>deny_regex</code> checks, and apply built-in <code>non_empty</code> / <code>reject_secrets</code> validators to block risky content.</p>
+            <p>
+              Declare expected <code>inputs</code> in front matter. At render
+              time, pass variables like user messages, app state, or session
+              data. PromptOpsKit can transform oversized values with
+              <code>onContextOverflow</code>, trim values to
+              <code>max_size</code>, enforce structured or literal
+              <code>allow_regex</code>/<code>deny_regex</code> checks, and apply
+              built-in <code>non_empty</code> /
+              <code>reject_secrets</code> validators to block risky content.
+            </p>
           </article>
           <article class="card">
             <h3>Does it support conversation history?</h3>
-            <p>Yes. Pass a <code>history</code> array at render time and configure <code>context.history.max_items</code> in front matter to control how many turns are included in the request body.</p>
+            <p>
+              Yes. Pass a <code>history</code> array at render time and
+              configure <code>context.history.max_items</code> in front matter
+              to control how many turns are included in the request body.
+            </p>
           </article>
           <article class="card">
             <h3>Is PromptOpsKit only for one model provider?</h3>
-            <p>No. It ships with adapters for OpenAI, Anthropic, Gemini, and OpenRouter. Each produces the correct request body shape for that API. Switch providers by changing one field.</p>
+            <p>
+              No. It ships with adapters for OpenAI, Anthropic, Gemini, and
+              OpenRouter. Each produces the correct request body shape for that
+              API. Switch providers by changing one field.
+            </p>
           </article>
           <article class="card">
             <h3>Does it make HTTP requests for me?</h3>
-            <p>No. PromptOpsKit returns request-body payloads. Your application owns transport, auth, retries, and headers — so it works with any HTTP client or infrastructure.</p>
+            <p>
+              No. PromptOpsKit returns request-body payloads. Your application
+              owns transport, auth, retries, and headers — so it works with any
+              HTTP client or infrastructure.
+            </p>
           </article>
           <article class="card">
             <h3>Can I validate prompts in CI?</h3>
-            <p>Yes. Run <code>promptopskit validate ./prompts --strict</code> in your pipeline. It catches schema errors, missing variables, broken includes, and field typos before deploy.</p>
+            <p>
+              Yes. Run <code>promptopskit validate ./prompts --strict</code> in
+              your pipeline. It catches schema errors, missing variables, broken
+              includes, and field typos before deploy.
+            </p>
           </article>
         </div>
       </section>
@@ -481,48 +702,57 @@ const res = await fetch('https://api.openai.com/v1/chat/completions', {
       <section id="oss" class="container section">
         <h2>Repo-native, not dashboard-native</h2>
         <p>
-          PromptOpsKit is MIT-licensed and lives entirely in your codebase. No hosted dashboards,
-          no external admin tools. Source prompts in development, compiled artifacts in production,
-          and CLI validation in CI — all from one <code>npm install</code>.
+          PromptOpsKit is MIT-licensed and lives entirely in your codebase. No
+          hosted dashboards, no external admin tools. Source prompts in
+          development, compiled artifacts in production, and CLI validation in
+          CI — all from one <code>npm install</code>.
         </p>
-        <a class="button button-primary" href="https://github.com/PredictabilityAtScale/promptopskit">View repository</a>
+        <a
+          class="button button-primary"
+          href="https://github.com/PredictabilityAtScale/promptopskit"
+          >View repository</a
+        >
       </section>
     </main>
 
     <footer class="site-footer">
       <div class="container footer-content">
         <p>PromptOpsKit • MIT License</p>
-        <p><a href="https://github.com/PredictabilityAtScale/promptopskit">GitHub</a></p>
+        <p>
+          <a href="https://github.com/PredictabilityAtScale/promptopskit"
+            >GitHub</a
+          >
+        </p>
       </div>
     </footer>
     <script>
       (() => {
-        const header = document.querySelector('.site-header');
-        const toggle = document.querySelector('.menu-toggle');
-        const nav = document.getElementById('primary-nav');
+        const header = document.querySelector(".site-header");
+        const toggle = document.querySelector(".menu-toggle");
+        const nav = document.getElementById("primary-nav");
 
         if (!header || !toggle || !nav) return;
 
         const closeMenu = () => {
-          header.classList.remove('is-menu-open');
-          toggle.setAttribute('aria-expanded', 'false');
+          header.classList.remove("is-menu-open");
+          toggle.setAttribute("aria-expanded", "false");
         };
 
-        toggle.addEventListener('click', () => {
-          const isOpen = header.classList.toggle('is-menu-open');
-          toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        toggle.addEventListener("click", () => {
+          const isOpen = header.classList.toggle("is-menu-open");
+          toggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
         });
 
-        nav.querySelectorAll('a').forEach((link) => {
-          link.addEventListener('click', () => {
-            if (window.matchMedia('(max-width: 900px)').matches) {
+        nav.querySelectorAll("a").forEach((link) => {
+          link.addEventListener("click", () => {
+            if (window.matchMedia("(max-width: 900px)").matches) {
               closeMenu();
             }
           });
         });
 
-        window.addEventListener('resize', () => {
-          if (!window.matchMedia('(max-width: 900px)').matches) {
+        window.addEventListener("resize", () => {
+          if (!window.matchMedia("(max-width: 900px)").matches) {
             closeMenu();
           }
         });

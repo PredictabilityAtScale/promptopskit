@@ -234,6 +234,38 @@ describe('validateAsset', () => {
     expect(result.warnings.filter((warning) => warning.code === 'POK047')).toHaveLength(2);
   });
 
+  it('returns schema errors for malformed override entries instead of throwing', () => {
+    const result = validateAsset({
+      id: 'test',
+      schema_version: 1,
+      cache: {
+        openai: { prompt_cache_key: 'test-v1' },
+      },
+      environments: {
+        prod: null,
+      },
+      tiers: {
+        pro: null,
+      },
+      sections: { prompt_template: 'Hello' },
+    } as never);
+
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((error) => error.code === 'POK001')).toBe(true);
+  });
+
+  it('returns schema errors for malformed inline tools instead of throwing', () => {
+    const result = validateAsset({
+      id: 'test',
+      schema_version: 1,
+      tools: [null],
+      sections: { prompt_template: 'Hello' },
+    } as never);
+
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((error) => error.code === 'POK001')).toBe(true);
+  });
+
   it('does not warn when trim is explicitly false without max_size', () => {
     const result = validateAsset({
       id: 'test',

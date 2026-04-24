@@ -11,6 +11,31 @@ Your prompts are already in Git. PromptOpsKit makes them manageable. It replaces
 
 Provider adapters for OpenAI, Anthropic, Gemini, and OpenRouter produce a ready-to-send **request body only** — no HTTP client, no auth, no headers. Your application owns transport, so PromptOpsKit slots into any stack without opinions about how you call the API.
 
+## How is this different from GitHub Models?
+
+GitHub Models is a great place to prototype prompts, compare models, and run evaluations inside GitHub.
+
+PromptOpsKit is focused on the application runtime layer.
+
+It helps you turn prompt behavior into repo-native assets that your application can load, validate, compose, compile, and render into provider-specific request bodies.
+
+Use GitHub Models when you want:
+
+- a GitHub-hosted prompt editor and playground
+- side-by-side model comparisons
+- structured evaluations inside GitHub
+- `.prompt.yml` files for prompt experiments and evals
+
+Use PromptOpsKit when you want:
+
+- Markdown prompt assets with YAML metadata
+- production input hardening and validation
+- environment-specific model and parameter overrides
+- reusable prompt composition
+- compiled artifacts for deployment
+- provider-specific request bodies for your own runtime code
+- control over SDKs, auth, retries, routing, observability, and billing
+
 ### Why PromptOpsKit?
 
 - **Centralized, not scattered** — each prompt is a single Markdown file that captures prompt text, model config, tool bindings, and context rules together.

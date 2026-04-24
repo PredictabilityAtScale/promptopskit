@@ -164,6 +164,44 @@ nav a:hover,
     linear-gradient(180deg, #f8fafc 0%, #eef4ff 100%);
 }
 
+.comparison-card-strong {
+  background:
+    radial-gradient(circle at top right, rgba(20, 184, 166, 0.11), transparent 34%),
+    linear-gradient(180deg, #f8fafc 0%, #ecfdf5 100%);
+}
+
+.comparison-note {
+  margin: 1rem 0 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.section-intro-tight {
+  margin-top: -0.5rem;
+}
+
+.github-models-points {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.github-models-points article {
+  padding-top: 1rem;
+  border-top: 2px solid var(--line);
+}
+
+.github-models-points h3 {
+  margin-bottom: 0.4rem;
+  font-size: 1rem;
+}
+
+.github-models-points p {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
 .stack-fit-card {
   background:
     radial-gradient(circle at top left, rgba(15, 23, 42, 0.05), transparent 38%),
@@ -427,6 +465,10 @@ ul {
   }
 
   .stack-fit-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .github-models-points {
     grid-template-columns: 1fr;
   }
 

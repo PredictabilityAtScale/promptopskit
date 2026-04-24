@@ -92,6 +92,7 @@
         <nav id="primary-nav" aria-label="Primary">
           <a href="#why">Why</a>
           <a href="#what">What</a>
+          <a href="#github-models">Compare</a>
           <a href="#quickstart">How</a>
           <a href="#features">Features</a>
           <a href="#faq">FAQ</a>
@@ -233,6 +234,118 @@ npx promptopskit skill</code></pre>
             </div>
           </div>
         </article>
+      </section>
+
+      <section
+        id="github-models"
+        class="container section section-github-models"
+        aria-labelledby="github-models-title"
+      >
+        <p class="eyebrow">How it compares</p>
+        <h2 id="github-models-title">
+          From prompt experiments to production prompt assets
+        </h2>
+        <p class="section-intro">
+          GitHub Models is great for exploring prompts, comparing models, and
+          running evaluations inside GitHub. PromptOpsKit focuses on what
+          happens when that behavior needs to ship inside your application.
+        </p>
+        <p class="section-intro section-intro-tight">
+          <strong>
+            GitHub Models helps you experiment with prompts in GitHub.
+            PromptOpsKit helps you ship prompt behavior inside your application.
+          </strong>
+        </p>
+
+        <div class="grid two comparison-grid">
+          <article class="card comparison-card">
+            <h3>GitHub Models</h3>
+            <ul>
+              <li>Prompt editor and playground inside GitHub</li>
+              <li>Model comparison and structured evaluations</li>
+              <li>
+                Repository-stored <code>.prompt.yml</code> or
+                <code>.prompt.yaml</code> files
+              </li>
+              <li>
+                Great for experimentation, collaboration, evals, and model
+                selection
+              </li>
+            </ul>
+            <p class="comparison-note">
+              GitHub's docs describe prompt files, model parameters, test data,
+              evaluators, and CLI evals with <code>gh models eval</code>.
+            </p>
+          </article>
+
+          <article class="card comparison-card comparison-card-strong">
+            <h3>PromptOpsKit</h3>
+            <ul>
+              <li>Markdown prompt assets designed for application runtime</li>
+              <li>
+                Input hardening, environment overrides, composition, and
+                validation
+              </li>
+              <li>
+                Provider-specific request rendering for your own app code
+              </li>
+              <li>
+                Great for shipping prompt behavior through Git, CI, and
+                production deploys
+              </li>
+            </ul>
+            <p class="comparison-note">
+              It renders provider-shaped request bodies while your app keeps
+              control of SDKs, auth, retries, routing, observability, and
+              billing.
+            </p>
+          </article>
+        </div>
+
+        <div class="github-models-points">
+          <article>
+            <h3>Runtime-first</h3>
+            <p>
+              Turn prompt files into provider-ready request bodies your
+              application can execute with your own deployment model.
+            </p>
+          </article>
+          <article>
+            <h3>Markdown-native</h3>
+            <p>
+              Keep long system instructions, templates, notes, and examples
+              readable in Markdown, with YAML front matter for metadata.
+            </p>
+          </article>
+          <article>
+            <h3>Input hardening</h3>
+            <p>
+              Define required variables, size limits, trimming rules, and
+              allow/deny regex checks next to the prompt.
+            </p>
+          </article>
+          <article>
+            <h3>Bring your own transport</h3>
+            <p>
+              Render OpenAI, Anthropic, Gemini, OpenRouter, or OpenAI Responses
+              request bodies, then send them through your existing stack.
+            </p>
+          </article>
+          <article>
+            <h3>Environment-aware</h3>
+            <p>
+              Keep dev, staging, production, and tier-specific model settings
+              close to the prompt and reviewable in Git.
+            </p>
+          </article>
+          <article>
+            <h3>Composable</h3>
+            <p>
+              Reuse shared instructions, policies, and template fragments
+              across prompts without copying the same blocks everywhere.
+            </p>
+          </article>
+        </div>
       </section>
 
       <section id="demo" class="container section section-demo">
@@ -624,6 +737,22 @@ const res = await fetch('https://api.openai.com/v1/chat/completions', {
       <section id="faq" class="container section">
         <h2>Frequently asked questions</h2>
         <div class="grid two">
+          <article class="card">
+            <h3>How is this different from GitHub Models?</h3>
+            <p>
+              GitHub Models is great for experimenting with prompts, comparing
+              models, and running evaluations inside GitHub. PromptOpsKit
+              focuses on the application runtime layer: Markdown-based assets
+              with structured metadata, input validation, environment overrides,
+              composition, and provider-specific request rendering.
+            </p>
+            <p>
+              In practice, GitHub Models helps you decide what prompt and model
+              behavior you want. PromptOpsKit helps you ship that behavior
+              inside your app without replacing your SDK, gateway, auth,
+              retries, observability, or deployment pipeline.
+            </p>
+          </article>
           <article class="card">
             <h3>What happens when I need to change models?</h3>
             <p>

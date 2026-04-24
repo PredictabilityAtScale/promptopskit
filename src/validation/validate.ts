@@ -4,7 +4,6 @@ import { extractVariables } from '../renderer/index.js';
 import { resolveIncludes } from '../composition/index.js';
 import {
   compileContextRegex,
-  formatInvalidContextRegexMessage,
   getContextInputs,
   getContextInputNames,
 } from '../context.js';
@@ -26,8 +25,20 @@ export interface PromptValidationResult {
 const KNOWN_FRONT_MATTER_KEYS = new Set([
   'id', 'schema_version', 'description', 'provider', 'model', 'fallback_models',
   'reasoning', 'sampling', 'response', 'tools', 'mcp', 'context', 'includes',
-  'environments', 'tiers', 'metadata', 'cache',
+  'environments', 'tiers', 'metadata', 'cache', 'provider_options',
 ]);
+
+const RISKY_UNBOUNDED_INPUT_NAMES = [
+  'message',
+  'prompt',
+  'history',
+  'transcript',
+  'document',
+  'content',
+  'input',
+  'body',
+  'context',
+];
 
 /**
  * Validate a parsed prompt asset, returning all errors and warnings.
@@ -121,8 +132,42 @@ export function validateAsset(
     }
   }
 
+  if (usedVars.size > 0 && (!asset.context?.inputs || asset.context.inputs.length === 0)) {
+    warnings.push({
+      code: 'POK046',
+      message: `Template uses ${usedVars.size === 1 ? 'a variable' : 'variables'} but context.inputs is not declared.`,
+      filePath,
+      suggestion: 'Declare context.inputs to enable input policy validation.',
+    });
+  }
+
   // Context regex definitions compile successfully
   for (const input of getContextInputs(asset)) {
+    const lowerName = input.name.toLowerCase();
+
+    if (input.max_size === undefined && RISKY_UNBOUNDED_INPUT_NAMES.some((needle) => lowerName.includes(needle))) {
+      warnings.push({
+        code: 'POK040',
+        message: `Context input "${input.name}" has no max_size and appears unbounded.`,
+        filePath,
+        suggestion: 'Add max_size to constrain prompt payload growth.',
+      });
+    }
+
+    if (
+      input.allow_regex === undefined
+      && input.deny_regex === undefined
+      && input.non_empty === undefined
+      && input.reject_secrets === undefined
+    ) {
+      warnings.push({
+        code: 'POK041',
+        message: `Context input "${input.name}" has no input hardening validators.`,
+        filePath,
+        suggestion: 'Consider non_empty/reject_secrets and allow/deny regex validators.',
+      });
+    }
+
     if (input.trim !== undefined && input.trim !== false && input.max_size === undefined) {
       warnings.push({
         code: 'POK014',
@@ -152,6 +197,103 @@ export function validateAsset(
           code: 'POK013',
           message: reason,
           filePath,
+        });
+      }
+    }
+  }
+
+  if (asset.provider) {
+    let providerCache: unknown;
+    let cacheSuggestionField: string | undefined;
+
+    switch (asset.provider) {
+      case 'openai':
+        providerCache = asset.cache?.openai;
+        cacheSuggestionField = 'cache.openai';
+        break;
+      case 'anthropic':
+        providerCache = asset.cache?.anthropic;
+        cacheSuggestionField = 'cache.anthropic';
+        break;
+      case 'gemini':
+      case 'google':
+        providerCache = asset.cache?.gemini ?? asset.cache?.google;
+        cacheSuggestionField = 'cache.gemini';
+        break;
+      default:
+        break;
+    }
+
+    if (cacheSuggestionField && providerCache === undefined) {
+      warnings.push({
+        code: 'POK042',
+        message: `Provider "${asset.provider}" has no provider-specific cache settings.`,
+        filePath,
+        suggestion: `Consider configuring ${cacheSuggestionField} for better cache-hit behavior.`,
+      });
+    }
+
+    if (!asset.model) {
+      warnings.push({
+        code: 'POK044',
+        message: `Provider "${asset.provider}" is configured without a model.`,
+        filePath,
+        suggestion: 'Set model in prompt or defaults to avoid adapter-time errors.',
+      });
+    }
+  }
+
+  if (
+    asset.cache?.gemini?.cached_content
+    && asset.cache.google?.cached_content
+    && asset.cache.gemini.cached_content !== asset.cache.google.cached_content
+  ) {
+    warnings.push({
+      code: 'POK043',
+      message: 'cache.gemini.cached_content and cache.google.cached_content are both set to different values.',
+      filePath,
+      suggestion: 'Use one canonical value; Gemini prefers cache.gemini.cached_content.',
+    });
+  }
+
+  for (const [envName, overrides] of Object.entries(asset.environments ?? {})) {
+    if (asset.cache && !overrides.cache) {
+      warnings.push({
+        code: 'POK045',
+        message: `Environment "${envName}" does not override cache while prompt-level cache is defined.`,
+        filePath,
+        suggestion: 'Confirm cache strategy is intentionally shared across environments.',
+      });
+    }
+  }
+
+  for (const [tierName, overrides] of Object.entries(asset.tiers ?? {})) {
+    if (asset.cache && !overrides.cache) {
+      warnings.push({
+        code: 'POK045',
+        message: `Tier "${tierName}" does not override cache while prompt-level cache is defined.`,
+        filePath,
+        suggestion: 'Confirm cache strategy is intentionally shared across tiers.',
+      });
+    }
+  }
+
+  for (const tool of asset.tools ?? []) {
+    if (typeof tool !== 'string') {
+      if (!tool.description) {
+        warnings.push({
+          code: 'POK047',
+          message: `Inline tool "${tool.name}" is missing a description.`,
+          filePath,
+          suggestion: 'Add description to improve model tool-selection quality.',
+        });
+      }
+      if (!tool.input_schema) {
+        warnings.push({
+          code: 'POK047',
+          message: `Inline tool "${tool.name}" is missing input_schema.`,
+          filePath,
+          suggestion: 'Add input_schema so tool inputs are strongly typed.',
         });
       }
     }

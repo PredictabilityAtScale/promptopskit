@@ -66,7 +66,9 @@ describe('validateAsset', () => {
       sections: { prompt_template: '{{ pull_request }}' },
     });
     const warning = result.warnings.find((w) => w.code === 'POK011');
+    const policyWarning = result.warnings.find((w) => w.code === 'POK046');
     expect(warning).toBeDefined();
+    expect(policyWarning).toBeDefined();
     expect(warning?.message).toContain('pull_request');
   });
 
@@ -173,6 +175,63 @@ describe('validateAsset', () => {
 
     expect(result.valid).toBe(true);
     expect(result.warnings.some((warning) => warning.code === 'POK014')).toBe(true);
+  });
+
+  it('warns on risky unbounded context inputs and missing hardening', () => {
+    const result = validateAsset({
+      id: 'test',
+      schema_version: 1,
+      context: {
+        inputs: [{ name: 'user_message' }],
+      },
+      sections: { prompt_template: '{{ user_message }}' },
+    });
+
+    expect(result.valid).toBe(true);
+    expect(result.warnings.some((warning) => warning.code === 'POK040')).toBe(true);
+    expect(result.warnings.some((warning) => warning.code === 'POK041')).toBe(true);
+  });
+
+  it('warns when provider cache/model guidance is missing', () => {
+    const result = validateAsset({
+      id: 'test',
+      schema_version: 1,
+      provider: 'openai',
+      sections: { prompt_template: 'Hello' },
+    });
+
+    expect(result.valid).toBe(true);
+    expect(result.warnings.some((warning) => warning.code === 'POK042')).toBe(true);
+    expect(result.warnings.some((warning) => warning.code === 'POK044')).toBe(true);
+  });
+
+  it('warns on conflicting gemini/google cache entries', () => {
+    const result = validateAsset({
+      id: 'test',
+      schema_version: 1,
+      provider: 'gemini',
+      model: 'gemini-2.5-pro',
+      cache: {
+        gemini: { cached_content: 'cachedContents/abc' },
+        google: { cached_content: 'cachedContents/xyz' },
+      },
+      sections: { prompt_template: 'Hello' },
+    });
+
+    expect(result.valid).toBe(true);
+    expect(result.warnings.some((warning) => warning.code === 'POK043')).toBe(true);
+  });
+
+  it('warns on inline tools missing schema metadata', () => {
+    const result = validateAsset({
+      id: 'test',
+      schema_version: 1,
+      tools: [{ name: 'lookup_customer' }],
+      sections: { prompt_template: 'Hello' },
+    });
+
+    expect(result.valid).toBe(true);
+    expect(result.warnings.filter((warning) => warning.code === 'POK047')).toHaveLength(2);
   });
 
   it('does not warn when trim is explicitly false without max_size', () => {

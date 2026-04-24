@@ -28,6 +28,19 @@ export interface ValidationResult {
   warnings: string[];
 }
 
+
+export interface OpenAIResponsesRuntimeOptions {
+  previous_response_id?: string;
+  conversation?: string;
+  instructions?: string;
+  parallel_tool_calls?: boolean;
+  max_tool_calls?: number;
+  include?: string[];
+  metadata?: Record<string, string>;
+  store?: boolean;
+  background?: boolean;
+}
+
 /**
  * Options passed at render time.
  */
@@ -46,6 +59,7 @@ export interface RuntimeRenderOptions {
   history?: Array<{ role: string; content: string }>;
   toolRegistry?: Record<string, unknown>;
   strict?: boolean;
+  openaiResponses?: OpenAIResponsesRuntimeOptions;
 }
 
 export interface ProviderPromptLookup {

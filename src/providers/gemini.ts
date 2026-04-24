@@ -31,6 +31,9 @@ export const geminiAdapter: ProviderAdapter = withPromptInputSupport({
     if (resolvedAsset.sampling?.presence_penalty !== undefined) {
       warnings.push('Gemini does not support presence_penalty. It will be ignored.');
     }
+    if (resolvedAsset.response?.stream !== undefined) {
+      warnings.push('Gemini streaming is endpoint-based (streamGenerateContent), not body-based. response.stream will be ignored.');
+    }
 
     return { valid: errors.length === 0, errors, warnings };
   },
@@ -76,17 +79,31 @@ export const geminiAdapter: ProviderAdapter = withPromptInputSupport({
     // Generation config
     const generationConfig: Record<string, unknown> = {};
 
+    const geminiOptions = resolvedAsset.provider_options?.gemini;
+
     if (resolvedAsset.sampling?.temperature !== undefined) generationConfig.temperature = resolvedAsset.sampling.temperature;
     if (resolvedAsset.sampling?.top_p !== undefined) generationConfig.topP = resolvedAsset.sampling.top_p;
     if (resolvedAsset.sampling?.max_output_tokens !== undefined) generationConfig.maxOutputTokens = resolvedAsset.sampling.max_output_tokens;
     if (resolvedAsset.sampling?.stop !== undefined) generationConfig.stopSequences = resolvedAsset.sampling.stop;
+
+    if (geminiOptions?.candidate_count !== undefined) generationConfig.candidateCount = geminiOptions.candidate_count;
+    if (geminiOptions?.top_k !== undefined) generationConfig.topK = geminiOptions.top_k;
+    if (geminiOptions?.seed !== undefined) generationConfig.seed = geminiOptions.seed;
+    if (geminiOptions?.response_schema !== undefined) generationConfig.responseSchema = geminiOptions.response_schema;
+    if (geminiOptions?.response_modalities !== undefined) generationConfig.responseModalities = geminiOptions.response_modalities;
+
+    if (resolvedAsset.response?.schema !== undefined) generationConfig.responseSchema = resolvedAsset.response.schema;
 
     if (resolvedAsset.response?.format === 'json') {
       generationConfig.responseMimeType = 'application/json';
     }
 
     // Thinking config
-    if (resolvedAsset.reasoning?.effort) {
+    if (geminiOptions?.thinking_budget_tokens !== undefined) {
+      body.thinkingConfig = {
+        thinkingBudget: geminiOptions.thinking_budget_tokens,
+      };
+    } else if (resolvedAsset.reasoning?.effort) {
       body.thinkingConfig = {
         thinkingBudget: resolvedAsset.reasoning.effort === 'high' ? 8192 : resolvedAsset.reasoning.effort === 'medium' ? 4096 : 1024,
       };

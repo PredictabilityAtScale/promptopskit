@@ -63,7 +63,7 @@ export { interpolate, extractVariables } from './renderer/index.js';
 export { resolveIncludes } from './composition/index.js';
 export { applyOverrides } from './overrides/index.js';
 export { validateAsset, validateAssetWithIncludes } from './validation/index.js';
-export { getAdapter, openaiAdapter } from './providers/index.js';
+export { getAdapter, openaiAdapter, openaiResponsesAdapter } from './providers/index.js';
 export { anthropicAdapter } from './providers/anthropic.js';
 export { geminiAdapter } from './providers/gemini.js';
 export { openrouterAdapter } from './providers/openrouter.js';
@@ -121,6 +121,8 @@ export interface RenderPromptOptions {
   toolRegistry?: Record<string, unknown>;
   /** Strict mode — fail on missing variables */
   strict?: boolean;
+  /** OpenAI Responses API-specific request options */
+  openaiResponses?: RuntimeRenderOptions['openaiResponses'];
 }
 
 // --- Result ---
@@ -263,6 +265,7 @@ export class PromptOpsKit {
       history: options.history,
       toolRegistry: options.toolRegistry,
       strict: options.strict,
+      openaiResponses: options.openaiResponses,
     });
 
     return {

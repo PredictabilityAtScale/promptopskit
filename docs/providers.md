@@ -1,15 +1,52 @@
 # Provider Adapters
 
-PromptOpsKit ships four provider adapters. Direct `render()` calls always produce a `{ body, provider, model }` object shaped for the target API. Async `renderPrompt()` helpers may instead return `{ provider, model, returnMessage }` when context validation is configured to short-circuit before request shaping. You handle the HTTP call — no auth, no headers, no HTTP client opinions.
+PromptOpsKit ships five provider adapters. Direct `render()` calls always produce a `{ body, provider, model }` object shaped for the target API. Async `renderPrompt()` helpers may instead return `{ provider, model, returnMessage }` when context validation is configured to short-circuit before request shaping. You handle the HTTP call — no auth, no headers, no HTTP client opinions.
 
 ## Supported providers
 
 | Provider | Front matter value | Adapter |
 |----------|-------------------|---------|
-| OpenAI | `openai` | `openaiAdapter` |
+| OpenAI (Chat Completions) | `openai` | `openaiAdapter` |
+| OpenAI (Responses API) | `openai-responses` | `openaiResponsesAdapter` |
 | Anthropic | `anthropic` | `anthropicAdapter` |
 | Google Gemini | `gemini` or `google` | `geminiAdapter` |
 | OpenRouter | `openrouter` | `openrouterAdapter` |
+
+
+## Normalized front matter vs provider-specific options
+
+PromptOpsKit already normalizes common settings across providers via front matter fields like `sampling`, `reasoning`, `response`, and `tools`.
+
+When a provider has extra knobs with no clean cross-provider equivalent, use `provider_options`:
+
+```yaml
+provider_options:
+  anthropic:
+    top_k: 50
+    tool_choice:
+      type: auto
+  gemini:
+    candidate_count: 2
+    top_k: 20
+    seed: 42
+    response_modalities: ["TEXT"]
+    thinking_budget_tokens: 2048
+```
+
+This keeps portable settings in normalized fields, while still exposing advanced provider-specific controls.
+
+
+## Streaming support
+
+`response.stream` support differs by provider:
+
+| Provider | `response.stream` behavior |
+|----------|----------------------------|
+| `openai` | Mapped to body `stream` |
+| `openai-responses` | Mapped to body `stream` |
+| `anthropic` | Mapped to body `stream` |
+| `openrouter` | Mapped to body `stream` (same as OpenAI) |
+| `gemini` | **Not body-mapped**; Gemini streaming is endpoint-based (`streamGenerateContent`) |
 
 ## Usage via `renderPrompt`
 
@@ -41,6 +78,7 @@ The provider passed to `renderPrompt` determines which adapter shapes the body. 
 
 ```typescript
 import { openaiAdapter } from 'promptopskit/openai';
+import { openaiResponsesAdapter } from 'promptopskit/openai-responses';
 import { anthropicAdapter } from 'promptopskit/anthropic';
 import { geminiAdapter } from 'promptopskit/gemini';
 import { openrouterAdapter } from 'promptopskit/openrouter';
@@ -62,7 +100,7 @@ interface ProviderAdapter {
 }
 ```
 
-Direct adapter rendering accepts the same `environment` and `tier` selectors as `kit.renderPrompt()`. Use the synchronous `validate()` and `render()` methods when you already have a compiled `ResolvedPromptAsset`, and use the async `validatePrompt()` and `renderPrompt()` helpers when you want the adapter to resolve either markdown source or a compiled artifact from disk. Context input validation runs through the same shared prompt-input wrapper for OpenAI, Anthropic, Gemini, and OpenRouter, so `allow_regex`, `deny_regex`, `non_empty`, `reject_secrets`, and `return_message` behave consistently across all four.
+Direct adapter rendering accepts the same `environment` and `tier` selectors as `kit.renderPrompt()`. Use the synchronous `validate()` and `render()` methods when you already have a compiled `ResolvedPromptAsset`, and use the async `validatePrompt()` and `renderPrompt()` helpers when you want the adapter to resolve either markdown source or a compiled artifact from disk. Context input validation runs through the same shared prompt-input wrapper for OpenAI, OpenAI Responses, Anthropic, Gemini, and OpenRouter, so `allow_regex`, `deny_regex`, `non_empty`, `reject_secrets`, and `return_message` behave consistently across all five.
 
 Server-side example:
 
@@ -178,7 +216,7 @@ If you want UsageTap begin/end tracking around a provider call, use the optional
 
 See [UsageTap](./usagetap.md) for setup, lifecycle helpers, entitlement behavior, tool gating, standalone usage extractors, and provider examples.
 
-## OpenAI
+## OpenAI (`openai`)
 
 Body shape: [Chat Completions API](https://platform.openai.com/docs/api-reference/chat)
 
@@ -194,6 +232,44 @@ Body shape: [Chat Completions API](https://platform.openai.com/docs/api-referenc
 }
 ```
 
+## OpenAI Responses (`openai-responses`)
+
+Body shape: [Responses API](https://platform.openai.com/docs/api-reference/responses)
+
+```json
+{
+  "model": "gpt-5.4",
+  "instructions": "...",
+  "input": [
+    { "role": "user", "content": "..." }
+  ],
+  "temperature": 0.7,
+  "reasoning": { "effort": "medium" }
+}
+```
+
+Field mapping (differences from `openai`):
+
+| Front matter | Body field (`openai-responses`) |
+|-------------|----------------------------------|
+| `sampling.max_output_tokens` | `max_output_tokens` |
+| `reasoning.effort` | `reasoning: { effort }` |
+| `response.format: json` | `text: { format: { type: "json_object" } }` |
+| `response.schema` | `text: { format: { type: "json_schema", name, schema, strict } }` |
+| `sections.system_instructions` | `instructions` (top-level) |
+| `history + prompt_template` | `input` items instead of `messages` |
+| `tools` | Responses function tools (`{ type, name, description, parameters }`) |
+
+Warnings:
+- `reasoning.budget_tokens` is ignored (Responses uses `reasoning.effort`).
+
+Extra supported options via `renderPrompt(..., { openaiResponses: { ... } })` or direct adapter runtime:
+- `previous_response_id` (conversation chaining)
+- `conversation` (mutually exclusive with `previous_response_id`)
+- `parallel_tool_calls`, `max_tool_calls`
+- `store`, `metadata`, `include`, `background`
+- `instructions` override (runtime override for top-level instructions)
+
 Field mapping:
 
 | Front matter | Body field |
@@ -207,6 +283,7 @@ Field mapping:
 | `sampling.max_output_tokens` | `max_tokens` |
 | `reasoning.effort` | `reasoning_effort` |
 | `response.format: json` | `response_format: { type: "json_object" }` |
+| `response.schema` | `response_format: { type: "json_schema", json_schema: { name, schema, strict } }` |
 | `response.stream` | `stream` |
 
 Warnings:
@@ -233,6 +310,8 @@ Key differences from OpenAI:
 - `max_tokens` is **required** — defaults to `4096` if `sampling.max_output_tokens` is not set.
 - `sampling.stop` maps to `stop_sequences`.
 - `reasoning.budget_tokens` maps to `thinking: { type: "enabled", budget_tokens }`.
+- `provider_options.anthropic.top_k` maps to `top_k`.
+- `provider_options.anthropic.tool_choice` maps to `tool_choice`.
 
 Warnings:
 - `frequency_penalty` and `presence_penalty` are not supported — ignored with a warning.
@@ -265,7 +344,15 @@ Key differences:
 - Sampling parameters are nested under `generationConfig`.
 - `top_p` maps to `topP`, `max_output_tokens` maps to `maxOutputTokens`, `stop` maps to `stopSequences`.
 - `response.format: json` maps to `generationConfig.responseMimeType: "application/json"`.
+- `response.schema` maps to `generationConfig.responseSchema` (portable normalized schema shape).
+- `response.stream` is not body-mapped for Gemini; use the streaming endpoint (`streamGenerateContent`).
 - `reasoning.effort` maps to `thinkingConfig.thinkingBudget` (high=8192, medium=4096, low=1024).
+- `provider_options.gemini.candidate_count` maps to `generationConfig.candidateCount`.
+- `provider_options.gemini.top_k` maps to `generationConfig.topK`.
+- `provider_options.gemini.seed` maps to `generationConfig.seed`.
+- `provider_options.gemini.response_schema` maps to `generationConfig.responseSchema`.
+- `provider_options.gemini.response_modalities` maps to `generationConfig.responseModalities`.
+- `provider_options.gemini.thinking_budget_tokens` overrides effort-derived thinking budget.
 
 Warnings:
 - `frequency_penalty` and `presence_penalty` are not supported — ignored with a warning.

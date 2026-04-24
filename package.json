@@ -79,6 +79,16 @@
         "types": "./dist/providers/openrouter.d.cts",
         "default": "./dist/providers/openrouter.cjs"
       }
+    },
+    "./openai-responses": {
+      "import": {
+        "types": "./dist/providers/openai-responses.d.ts",
+        "default": "./dist/providers/openai-responses.js"
+      },
+      "require": {
+        "types": "./dist/providers/openai-responses.d.cts",
+        "default": "./dist/providers/openai-responses.cjs"
+      }
     }
   },
   "files": [

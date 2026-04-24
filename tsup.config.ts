@@ -8,6 +8,7 @@ export default defineConfig([
       testing: 'src/testing.ts',
       'usagetap/index': 'src/usagetap/index.ts',
       'providers/openai': 'src/providers/openai.ts',
+      'providers/openai-responses': 'src/providers/openai-responses.ts',
       'providers/anthropic': 'src/providers/anthropic.ts',
       'providers/gemini': 'src/providers/gemini.ts',
       'providers/openrouter': 'src/providers/openrouter.ts',

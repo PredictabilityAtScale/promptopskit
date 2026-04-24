@@ -36,6 +36,14 @@ const result = await kit.validatePrompt('support/reply');
 | `POK012` | Warning | Variable declared in `context.inputs` but never used |
 | `POK013` | Error | Invalid context regex pattern (`allow_regex` or `deny_regex`), including prompt id, variable name, field name, and raw configured value |
 | `POK014` | Warning | `trim` configured without `max_size` (trim-to-budget skipped) |
+| `POK040` | Warning | Risky context input appears unbounded (`max_size` missing) |
+| `POK041` | Warning | Context input has no hardening validators (`allow/deny regex`, `non_empty`, `reject_secrets`) |
+| `POK042` | Warning | Provider has no provider-specific cache config |
+| `POK043` | Warning | `cache.gemini.cached_content` and `cache.google.cached_content` conflict |
+| `POK044` | Warning | Provider configured without an explicit `model` |
+| `POK045` | Warning | Environment/tier cache override may be missing while base cache is defined |
+| `POK046` | Warning | Template uses variables but `context.inputs` is not declared |
+| `POK047` | Warning | Inline tool definition missing `description` or `input_schema` |
 | `POK033` | Runtime error | `non_empty` validation failed |
 | `POK034` | Runtime error | `reject_secrets` validation matched |
 | `POK020` | Error | Include resolution failed (missing file) |
@@ -49,7 +57,7 @@ Unknown front matter keys are checked against known keys using Levenshtein dista
 ⚠ POK010: Unknown front matter field: "tempreature" (Did you mean "temperature"?)
 ```
 
-Known front matter keys: `id`, `schema_version`, `description`, `provider`, `model`, `fallback_models`, `reasoning`, `sampling`, `response`, `tools`, `mcp`, `context`, `includes`, `environments`, `tiers`, `metadata`.
+Known front matter keys: `id`, `schema_version`, `description`, `provider`, `model`, `fallback_models`, `reasoning`, `sampling`, `response`, `tools`, `mcp`, `context`, `includes`, `environments`, `tiers`, `metadata`, `cache`, `provider_options`.
 
 ## Variable validation
 
@@ -114,6 +122,9 @@ context:
 - `reject_secrets` rejects common secret-like strings with `POK034`, unless `return_message` is configured.
 - During static validation and compilation, malformed `allow_regex` or `deny_regex` patterns are reported as `POK013`.
 - During static validation, `trim` without `max_size` returns a `POK014` warning.
+- During static validation, risky unbounded inputs and missing hardening are flagged as `POK040` and `POK041`.
+- During static validation, provider/cache hygiene checks can emit `POK042`–`POK045`.
+- During static validation, inline tool quality checks can emit `POK047`.
 
 Regex compilation errors include the prompt id, variable name, field name, and raw configured value to make bad prompt definitions easy to locate.
 

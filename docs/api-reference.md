@@ -63,7 +63,7 @@ const result = await kit.renderPrompt({
 |--------|------|-------------|
 | `path` | `string` | Prompt path (no extension), e.g. `'support/reply'` |
 | `source` | `string` | Inline prompt source (alternative to `path`) |
-| `provider` | `string` | `'openai'`, `'anthropic'`, `'gemini'`, `'openrouter'` (required) |
+| `provider` | `string` | `'openai'`, `'openai-responses'`, `'anthropic'`, `'gemini'`, `'openrouter'` (required) |
 | `variables` | `Record<string, string>` | Template variables |
 | `onContextOverflow` | `(info) => string` | Optional callback to transform an oversized context value before rendering |
 | `environment` | `string` | Environment override name |
@@ -71,6 +71,7 @@ const result = await kit.renderPrompt({
 | `history` | `Array<{ role, content }>` | Conversation history |
 | `toolRegistry` | `Record<string, unknown>` | Tool definitions for resolving string tool references |
 | `strict` | `boolean` | Fail on missing variables (default `false`) |
+| `openaiResponses` | `object` | Optional Responses API extras (`previous_response_id`, `conversation`, `instructions`, `parallel_tool_calls`, `max_tool_calls`, `store`, `metadata`, `include`, `background`) |
 
 Either `path` or `source` must be provided.
 

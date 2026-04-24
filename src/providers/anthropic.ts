@@ -34,6 +34,13 @@ export const anthropicAdapter: ProviderAdapter = withPromptInputSupport({
     if (resolvedAsset.reasoning?.effort !== undefined) {
       warnings.push('Anthropic uses budget_tokens for thinking, not effort. effort will be mapped approximately.');
     }
+    if (resolvedAsset.response?.schema !== undefined) {
+      warnings.push('Anthropic does not support response.schema structured output in this adapter. It will be ignored.');
+    }
+
+    if (resolvedAsset.provider_options?.anthropic?.top_k !== undefined && resolvedAsset.provider_options.anthropic.top_k < 0) {
+      errors.push('Anthropic provider_options.top_k must be >= 0.');
+    }
 
     return { valid: errors.length === 0, errors, warnings };
   },
@@ -108,6 +115,11 @@ export const anthropicAdapter: ProviderAdapter = withPromptInputSupport({
       };
     }
 
+    // Provider-specific options
+    if (resolvedAsset.provider_options?.anthropic?.top_k !== undefined) {
+      body.top_k = resolvedAsset.provider_options.anthropic.top_k;
+    }
+
     // Streaming
     if (resolvedAsset.response?.stream !== undefined) {
       body.stream = resolvedAsset.response.stream;
@@ -144,6 +156,10 @@ export const anthropicAdapter: ProviderAdapter = withPromptInputSupport({
             : {}),
         };
       });
+    }
+
+    if (resolvedAsset.provider_options?.anthropic?.tool_choice !== undefined) {
+      body.tool_choice = resolvedAsset.provider_options.anthropic.tool_choice;
     }
 
     return {

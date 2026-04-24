@@ -47,6 +47,31 @@ export const SamplingSchema = z.object({
 export const ResponseSchema = z.object({
   format: z.enum(['text', 'json', 'markdown']).optional(),
   stream: z.boolean().optional(),
+  schema: z.record(z.unknown()).optional(),
+  schema_name: z.string().optional(),
+  schema_strict: z.boolean().optional(),
+});
+
+
+// --- Provider-specific options ---
+
+export const AnthropicProviderOptionsSchema = z.object({
+  top_k: z.number().int().min(0).optional(),
+  tool_choice: z.record(z.unknown()).optional(),
+});
+
+export const GeminiProviderOptionsSchema = z.object({
+  candidate_count: z.number().int().positive().optional(),
+  top_k: z.number().int().min(0).optional(),
+  seed: z.number().int().optional(),
+  response_schema: z.record(z.unknown()).optional(),
+  response_modalities: z.array(z.string()).optional(),
+  thinking_budget_tokens: z.number().int().positive().optional(),
+});
+
+export const ProviderOptionsSchema = z.object({
+  anthropic: AnthropicProviderOptionsSchema.optional(),
+  gemini: GeminiProviderOptionsSchema.optional(),
 });
 
 // --- Cache controls ---
@@ -147,6 +172,7 @@ export const PromptAssetOverridesSchema = z.object({
   response: ResponseSchema.optional(),
   cache: CacheSchema.optional(),
   tools: z.array(ToolRefSchema).optional(),
+  provider_options: ProviderOptionsSchema.optional(),
 });
 
 export type PromptAssetOverrides = z.infer<typeof PromptAssetOverridesSchema>;
@@ -169,7 +195,7 @@ export const SectionsSchema = z.object({
 // --- Defaults files (folder-level inheritance) ---
 
 export const PromptDefaultsSchema = z.object({
-  provider: z.enum(['openai', 'anthropic', 'google', 'gemini', 'openrouter', 'any']).optional(),
+  provider: z.enum(['openai', 'openai-responses', 'anthropic', 'google', 'gemini', 'openrouter', 'any']).optional(),
   model: z.string().optional(),
   cache: CacheSchema.optional(),
   metadata: MetadataSchema.optional(),
@@ -187,7 +213,7 @@ export const PromptAssetSchema = z.object({
   schema_version: z.number().int().positive().default(1),
   description: z.string().optional(),
 
-  provider: z.enum(['openai', 'anthropic', 'google', 'gemini', 'openrouter', 'any']).optional(),
+  provider: z.enum(['openai', 'openai-responses', 'anthropic', 'google', 'gemini', 'openrouter', 'any']).optional(),
   model: z.string().optional(),
   fallback_models: z.array(z.string()).optional(),
 
@@ -197,6 +223,7 @@ export const PromptAssetSchema = z.object({
   cache: CacheSchema.optional(),
 
   tools: z.array(ToolRefSchema).optional(),
+  provider_options: ProviderOptionsSchema.optional(),
   mcp: MCPSchema.optional(),
 
   context: ContextSchema.optional(),

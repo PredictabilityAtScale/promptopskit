@@ -56,5 +56,20 @@ function mergeOverride(
     result.response = { ...result.response, ...override.response };
   }
 
+  if (override.provider_options !== undefined) {
+    result.provider_options = {
+      ...result.provider_options,
+      ...override.provider_options,
+      anthropic: {
+        ...result.provider_options?.anthropic,
+        ...override.provider_options.anthropic,
+      },
+      gemini: {
+        ...result.provider_options?.gemini,
+        ...override.provider_options.gemini,
+      },
+    };
+  }
+
   return result;
 }

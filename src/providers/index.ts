@@ -8,18 +8,21 @@ export type {
   RuntimeRenderOptions,
 } from './types.js';
 export { openaiAdapter } from './openai.js';
+export { openaiResponsesAdapter } from './openai-responses.js';
 export { anthropicAdapter } from './anthropic.js';
 export { geminiAdapter } from './gemini.js';
 export { openrouterAdapter } from './openrouter.js';
 
 import type { ProviderAdapter } from './types.js';
 import { openaiAdapter } from './openai.js';
+import { openaiResponsesAdapter } from './openai-responses.js';
 import { anthropicAdapter } from './anthropic.js';
 import { geminiAdapter } from './gemini.js';
 import { openrouterAdapter } from './openrouter.js';
 
 const adapters: Record<string, ProviderAdapter> = {
   openai: openaiAdapter,
+  'openai-responses': openaiResponsesAdapter,
   anthropic: anthropicAdapter,
   google: geminiAdapter,
   gemini: geminiAdapter,

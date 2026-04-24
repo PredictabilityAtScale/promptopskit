@@ -3,6 +3,7 @@ import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { openaiAdapter } from '../src/providers/openai.js';
+import { openaiResponsesAdapter } from '../src/providers/openai-responses.js';
 import { anthropicAdapter } from '../src/providers/anthropic.js';
 import { geminiAdapter } from '../src/providers/gemini.js';
 import { openrouterAdapter } from '../src/providers/openrouter.js';
@@ -11,7 +12,7 @@ import { PromptAssetSchema } from '../src/schema/index.js';
 import type { ResolvedPromptAsset } from '../src/schema/index.js';
 import { createPromptOpsKit } from '../src/index.js';
 
-const adaptersWithPromptInput = [openaiAdapter, anthropicAdapter, geminiAdapter, openrouterAdapter] as const;
+const adaptersWithPromptInput = [openaiAdapter, openaiResponsesAdapter, anthropicAdapter, geminiAdapter, openrouterAdapter] as const;
 
 const baseAsset: ResolvedPromptAsset = {
   id: 'test',
@@ -41,6 +42,41 @@ describe('OpenAI adapter', () => {
     const messages = result.body.messages as Array<{ role: string; content: string }>;
     expect(messages[0]).toEqual({ role: 'system', content: 'You are a test assistant.' });
     expect(messages[1]).toEqual({ role: 'user', content: 'Hello World.' });
+  });
+
+  it('maps response.schema to OpenAI json_schema response_format', () => {
+    const result = openaiAdapter.render(
+      {
+        ...baseAsset,
+        response: {
+          format: 'json',
+          schema_name: 'support_response',
+          schema: {
+            type: 'object',
+            properties: {
+              answer: { type: 'string' },
+            },
+            required: ['answer'],
+          },
+        },
+      },
+      { variables: { name: 'World' } },
+    );
+
+    expect(result.body.response_format).toEqual({
+      type: 'json_schema',
+      json_schema: {
+        name: 'support_response',
+        schema: {
+          type: 'object',
+          properties: {
+            answer: { type: 'string' },
+          },
+          required: ['answer'],
+        },
+        strict: true,
+      },
+    });
   });
 
   it('applies environment overrides during direct adapter render', () => {
@@ -285,6 +321,180 @@ Message: {{ user_message }}`,
   });
 });
 
+describe('OpenAI Responses adapter', () => {
+  it('renders a valid Responses API request body', () => {
+    const result = openaiResponsesAdapter.render(baseAsset, {
+      variables: { name: 'World' },
+    });
+
+    expect(result.provider).toBe('openai-responses');
+    expect(result.model).toBe('gpt-5.4');
+    expect(result.body.model).toBe('gpt-5.4');
+    expect(result.body.temperature).toBe(0.7);
+    expect(result.body.max_output_tokens).toBe(1024);
+
+    expect(result.body.instructions).toBe('You are a test assistant.');
+
+    const input = result.body.input as Array<{ role: string; content: string }>;
+    expect(input[0]).toEqual({ role: 'user', content: 'Hello World.' });
+  });
+
+  it('maps reasoning, json response format, and tools to Responses API fields', () => {
+    const result = openaiResponsesAdapter.render(
+      {
+        ...baseAsset,
+        reasoning: { effort: 'high' },
+        response: { format: 'json', stream: true },
+        tools: [
+          'lookup_customer',
+          {
+            name: 'search_orders',
+            description: 'Search orders',
+            input_schema: {
+              type: 'object',
+              properties: {
+                query: { type: 'string' },
+              },
+            },
+          },
+        ],
+      },
+      {
+        variables: { name: 'World' },
+        toolRegistry: {
+          lookup_customer: {
+            type: 'function',
+            name: 'lookup_customer',
+            description: 'Find customer',
+            parameters: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+              },
+            },
+          },
+        },
+      },
+    );
+
+    expect(result.body.reasoning).toEqual({ effort: 'high' });
+    expect(result.body.text).toEqual({ format: { type: 'json_object' } });
+    expect(result.body.stream).toBe(true);
+
+    const tools = result.body.tools as Array<Record<string, unknown>>;
+    expect(tools[0]).toEqual({
+      type: 'function',
+      name: 'lookup_customer',
+      description: 'Find customer',
+      parameters: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+        },
+      },
+    });
+    expect(tools[1]).toEqual({
+      type: 'function',
+      name: 'search_orders',
+      description: 'Search orders',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: { type: 'string' },
+        },
+      },
+    });
+  });
+
+
+  it('maps response.schema to Responses text.format json_schema', () => {
+    const result = openaiResponsesAdapter.render(
+      {
+        ...baseAsset,
+        response: {
+          format: 'json',
+          schema_name: 'reply_schema',
+          schema: {
+            type: 'object',
+            properties: {
+              answer: { type: 'string' },
+            },
+          },
+        },
+      },
+      { variables: { name: 'World' } },
+    );
+
+    expect(result.body.text).toEqual({
+      format: {
+        type: 'json_schema',
+        name: 'reply_schema',
+        schema: {
+          type: 'object',
+          properties: {
+            answer: { type: 'string' },
+          },
+        },
+        strict: true,
+      },
+    });
+  });
+
+  it('supports Responses API conversation-state and execution options', () => {
+    const result = openaiResponsesAdapter.render(baseAsset, {
+      variables: { name: 'World' },
+      openaiResponses: {
+        instructions: 'Runtime instructions',
+        previous_response_id: 'resp_123',
+        parallel_tool_calls: false,
+        max_tool_calls: 2,
+        include: ['reasoning.encrypted_content'],
+        metadata: { ticket: 'INC-42' },
+        store: true,
+        background: true,
+      },
+    });
+
+    expect(result.body.instructions).toBe('Runtime instructions');
+    expect(result.body.previous_response_id).toBe('resp_123');
+    expect(result.body.parallel_tool_calls).toBe(false);
+    expect(result.body.max_tool_calls).toBe(2);
+    expect(result.body.include).toEqual(['reasoning.encrypted_content']);
+    expect(result.body.metadata).toEqual({ ticket: 'INC-42' });
+    expect(result.body.store).toBe(true);
+    expect(result.body.background).toBe(true);
+  });
+
+  it('reports invalid runtime option combinations during validation', () => {
+    const validation = openaiResponsesAdapter.validate(baseAsset, {
+      openaiResponses: {
+        previous_response_id: 'resp_123',
+        conversation: 'conv_456',
+      },
+    });
+
+    expect(validation.valid).toBe(false);
+    expect(validation.errors).toContain(
+      'OpenAI Responses options "conversation" and "previous_response_id" cannot both be set.',
+    );
+  });
+
+  it('includes history messages as input items', () => {
+    const result = openaiResponsesAdapter.render(baseAsset, {
+      variables: { name: 'World' },
+      history: [
+        { role: 'user', content: 'Hi' },
+        { role: 'assistant', content: 'Hello!' },
+      ],
+    });
+
+    const input = result.body.input as Array<{ role: string; content: string }>;
+    expect(input).toHaveLength(3);
+    expect(input[0]).toEqual({ role: 'user', content: 'Hi' });
+    expect(input[1]).toEqual({ role: 'assistant', content: 'Hello!' });
+  });
+});
+
 describe('Anthropic adapter', () => {
   it('renders with system as top-level field', () => {
     const result = anthropicAdapter.render(
@@ -299,6 +509,41 @@ describe('Anthropic adapter', () => {
     const messages = result.body.messages as Array<{ role: string; content: string }>;
     // Anthropic doesn't have system in messages
     expect(messages[0]).toEqual({ role: 'user', content: 'Hello World.' });
+  });
+
+  it('maps response.schema to OpenAI json_schema response_format', () => {
+    const result = openaiAdapter.render(
+      {
+        ...baseAsset,
+        response: {
+          format: 'json',
+          schema_name: 'support_response',
+          schema: {
+            type: 'object',
+            properties: {
+              answer: { type: 'string' },
+            },
+            required: ['answer'],
+          },
+        },
+      },
+      { variables: { name: 'World' } },
+    );
+
+    expect(result.body.response_format).toEqual({
+      type: 'json_schema',
+      json_schema: {
+        name: 'support_response',
+        schema: {
+          type: 'object',
+          properties: {
+            answer: { type: 'string' },
+          },
+          required: ['answer'],
+        },
+        strict: true,
+      },
+    });
   });
 
   it('applies environment overrides during direct adapter render', () => {
@@ -397,6 +642,50 @@ describe('Anthropic adapter', () => {
     expect(result.body.prompt_cache_retention).toBeUndefined();
     expect(result.body.cachedContent).toBeUndefined();
   });
+
+  it('maps provider_options for top_k and tool_choice', () => {
+    const result = anthropicAdapter.render(
+      {
+        ...baseAsset,
+        provider: 'anthropic',
+        model: 'claude-sonnet-4-6',
+        provider_options: {
+          anthropic: {
+            top_k: 20,
+            tool_choice: { type: 'auto' },
+          },
+        },
+      },
+      { variables: { name: 'World' } },
+    );
+
+    expect(result.body.top_k).toBe(20);
+    expect(result.body.tool_choice).toEqual({ type: 'auto' });
+  });
+
+  it('merges provider_options through environment and runtime overrides', () => {
+    const result = anthropicAdapter.render(
+      {
+        ...baseAsset,
+        provider: 'anthropic',
+        model: 'claude-sonnet-4-6',
+        provider_options: { anthropic: { top_k: 10 } },
+        environments: {
+          dev: {
+            provider_options: { anthropic: { tool_choice: { type: 'none' } } },
+          },
+        },
+      },
+      {
+        environment: 'dev',
+        runtime: { provider_options: { anthropic: { top_k: 25 } } },
+        variables: { name: 'World' },
+      },
+    );
+
+    expect(result.body.top_k).toBe(25);
+    expect(result.body.tool_choice).toEqual({ type: 'none' });
+  });
 });
 
 describe('shared prompt-input validation across providers', () => {
@@ -450,6 +739,84 @@ describe('Gemini adapter', () => {
       role: 'user',
       parts: [{ text: 'Hello World.' }],
     });
+  });
+
+  it('warns that response.stream is not body-mapped for Gemini', () => {
+    const validation = geminiAdapter.validate({
+      ...baseAsset,
+      provider: 'gemini',
+      model: 'gemini-2.5-flash',
+      response: { stream: true },
+    });
+
+    expect(validation.valid).toBe(true);
+    expect(validation.warnings).toContain(
+      'Gemini streaming is endpoint-based (streamGenerateContent), not body-based. response.stream will be ignored.',
+    );
+  });
+
+  it('maps gemini provider_options into generationConfig and thinkingConfig', () => {
+    const result = geminiAdapter.render(
+      {
+        ...baseAsset,
+        provider: 'gemini',
+        model: 'gemini-2.5-flash',
+        provider_options: {
+          gemini: {
+            candidate_count: 2,
+            top_k: 40,
+            seed: 7,
+            response_schema: {
+              type: 'object',
+              properties: { answer: { type: 'string' } },
+            },
+            response_modalities: ['TEXT'],
+            thinking_budget_tokens: 2500,
+          },
+        },
+      },
+      { variables: { name: 'World' } },
+    );
+
+    const generationConfig = result.body.generationConfig as Record<string, unknown>;
+    expect(generationConfig.candidateCount).toBe(2);
+    expect(generationConfig.topK).toBe(40);
+    expect(generationConfig.seed).toBe(7);
+    expect(generationConfig.responseSchema).toEqual({
+      type: 'object',
+      properties: { answer: { type: 'string' } },
+    });
+    expect(generationConfig.responseModalities).toEqual(['TEXT']);
+    expect(result.body.thinkingConfig).toEqual({ thinkingBudget: 2500 });
+  });
+
+  it('maps normalized response.schema to Gemini responseSchema', () => {
+    const result = geminiAdapter.render(
+      {
+        ...baseAsset,
+        provider: 'gemini',
+        model: 'gemini-2.5-flash',
+        response: {
+          format: 'json',
+          schema: {
+            type: 'object',
+            properties: {
+              answer: { type: 'string' },
+            },
+          },
+        },
+      },
+      { variables: { name: 'World' } },
+    );
+
+    const generationConfig = result.body.generationConfig as Record<string, unknown>;
+    expect(generationConfig.responseSchema).toEqual({
+      type: 'object',
+      properties: {
+        answer: { type: 'string' },
+      },
+    });
+    expect(generationConfig.responseMimeType).toBe('application/json');
   });
 
   it('applies tier and runtime overrides during direct adapter render', () => {
@@ -547,6 +914,41 @@ describe('Gemini adapter', () => {
 });
 
 describe('OpenRouter adapter', () => {
+  it('maps response.schema to OpenAI json_schema response_format', () => {
+    const result = openaiAdapter.render(
+      {
+        ...baseAsset,
+        response: {
+          format: 'json',
+          schema_name: 'support_response',
+          schema: {
+            type: 'object',
+            properties: {
+              answer: { type: 'string' },
+            },
+            required: ['answer'],
+          },
+        },
+      },
+      { variables: { name: 'World' } },
+    );
+
+    expect(result.body.response_format).toEqual({
+      type: 'json_schema',
+      json_schema: {
+        name: 'support_response',
+        schema: {
+          type: 'object',
+          properties: {
+            answer: { type: 'string' },
+          },
+          required: ['answer'],
+        },
+        strict: true,
+      },
+    });
+  });
+
   it('applies environment overrides during direct adapter render', () => {
     const result = getAdapter('openrouter').render(
       {
@@ -571,6 +973,15 @@ describe('OpenRouter adapter', () => {
 });
 
 describe('Provider naming', () => {
+  it('schema accepts openai-responses as a provider value', () => {
+    const result = PromptAssetSchema.safeParse({
+      id: 'test',
+      schema_version: 1,
+      provider: 'openai-responses',
+    });
+    expect(result.success).toBe(true);
+  });
+
   it('schema accepts gemini as a provider value', () => {
     const result = PromptAssetSchema.safeParse({
       id: 'test',
@@ -589,7 +1000,8 @@ describe('Provider naming', () => {
     expect(result.success).toBe(true);
   });
 
-  it('getAdapter resolves both gemini and google', () => {
+  it('getAdapter resolves openai-responses, gemini, and google', () => {
+    expect(getAdapter('openai-responses').name).toBe('openai-responses');
     expect(getAdapter('gemini').name).toBe('gemini');
     expect(getAdapter('google').name).toBe('gemini');
   });

@@ -135,7 +135,7 @@ Supported values for `warnings.contextSize` are `auto`, `off`, `result-only`, `c
 - **Composition** — `includes` to share system instructions across prompts, with circular detection
 - **Folder defaults** — `defaults.md` inheritance for shared provider, model, metadata, and system instructions
 - **Overrides** — Environment and tier-based overrides (base → env → tier → runtime)
-- **4 provider adapters** — OpenAI, Anthropic, Gemini, OpenRouter — body-only output
+- **5 provider adapters** — OpenAI (Chat), OpenAI (Responses), Anthropic, Gemini, OpenRouter — body-only output
 - **Provider-aware input caching controls** — optional `cache` front matter maps to OpenAI prompt cache hints, Anthropic `cache_control`, and Gemini `cachedContent`
 - **Validation** — Zod schema validation, Levenshtein-based "did you mean?" for typos, variable usage checks
 - **Context hardening** — structured regexes with flags, `/pattern/i` convenience syntax, and built-in `non_empty` / `reject_secrets` validators
@@ -194,6 +194,7 @@ Provider adapters are also available as direct imports:
 
 ```typescript
 import { openaiAdapter } from 'promptopskit/openai';
+import { openaiResponsesAdapter } from 'promptopskit/openai-responses';
 import { anthropicAdapter } from 'promptopskit/anthropic';
 import { geminiAdapter } from 'promptopskit/gemini';
 import { openrouterAdapter } from 'promptopskit/openrouter';
@@ -502,7 +503,7 @@ Renders a prompt for a specific provider. Returns `{ resolved, request?, returnM
 |--------|------|-------------|
 | `path` | `string` | Prompt path (no extension), e.g. `'support/reply'` |
 | `source` | `string` | Inline prompt source (alternative to path) |
-| `provider` | `string` | `'openai'`, `'anthropic'`, `'gemini'`, `'openrouter'` |
+| `provider` | `string` | `'openai'`, `'openai-responses'`, `'anthropic'`, `'gemini'`, `'openrouter'` |
 | `variables` | `Record<string, string>` | Template variables |
 | `onContextOverflow` | `(info) => string` | Optional callback to transform oversized context values before rendering |
 | `environment` | `string` | Environment override name |
@@ -510,6 +511,7 @@ Renders a prompt for a specific provider. Returns `{ resolved, request?, returnM
 | `history` | `Array<{ role, content }>` | Conversation history |
 | `toolRegistry` | `Record<string, unknown>` | Tool definitions for resolving string tool references |
 | `strict` | `boolean` | Fail on missing variables |
+| `openaiResponses` | `object` | Optional Responses API extras (`previous_response_id`, `conversation`, `instructions`, `parallel_tool_calls`, `max_tool_calls`, `store`, `metadata`, `include`, `background`) |
 
 ### `kit.loadPrompt(path)` / `kit.resolvePrompt(path, options)` / `kit.validatePrompt(path)`
 
@@ -529,7 +531,7 @@ Prompt files use YAML front matter with these fields:
 |-------|------|-------------|
 | `id` | `string` | Unique prompt identifier (required) |
 | `schema_version` | `number` | Schema version, currently `1` |
-| `provider` | `string` | `openai`, `anthropic`, `gemini` (or `google`), `openrouter`, `any` |
+| `provider` | `string` | `openai`, `openai-responses`, `anthropic`, `gemini` (or `google`), `openrouter`, `any` |
 | `model` | `string` | Model name |
 | `fallback_models` | `string[]` | Fallback model list |
 | `reasoning` | `object` | `{ effort, budget_tokens }` |

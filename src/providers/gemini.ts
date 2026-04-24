@@ -20,6 +20,8 @@ export const geminiAdapter: ProviderAdapter = withPromptInputSupport({
     const resolvedAsset = resolveAssetForProvider(asset, runtime);
     const errors: string[] = [];
     const warnings: string[] = [];
+    const geminiCache = resolvedAsset.cache?.gemini?.cached_content;
+    const googleCache = resolvedAsset.cache?.google?.cached_content;
 
     if (!resolvedAsset.model) {
       errors.push('Gemini adapter requires a model to be specified.');
@@ -30,6 +32,9 @@ export const geminiAdapter: ProviderAdapter = withPromptInputSupport({
     }
     if (resolvedAsset.sampling?.presence_penalty !== undefined) {
       warnings.push('Gemini does not support presence_penalty. It will be ignored.');
+    }
+    if (geminiCache && googleCache && geminiCache !== googleCache) {
+      warnings.push('Both cache.gemini.cached_content and cache.google.cached_content are set. Gemini uses cache.gemini.cached_content.');
     }
 
     return { valid: errors.length === 0, errors, warnings };
@@ -65,6 +70,7 @@ export const geminiAdapter: ProviderAdapter = withPromptInputSupport({
     const body: Record<string, unknown> = {
       contents,
     };
+    const geminiCacheConfig = resolvedAsset.cache?.gemini ?? resolvedAsset.cache?.google;
 
     // System instruction
     if (sections.system_instructions) {
@@ -94,6 +100,10 @@ export const geminiAdapter: ProviderAdapter = withPromptInputSupport({
 
     if (Object.keys(generationConfig).length > 0) {
       body.generationConfig = generationConfig;
+    }
+
+    if (geminiCacheConfig?.cached_content) {
+      body.cachedContent = geminiCacheConfig.cached_content;
     }
 
     // Tools

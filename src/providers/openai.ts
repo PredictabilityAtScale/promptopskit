@@ -62,6 +62,7 @@ export const openaiAdapter: ProviderAdapter = withPromptInputSupport({
       model: resolvedAsset.model,
       messages,
     };
+    const openaiCacheConfig = resolvedAsset.cache?.openai;
 
     // Sampling params
     if (resolvedAsset.sampling?.temperature !== undefined) body.temperature = resolvedAsset.sampling.temperature;
@@ -84,6 +85,13 @@ export const openaiAdapter: ProviderAdapter = withPromptInputSupport({
     // Streaming
     if (resolvedAsset.response?.stream !== undefined) {
       body.stream = resolvedAsset.response.stream;
+    }
+
+    if (openaiCacheConfig?.prompt_cache_key) {
+      body.prompt_cache_key = openaiCacheConfig.prompt_cache_key;
+    }
+    if (openaiCacheConfig?.retention) {
+      body.prompt_cache_retention = openaiCacheConfig.retention;
     }
 
     // Tools

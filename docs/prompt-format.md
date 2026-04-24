@@ -54,6 +54,7 @@ Supported default fields:
 
 - `provider` (front matter) — default provider for the folder
 - `model` (front matter) — default model for the folder
+- `cache` (front matter) — default provider-specific caching hints
 - `metadata` (front matter) — merged with prompt-local metadata
 - `# System instructions` (body section) — used when the prompt has none
 
@@ -75,6 +76,10 @@ prompts/
 ---
 provider: openai
 model: gpt-5.4
+cache:
+  openai:
+    prompt_cache_key: support-v1
+    retention: in_memory
 metadata:
   owner: platform
   review_required: true
@@ -101,9 +106,31 @@ Use support tone and escalation policy.
 `prompts/support/reply.md` (no local `metadata.owner` and no local system section) will use:
 - `provider: openai` (inherited from root defaults)
 - `model: gpt-5.4` (inherited from root defaults)
+- `cache.openai.prompt_cache_key: support-v1` (inherited from root defaults)
 - `metadata.owner: support` (nearest override)
 - `metadata.review_required: true` (inherited from parent defaults)
 - system instructions from `support/defaults.md`
+
+## Caching configuration
+
+Use the optional `cache` front matter block to pass vendor-specific caching hints:
+
+```yaml
+cache:
+  openai:
+    prompt_cache_key: support-v2
+    retention: 24h
+  anthropic:
+    mode: automatic
+    ttl: 5m
+  gemini:
+    cached_content: cachedContents/1234567890
+```
+
+- `openai.prompt_cache_key` and `openai.retention` map to OpenAI prompt caching fields.
+- `anthropic.mode: automatic` sets top-level `cache_control`; `explicit` applies block-level cache controls to configured sections/tools.
+- `gemini.cached_content` (or `google.cached_content`) maps to `cachedContent` for requests that reuse a previously created Gemini cache.
+- You can safely include multiple provider blocks in the same prompt. Each adapter only reads its own block (`openai`, `anthropic`, or `gemini`/`google`) and ignores the others.
 
 ## Sections
 

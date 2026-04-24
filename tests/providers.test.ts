@@ -247,6 +247,42 @@ Message: {{ user_message }}`,
     expect(result.returnMessage).toBe('Please enter a non-empty message.');
     expect(result.body).toBeUndefined();
   });
+
+  it('maps OpenAI cache settings into request fields', () => {
+    const result = openaiAdapter.render(
+      {
+        ...baseAsset,
+        cache: {
+          openai: {
+            prompt_cache_key: 'support-reply-v1',
+            retention: '24h',
+          },
+        },
+      },
+      { variables: { name: 'World' } },
+    );
+
+    expect(result.body.prompt_cache_key).toBe('support-reply-v1');
+    expect(result.body.prompt_cache_retention).toBe('24h');
+  });
+
+  it('ignores non-OpenAI cache config when rendering OpenAI payloads', () => {
+    const result = openaiAdapter.render(
+      {
+        ...baseAsset,
+        cache: {
+          anthropic: { mode: 'automatic', ttl: '1h' },
+          gemini: { cached_content: 'cachedContents/ignored-for-openai' },
+        },
+      },
+      { variables: { name: 'World' } },
+    );
+
+    expect(result.body.prompt_cache_key).toBeUndefined();
+    expect(result.body.prompt_cache_retention).toBeUndefined();
+    expect(result.body.cache_control).toBeUndefined();
+    expect(result.body.cachedContent).toBeUndefined();
+  });
 });
 
 describe('Anthropic adapter', () => {
@@ -293,6 +329,73 @@ describe('Anthropic adapter', () => {
     const assetNoMax = { ...baseAsset, sampling: { temperature: 0.7 } };
     const result = anthropicAdapter.render(assetNoMax, { variables: { name: 'World' } });
     expect(result.body.max_tokens).toBe(4096);
+  });
+
+  it('supports Anthropic automatic caching via top-level cache_control', () => {
+    const result = anthropicAdapter.render(
+      {
+        ...baseAsset,
+        cache: {
+          anthropic: {
+            mode: 'automatic',
+            ttl: '1h',
+          },
+        },
+      },
+      { variables: { name: 'World' } },
+    );
+
+    expect(result.body.cache_control).toEqual({ type: 'ephemeral', ttl: '1h' });
+  });
+
+  it('supports Anthropic explicit block-level cache_control', () => {
+    const result = anthropicAdapter.render(
+      {
+        ...baseAsset,
+        tools: ['lookup_account'],
+        cache: {
+          anthropic: {
+            mode: 'explicit',
+            cache_system_instructions: true,
+            cache_tools: true,
+            cache_prompt_template: true,
+          },
+        },
+      },
+      { variables: { name: 'World' } },
+    );
+
+    expect(result.body.cache_control).toBeUndefined();
+    expect(result.body.system).toEqual([
+      { type: 'text', text: 'You are a test assistant.', cache_control: { type: 'ephemeral' } },
+    ]);
+
+    const messages = result.body.messages as Array<{ role: string; content: unknown }>;
+    expect(messages[0]).toEqual({
+      role: 'user',
+      content: [{ type: 'text', text: 'Hello World.', cache_control: { type: 'ephemeral' } }],
+    });
+
+    const tools = result.body.tools as Array<Record<string, unknown>>;
+    expect(tools[0]).toEqual({ name: 'lookup_account', cache_control: { type: 'ephemeral' } });
+  });
+
+  it('ignores non-Anthropic cache config when rendering Anthropic payloads', () => {
+    const result = anthropicAdapter.render(
+      {
+        ...baseAsset,
+        cache: {
+          openai: { prompt_cache_key: 'ignored-for-anthropic', retention: '24h' },
+          gemini: { cached_content: 'cachedContents/ignored-for-anthropic' },
+        },
+      },
+      { variables: { name: 'World' } },
+    );
+
+    expect(result.body.cache_control).toBeUndefined();
+    expect(result.body.prompt_cache_key).toBeUndefined();
+    expect(result.body.prompt_cache_retention).toBeUndefined();
+    expect(result.body.cachedContent).toBeUndefined();
   });
 });
 
@@ -374,6 +477,72 @@ describe('Gemini adapter', () => {
     expect(result.model).toBe('gemini-2.5-pro');
     expect((result.body.generationConfig as Record<string, unknown>).temperature).toBe(0.1);
     expect((result.body.generationConfig as Record<string, unknown>).responseMimeType).toBe('application/json');
+  });
+
+  it('supports cachedContent for Gemini context caching', () => {
+    const result = geminiAdapter.render(
+      {
+        ...baseAsset,
+        cache: {
+          gemini: {
+            cached_content: 'cachedContents/abc123',
+          },
+        },
+      },
+      { variables: { name: 'World' } },
+    );
+
+    expect(result.body.cachedContent).toBe('cachedContents/abc123');
+  });
+
+  it('prefers cache.gemini over cache.google when both are present', () => {
+    const result = geminiAdapter.render(
+      {
+        ...baseAsset,
+        cache: {
+          gemini: { cached_content: 'cachedContents/preferred' },
+          google: { cached_content: 'cachedContents/fallback' },
+        },
+      },
+      { variables: { name: 'World' } },
+    );
+
+    expect(result.body.cachedContent).toBe('cachedContents/preferred');
+  });
+
+  it('warns when both cache.gemini and cache.google use different values', () => {
+    const validation = geminiAdapter.validate({
+      ...baseAsset,
+      provider: 'gemini',
+      model: 'gemini-2.5-flash',
+      cache: {
+        gemini: { cached_content: 'cachedContents/preferred' },
+        google: { cached_content: 'cachedContents/fallback' },
+      },
+    });
+
+    expect(validation.valid).toBe(true);
+    expect(validation.warnings).toContain(
+      'Both cache.gemini.cached_content and cache.google.cached_content are set. Gemini uses cache.gemini.cached_content.',
+    );
+  });
+
+  it('ignores non-Gemini cache config when rendering Gemini payloads', () => {
+    const result = geminiAdapter.render(
+      {
+        ...baseAsset,
+        cache: {
+          openai: { prompt_cache_key: 'ignored-for-gemini', retention: '24h' },
+          anthropic: { mode: 'automatic', ttl: '1h' },
+        },
+      },
+      { variables: { name: 'World' } },
+    );
+
+    expect(result.body.cachedContent).toBeUndefined();
+    expect(result.body.prompt_cache_key).toBeUndefined();
+    expect(result.body.prompt_cache_retention).toBeUndefined();
+    expect(result.body.cache_control).toBeUndefined();
   });
 });
 

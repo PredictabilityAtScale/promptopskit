@@ -136,6 +136,7 @@ Supported values for `warnings.contextSize` are `auto`, `off`, `result-only`, `c
 - **Folder defaults** — `defaults.md` inheritance for shared provider, model, metadata, and system instructions
 - **Overrides** — Environment and tier-based overrides (base → env → tier → runtime)
 - **4 provider adapters** — OpenAI, Anthropic, Gemini, OpenRouter — body-only output
+- **Provider-aware input caching controls** — optional `cache` front matter maps to OpenAI prompt cache hints, Anthropic `cache_control`, and Gemini `cachedContent`
 - **Validation** — Zod schema validation, Levenshtein-based "did you mean?" for typos, variable usage checks
 - **Context hardening** — structured regexes with flags, `/pattern/i` convenience syntax, and built-in `non_empty` / `reject_secrets` validators
 - **Optional short-circuit messages** — validators can return a structured `returnMessage` instead of throwing when configured

@@ -1,13 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://promptopskit.com</loc>
+    <loc>https://promptopskit.com/</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://promptopskit.com/docs/</loc>
+    <loc>https://promptopskit.com/docs/index.html</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://promptopskit.com/docs/index.md</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
+  <url><loc>https://promptopskit.com/docs/getting-started.md</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://promptopskit.com/docs/prompt-format.md</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://promptopskit.com/docs/composition.md</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://promptopskit.com/docs/overrides.md</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://promptopskit.com/docs/providers.md</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://promptopskit.com/docs/usagetap.md</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://promptopskit.com/docs/inline-source.md</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://promptopskit.com/docs/publishing.md</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://promptopskit.com/docs/cli.md</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://promptopskit.com/docs/api-reference.md</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://promptopskit.com/docs/schema.md</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://promptopskit.com/docs/testing.md</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://promptopskit.com/docs/validation.md</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
 </urlset>

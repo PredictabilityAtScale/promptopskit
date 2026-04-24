@@ -479,6 +479,97 @@ describe('OpenAI Responses adapter', () => {
     );
   });
 
+  it('reports Responses-specific validation warnings and model errors', () => {
+    const validation = openaiResponsesAdapter.validate({
+      ...baseAsset,
+      model: undefined,
+      reasoning: { budget_tokens: 1000 },
+      response: {
+        schema: {
+          type: 'object',
+          properties: {
+            answer: { type: 'string' },
+          },
+        },
+      },
+    });
+
+    expect(validation.valid).toBe(false);
+    expect(validation.errors).toContain('OpenAI Responses adapter requires a model to be specified.');
+    expect(validation.warnings).toContain(
+      'OpenAI Responses uses reasoning.effort, not budget_tokens. budget_tokens will be ignored.',
+    );
+    expect(validation.warnings).toContain(
+      'OpenAI Responses response.schema requires response.format: json. schema will still be applied as JSON schema output.',
+    );
+  });
+
+  it('renders default schema names, non-strict schemas, unknown tool stubs, and conversation ids', () => {
+    const result = openaiResponsesAdapter.render(
+      {
+        ...baseAsset,
+        response: {
+          format: 'json',
+          schema_strict: false,
+          schema: {
+            type: 'object',
+            properties: {
+              answer: { type: 'string' },
+            },
+          },
+        },
+        tools: ['lookup_customer'],
+      },
+      {
+        variables: { name: 'World' },
+        openaiResponses: {
+          conversation: 'conv_456',
+        },
+      },
+    );
+
+    expect(result.body.conversation).toBe('conv_456');
+    expect(result.body.text).toEqual({
+      format: {
+        type: 'json_schema',
+        name: 'test_response',
+        schema: {
+          type: 'object',
+          properties: {
+            answer: { type: 'string' },
+          },
+        },
+        strict: false,
+      },
+    });
+    expect(result.body.tools).toEqual([{ type: 'function', name: 'lookup_customer' }]);
+  });
+
+  it('rejects invalid Responses runtime options through PromptOpsKit.renderPrompt', async () => {
+    const kit = createPromptOpsKit({ sourceDir: '.', cache: false });
+
+    await expect(
+      kit.renderPrompt({
+        provider: 'openai-responses',
+        source: [
+          '---',
+          'id: inline-responses',
+          'provider: openai-responses',
+          'model: gpt-5.4',
+          '---',
+          '',
+          '# Prompt template',
+          '',
+          'Hello.',
+        ].join('\n'),
+        openaiResponses: {
+          previous_response_id: 'resp_123',
+          conversation: 'conv_456',
+        },
+      }),
+    ).rejects.toThrow('OpenAI Responses options "conversation" and "previous_response_id" cannot both be set.');
+  });
+
   it('includes history messages as input items', () => {
     const result = openaiResponsesAdapter.render(baseAsset, {
       variables: { name: 'World' },

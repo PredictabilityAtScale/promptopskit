@@ -227,7 +227,9 @@ export class PromptOpsKit {
     }
 
     const adapter = getAdapter(options.provider);
-    const validation = adapter.validate(resolved);
+    const validation = adapter.validate(resolved, {
+      openaiResponses: options.openaiResponses,
+    });
 
     if (!validation.valid) {
       throw new Error(

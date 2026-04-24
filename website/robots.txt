@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://github.com/PredictabilityAtScale/promptopskit/blob/main/website/sitemap.xml
+Sitemap: https://promptopskit.com/sitemap.xml

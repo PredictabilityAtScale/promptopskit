@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>PromptOpsKit Docs</title>
     <meta name="description" content="Documentation for PromptOpsKit — centralize AI prompt behavior in your codebase." />
+    <link rel="canonical" href="https://promptopskit.com/docs/index.html" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/docsify-themeable@0/dist/css/theme-simple.css" />
     <style>
       :root {
@@ -27,6 +28,25 @@
       .app-nav a:hover {
         text-decoration: underline;
       }
+      .crawler-nav {
+        max-width: 980px;
+        margin: 5rem auto 2rem;
+        padding: 0 1.5rem;
+      }
+      .crawler-nav h1 {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+      }
+      .crawler-nav ul {
+        list-style: disc;
+        padding-left: 1.5rem;
+      }
+      .crawler-nav li {
+        margin: 0.35rem 0;
+      }
+      .crawler-nav p {
+        color: #475467;
+      }
     </style>
   </head>
   <body>
@@ -35,6 +55,26 @@
       <a href="https://github.com/PredictabilityAtScale/promptopskit">GitHub</a>
     </nav>
     <div id="app"></div>
+    <main class="crawler-nav" aria-label="Docs index">
+      <h1>PromptOpsKit Docs</h1>
+      <p>This page hosts the Docsify app and also provides crawler-visible documentation links.</p>
+      <ul>
+        <li><a href="/docs/index.md">Docs Home</a></li>
+        <li><a href="/docs/getting-started.md">Getting Started</a></li>
+        <li><a href="/docs/prompt-format.md">Prompt Format</a></li>
+        <li><a href="/docs/composition.md">Composition</a></li>
+        <li><a href="/docs/overrides.md">Overrides</a></li>
+        <li><a href="/docs/providers.md">Providers</a></li>
+        <li><a href="/docs/usagetap.md">UsageTap</a></li>
+        <li><a href="/docs/inline-source.md">Inline Source</a></li>
+        <li><a href="/docs/publishing.md">Publishing</a></li>
+        <li><a href="/docs/cli.md">CLI</a></li>
+        <li><a href="/docs/api-reference.md">API Reference</a></li>
+        <li><a href="/docs/schema.md">Schema</a></li>
+        <li><a href="/docs/testing.md">Testing</a></li>
+        <li><a href="/docs/validation.md">Validation</a></li>
+      </ul>
+    </main>
     <script>
       window.$docsify = {
         name: 'PromptOpsKit',

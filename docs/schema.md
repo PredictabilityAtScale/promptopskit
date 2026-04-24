@@ -15,6 +15,7 @@ Prompt files use YAML front matter. This page documents every supported field.
 | `reasoning` | `object` | No | Reasoning/thinking configuration |
 | `sampling` | `object` | No | Sampling parameters |
 | `response` | `object` | No | Response format and streaming |
+| `cache` | `object` | No | Provider-specific prompt/context caching options |
 | `tools` | `array` | No | Tool references (strings or inline definitions) |
 | `mcp` | `object` | No | MCP server references |
 | `context` | `object` | No | Declare expected variables and history settings |
@@ -31,6 +32,7 @@ Prompt files use YAML front matter. This page documents every supported field.
 |-------|------|-------------|
 | `provider` | `enum` | Default provider (`openai`, `anthropic`, `google`, `gemini`, `openrouter`, `any`) |
 | `model` | `string` | Default model identifier |
+| `cache` | `object` | Same as prompt-level `cache` block |
 | `metadata` | `object` | Same as the prompt `metadata` block (`owner`, `tags`, `review_required`, `stable`) |
 | `# System instructions` | section | System instructions inherited by prompts in this folder |
 
@@ -114,6 +116,37 @@ Inline tool definition fields:
 | `description` | `string` | No | Tool description |
 | `input_schema` | `object` | No | JSON Schema for tool input |
 
+## `cache`
+
+```yaml
+cache:
+  openai:
+    prompt_cache_key: support-v1
+    retention: in_memory   # in_memory | 24h
+  anthropic:
+    mode: automatic        # automatic | explicit
+    ttl: 5m                # 5m | 1h
+    cache_system_instructions: true
+    cache_tools: true
+    cache_prompt_template: false
+  gemini:
+    cached_content: cachedContents/1234567890
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `openai.prompt_cache_key` | `string` | Optional routing key to improve cache-hit locality on shared prefixes |
+| `openai.retention` | `'in_memory' \| '24h'` | Prompt cache retention policy |
+| `anthropic.mode` | `'automatic' \| 'explicit'` | Automatic top-level caching or explicit block-level cache breakpoints |
+| `anthropic.type` | `'ephemeral'` | Cache type (currently only `ephemeral`) |
+| `anthropic.ttl` | `'5m' \| '1h'` | Anthropic cache duration |
+| `anthropic.cache_system_instructions` | `boolean` | In explicit mode, cache system instructions block |
+| `anthropic.cache_tools` | `boolean` | In explicit mode, cache tool declarations |
+| `anthropic.cache_prompt_template` | `boolean` | In explicit mode, cache prompt-template user block |
+| `gemini.cached_content` / `google.cached_content` | `string` | Previously created Gemini cache resource name used as `cachedContent` |
+
+You can define multiple provider cache blocks in one prompt; each adapter reads only its own cache settings.
+
 ## `mcp`
 
 ```yaml
@@ -190,7 +223,7 @@ tiers:
     model: gpt-5.4
 ```
 
-Each environment/tier key maps to an overrides object. Overridable fields: `model`, `fallback_models`, `reasoning`, `sampling`, `response`, `tools`. See [Overrides](./overrides.md).
+Each environment/tier key maps to an overrides object. Overridable fields: `model`, `fallback_models`, `reasoning`, `sampling`, `response`, `cache`, `tools`. See [Overrides](./overrides.md).
 
 ## `metadata`
 

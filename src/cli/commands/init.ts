@@ -22,6 +22,11 @@ context:
     - app_context
 includes:
   - ./shared/tone.md
+cache:
+  openai:
+    # Keep this stable across requests that share a long static prefix.
+    prompt_cache_key: hello-v1
+    retention: in_memory
 reasoning:
   effort: high
 environments:

@@ -49,6 +49,33 @@ export const ResponseSchema = z.object({
   stream: z.boolean().optional(),
 });
 
+// --- Cache controls ---
+
+export const OpenAICacheSchema = z.object({
+  prompt_cache_key: z.string().min(1).optional(),
+  retention: z.enum(['in_memory', '24h']).optional(),
+});
+
+export const AnthropicCacheSchema = z.object({
+  mode: z.enum(['automatic', 'explicit']).optional(),
+  type: z.literal('ephemeral').optional(),
+  ttl: z.enum(['5m', '1h']).optional(),
+  cache_system_instructions: z.boolean().optional(),
+  cache_tools: z.boolean().optional(),
+  cache_prompt_template: z.boolean().optional(),
+});
+
+export const GeminiCacheSchema = z.object({
+  cached_content: z.string().min(1).optional(),
+});
+
+export const CacheSchema = z.object({
+  openai: OpenAICacheSchema.optional(),
+  anthropic: AnthropicCacheSchema.optional(),
+  gemini: GeminiCacheSchema.optional(),
+  google: GeminiCacheSchema.optional(),
+});
+
 // --- Context ---
 
 export const HistorySchema = z.object({
@@ -118,6 +145,7 @@ export const PromptAssetOverridesSchema = z.object({
   reasoning: ReasoningSchema.optional(),
   sampling: SamplingSchema.optional(),
   response: ResponseSchema.optional(),
+  cache: CacheSchema.optional(),
   tools: z.array(ToolRefSchema).optional(),
 });
 
@@ -143,6 +171,7 @@ export const SectionsSchema = z.object({
 export const PromptDefaultsSchema = z.object({
   provider: z.enum(['openai', 'anthropic', 'google', 'gemini', 'openrouter', 'any']).optional(),
   model: z.string().optional(),
+  cache: CacheSchema.optional(),
   metadata: MetadataSchema.optional(),
   sections: z.object({
     system_instructions: z.string().optional(),
@@ -165,6 +194,7 @@ export const PromptAssetSchema = z.object({
   reasoning: ReasoningSchema.optional(),
   sampling: SamplingSchema.optional(),
   response: ResponseSchema.optional(),
+  cache: CacheSchema.optional(),
 
   tools: z.array(ToolRefSchema).optional(),
   mcp: MCPSchema.optional(),

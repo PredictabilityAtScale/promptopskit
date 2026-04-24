@@ -26,7 +26,7 @@ export interface PromptValidationResult {
 const KNOWN_FRONT_MATTER_KEYS = new Set([
   'id', 'schema_version', 'description', 'provider', 'model', 'fallback_models',
   'reasoning', 'sampling', 'response', 'tools', 'mcp', 'context', 'includes',
-  'environments', 'tiers', 'metadata',
+  'environments', 'tiers', 'metadata', 'cache',
 ]);
 
 /**

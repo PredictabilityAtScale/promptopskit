@@ -46,6 +46,15 @@ export const anthropicAdapter: ProviderAdapter = withPromptInputSupport({
     });
 
     const messages: Array<Record<string, unknown>> = [];
+    const anthropicCacheConfig = resolvedAsset.cache?.anthropic;
+    const cacheType = anthropicCacheConfig?.type ?? 'ephemeral';
+    const cacheControl = anthropicCacheConfig
+      ? {
+        type: cacheType,
+        ...(anthropicCacheConfig.ttl ? { ttl: anthropicCacheConfig.ttl } : {}),
+      }
+      : undefined;
+    const cacheMode = anthropicCacheConfig?.mode ?? 'automatic';
 
     // History
     if (runtime.history) {
@@ -56,7 +65,14 @@ export const anthropicAdapter: ProviderAdapter = withPromptInputSupport({
 
     // User message (prompt template)
     if (sections.prompt_template) {
-      messages.push({ role: 'user', content: sections.prompt_template });
+      if (cacheControl && cacheMode === 'explicit' && anthropicCacheConfig?.cache_prompt_template) {
+        messages.push({
+          role: 'user',
+          content: [{ type: 'text', text: sections.prompt_template, cache_control: cacheControl }],
+        });
+      } else {
+        messages.push({ role: 'user', content: sections.prompt_template });
+      }
     }
 
     const body: Record<string, unknown> = {
@@ -66,7 +82,11 @@ export const anthropicAdapter: ProviderAdapter = withPromptInputSupport({
 
     // System goes as top-level field in Anthropic
     if (sections.system_instructions) {
-      body.system = sections.system_instructions;
+      if (cacheControl && cacheMode === 'explicit' && anthropicCacheConfig?.cache_system_instructions !== false) {
+        body.system = [{ type: 'text', text: sections.system_instructions, cache_control: cacheControl }];
+      } else {
+        body.system = sections.system_instructions;
+      }
     }
 
     // Sampling params
@@ -93,18 +113,35 @@ export const anthropicAdapter: ProviderAdapter = withPromptInputSupport({
       body.stream = resolvedAsset.response.stream;
     }
 
+    if (cacheControl && cacheMode === 'automatic') {
+      body.cache_control = cacheControl;
+    }
+
     // Tools
     if (resolvedAsset.tools && resolvedAsset.tools.length > 0) {
       body.tools = resolvedAsset.tools.map((tool) => {
         if (typeof tool === 'string') {
           const def = runtime.toolRegistry?.[tool];
-          if (def) return def;
-          return { name: tool };
+          if (def) {
+            if (cacheControl && cacheMode === 'explicit' && anthropicCacheConfig?.cache_tools) {
+              return { ...(def as Record<string, unknown>), cache_control: cacheControl };
+            }
+            return def;
+          }
+          return {
+            name: tool,
+            ...(cacheControl && cacheMode === 'explicit' && anthropicCacheConfig?.cache_tools
+              ? { cache_control: cacheControl }
+              : {}),
+          };
         }
         return {
           name: tool.name,
           description: tool.description,
           input_schema: tool.input_schema ?? { type: 'object', properties: {} },
+          ...(cacheControl && cacheMode === 'explicit' && anthropicCacheConfig?.cache_tools
+            ? { cache_control: cacheControl }
+            : {}),
         };
       });
     }

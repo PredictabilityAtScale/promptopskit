@@ -36,6 +36,7 @@ const { request } = result;
 ```
 
 The provider passed to `renderPrompt` determines which adapter shapes the body. The `provider` field in front matter is informational — the render-time provider controls output.
+When a prompt includes multiple cache blocks (for example `cache.openai` + `cache.anthropic`), adapters ignore non-matching blocks so cross-provider settings never leak into the wrong payload.
 
 ## Direct adapter imports
 
@@ -208,9 +209,16 @@ Field mapping:
 | `reasoning.effort` | `reasoning_effort` |
 | `response.format: json` | `response_format: { type: "json_object" }` |
 | `response.stream` | `stream` |
+| `cache.openai.prompt_cache_key` | `prompt_cache_key` |
+| `cache.openai.retention` | `prompt_cache_retention` |
 
 Warnings:
 - `reasoning.budget_tokens` is ignored (OpenAI uses `reasoning_effort` instead)
+
+Caching notes:
+- Prompt caching is already automatic for eligible OpenAI requests.
+- `cache.openai.prompt_cache_key` helps route similar prefixes together.
+- `cache.openai.retention` can be `in_memory` (default) or `24h`.
 
 ## Anthropic
 
@@ -233,6 +241,9 @@ Key differences from OpenAI:
 - `max_tokens` is **required** — defaults to `4096` if `sampling.max_output_tokens` is not set.
 - `sampling.stop` maps to `stop_sequences`.
 - `reasoning.budget_tokens` maps to `thinking: { type: "enabled", budget_tokens }`.
+- `cache.anthropic.mode: automatic` maps to top-level `cache_control`.
+- `cache.anthropic.mode: explicit` applies `cache_control` at block level for selected sections/tools.
+- `cache.anthropic.ttl` supports `5m` (default) or `1h`.
 
 Warnings:
 - `frequency_penalty` and `presence_penalty` are not supported — ignored with a warning.
@@ -266,6 +277,7 @@ Key differences:
 - `top_p` maps to `topP`, `max_output_tokens` maps to `maxOutputTokens`, `stop` maps to `stopSequences`.
 - `response.format: json` maps to `generationConfig.responseMimeType: "application/json"`.
 - `reasoning.effort` maps to `thinkingConfig.thinkingBudget` (high=8192, medium=4096, low=1024).
+- `cache.gemini.cached_content` (or `cache.google.cached_content`) maps to top-level `cachedContent`.
 
 Warnings:
 - `frequency_penalty` and `presence_penalty` are not supported — ignored with a warning.

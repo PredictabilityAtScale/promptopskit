@@ -561,8 +561,10 @@ Prompt files use YAML front matter with these fields:
 | `fallback_models` | `string[]` | Fallback model list |
 | `reasoning` | `object` | `{ effort, budget_tokens }` |
 | `sampling` | `object` | `{ temperature, top_p, frequency_penalty, presence_penalty, stop, max_output_tokens }` |
-| `response` | `object` | `{ format, stream }` |
+| `response` | `object` | `{ format, stream, schema, schema_name, schema_strict }` |
+| `cache` | `object` | Provider-specific cache controls (`openai`, `anthropic`, `gemini`/`google`) |
 | `tools` | `array` | Tool references (string names or inline definitions) |
+| `provider_options` | `object` | Provider-specific non-portable options (`anthropic`, `gemini`) |
 | `mcp` | `object` | MCP server references |
 | `context` | `object` | `{ inputs, history }` — declare expected variables, with optional per-input `max_size`, `trim`, structured or literal `allow_regex`/`deny_regex`, and built-in `non_empty` / `reject_secrets` validators |
 | `includes` | `string[]` | Paths to included prompt files |

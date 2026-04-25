@@ -121,7 +121,7 @@
     "type": "git",
     "url": "git+https://github.com/PredictabilityAtScale/promptopskit.git"
   },
-  "homepage": "https://github.com/PredictabilityAtScale/promptopskit",
+  "homepage": "https://promptopskit.com",
   "author": "Predictability at Scale, Inc.",
   "license": "MIT",
   "engines": {

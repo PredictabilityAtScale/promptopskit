@@ -9,7 +9,7 @@ Prompt files use YAML front matter. This page documents every supported field.
 | `id` | `string` | Yes | Unique prompt identifier (e.g. `support/reply`) |
 | `schema_version` | `number` | Yes | Schema version — currently `1` |
 | `description` | `string` | No | Human-readable description of the prompt |
-| `provider` | `string` | No | `openai`, `anthropic`, `gemini`, `google`, `openrouter`, `any` |
+| `provider` | `string` | No | `openai`, `openai-responses`, `anthropic`, `gemini`, `google`, `openrouter`, `any` |
 | `model` | `string` | No | Model name (e.g. `gpt-5.4`, `claude-sonnet-4-20250514`) |
 | `fallback_models` | `string[]` | No | Ordered list of fallback models |
 | `reasoning` | `object` | No | Reasoning/thinking configuration |
@@ -17,6 +17,7 @@ Prompt files use YAML front matter. This page documents every supported field.
 | `response` | `object` | No | Response format and streaming |
 | `cache` | `object` | No | Provider-specific prompt/context caching options |
 | `tools` | `array` | No | Tool references (strings or inline definitions) |
+| `provider_options` | `object` | No | Provider-specific advanced options (`anthropic`, `gemini`) |
 | `mcp` | `object` | No | MCP server references |
 | `context` | `object` | No | Declare expected variables and history settings |
 | `includes` | `string[]` | No | Paths to included prompt files (relative to this file) |
@@ -30,7 +31,7 @@ Prompt files use YAML front matter. This page documents every supported field.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `provider` | `enum` | Default provider (`openai`, `anthropic`, `google`, `gemini`, `openrouter`, `any`) |
+| `provider` | `enum` | Default provider (`openai`, `openai-responses`, `anthropic`, `google`, `gemini`, `openrouter`, `any`) |
 | `model` | `string` | Default model identifier |
 | `cache` | `object` | Same as prompt-level `cache` block |
 | `metadata` | `object` | Same as the prompt `metadata` block (`owner`, `tags`, `review_required`, `stable`) |
@@ -85,12 +86,54 @@ sampling:
 response:
   format: json    # text | json | markdown
   stream: true
+  schema:
+    type: object
+    properties:
+      answer:
+        type: string
+  schema_name: support_reply
+  schema_strict: true
 ```
 
 | Field | Type | Description |
 |-------|------|-------------|
 | `format` | `'text' \| 'json' \| 'markdown'` | Response format |
 | `stream` | `boolean` | Enable streaming |
+| `schema` | `object` | Portable JSON schema object for structured output |
+| `schema_name` | `string` | Optional schema name (used by OpenAI/OpenAI Responses) |
+| `schema_strict` | `boolean` | Strict schema enforcement toggle (OpenAI/OpenAI Responses) |
+
+## `provider_options`
+
+Provider-specific options that are intentionally non-portable:
+
+```yaml
+provider_options:
+  anthropic:
+    top_k: 40
+    tool_choice:
+      type: auto
+  gemini:
+    candidate_count: 1
+    top_k: 32
+    seed: 42
+    response_schema:
+      type: object
+    response_modalities:
+      - TEXT
+    thinking_budget_tokens: 1024
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `anthropic.top_k` | `number` | Anthropic `top_k` sampling control (`>= 0`) |
+| `anthropic.tool_choice` | `object` | Anthropic tool choice object |
+| `gemini.candidate_count` | `number` | Gemini candidate count (`> 0`) |
+| `gemini.top_k` | `number` | Gemini top-k sampling control (`>= 0`) |
+| `gemini.seed` | `number` | Gemini generation seed |
+| `gemini.response_schema` | `object` | Gemini-native response schema |
+| `gemini.response_modalities` | `string[]` | Gemini response modalities |
+| `gemini.thinking_budget_tokens` | `number` | Gemini thinking budget (`> 0`) |
 
 ## `tools`
 
@@ -223,7 +266,7 @@ tiers:
     model: gpt-5.4
 ```
 
-Each environment/tier key maps to an overrides object. Overridable fields: `model`, `fallback_models`, `reasoning`, `sampling`, `response`, `cache`, `tools`. See [Overrides](./overrides.md).
+Each environment/tier key maps to an overrides object. Overridable fields: `model`, `fallback_models`, `reasoning`, `sampling`, `response`, `cache`, `tools`, `provider_options`. See [Overrides](./overrides.md).
 
 ## `metadata`
 

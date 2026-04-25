@@ -8,7 +8,7 @@ description: Guidance for creating and editing promptopskit prompt files, defaul
 This project uses **promptopskit** to manage LLM prompts as code.
 Prompts live in markdown files with YAML front matter, are validated against
 a schema, and render into provider-specific request bodies (OpenAI, Anthropic,
-Gemini, OpenRouter). Follow these instructions when creating or editing prompts.
+Gemini, OpenRouter, and OpenAI Responses). Follow these instructions when creating or editing prompts.
 
 ---
 
@@ -58,13 +58,15 @@ the fields required by that specific file:
 | `id` | string | **yes** | Unique identifier for the prompt |
 | `schema_version` | number | yes | Always `1` |
 | `description` | string | no | Human-readable description |
-| `provider` | enum | no | `openai`, `anthropic`, `google`, `gemini`, `openrouter`, or `any` |
+| `provider` | enum | no | `openai`, `openai-responses`, `anthropic`, `google`, `gemini`, `openrouter`, or `any` |
 | `model` | string | no | Model identifier (e.g. `gpt-5.4`, `claude-sonnet-4-20250514`) |
 | `fallback_models` | string[] | no | Ordered fallback model list |
 | `reasoning` | object | no | `{ effort: low|medium|high, budget_tokens: number }` |
 | `sampling` | object | no | `{ temperature, top_p, frequency_penalty, presence_penalty, stop, max_output_tokens }` |
-| `response` | object | no | `{ format: text|json|markdown, stream: boolean }` |
+| `response` | object | no | `{ format: text|json|markdown, stream: boolean, schema?: object, schema_name?: string, schema_strict?: boolean }` |
+| `cache` | object | no | Provider-specific cache controls (`openai`, `anthropic`, `gemini`/`google`) |
 | `tools` | array | no | Tool names (strings) or inline definitions with `{ name, description, input_schema }` |
+| `provider_options` | object | no | Provider-specific advanced options (`anthropic`, `gemini`) |
 | `mcp` | object | no | `{ servers: [string | { name, config }] }` |
 | `context.inputs` | `Array<string | { name, max_size?, trim?, allow_regex?, deny_regex?, non_empty?, reject_secrets? }>` | no | Declared variable names used in templates, with optional size budgets and runtime hardening controls |
 | `context.history` | object | no | `{ max_items: number }` |
@@ -182,6 +184,7 @@ prompts/
 Supported default fields:
 - `provider` (front matter) — default provider for the folder
 - `model` (front matter) — default model for the folder
+- `cache` (front matter) — default provider-specific cache hints
 - `metadata` (front matter) — merged with prompt-local metadata
 - `# System instructions` (body section) — used when the prompt has none
 
@@ -229,7 +232,7 @@ tiers:
 ```
 
 Overridable fields: `model`, `fallback_models`, `reasoning`, `sampling`,
-`response`, `tools`.
+`response`, `cache`, `tools`, `provider_options`.
 
 Override application order: **base → environment → tier → runtime**.
 

@@ -69,9 +69,12 @@ This creates:
 prompts/
 ├── defaults.md         # Folder-level defaults (provider, model, metadata, system instructions)
 ├── hello.md            # Sample prompt with variables
-├── hello.test.yaml     # Test sidecar with sample inputs
+├── hello.test.yaml     # Test sidecar with sample inputs and hardcoded responses
 └── shared/
     └── tone.md         # Shared system instructions (included via composition)
+
+tests/
+└── hello.prompt.test.mjs # Executable starter test for the hello prompt
 ```
 
 ### 2. Write a prompt
@@ -540,11 +543,21 @@ Hello {{ name }}!`,
 ## Testing Helpers
 
 ```typescript
-import { createMockAsset, createMockResolvedAsset, parseTestPrompt } from 'promptopskit/testing';
+import {
+  createHardcodedPromptResponder,
+  createMockAsset,
+  createMockResolvedAsset,
+  loadPromptTestSidecar,
+  parseTestPrompt,
+} from 'promptopskit/testing';
 
 const asset = createMockAsset({ model: 'gpt-5.4' });
 const resolved = createMockResolvedAsset();
 const parsed = parseTestPrompt('---\nid: test\nschema_version: 1\n---\n\nHello');
+
+const sidecar = await loadPromptTestSidecar('./prompts/hello.test.yaml');
+const respond = createHardcodedPromptResponder(sidecar);
+const response = respond('basic-greeting');
 ```
 
 ## API Reference

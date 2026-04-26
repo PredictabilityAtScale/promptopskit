@@ -1,5 +1,5 @@
 import { writeFile, mkdir } from 'node:fs/promises';
-import { join, dirname } from 'node:path';
+import { join, dirname, relative } from 'node:path';
 import { existsSync, readFileSync } from 'node:fs';
 
 const HELP = `
@@ -76,10 +76,14 @@ const TEST_SIDECAR = `cases:
     variables:
       name: "World"
       app_context: "Welcome screen"
+    response:
+      message: "Hello, World! How can I help you today?"
   - name: named-greeting
     variables:
       name: "Alice"
       app_context: "Settings page"
+    response:
+      message: "Hello, Alice! How can I help you today?"
 `;
 
 const EXAMPLE_USAGE = `// Example: render the hello prompt and send it to OpenAI
@@ -154,6 +158,9 @@ export async function init(args: string[]): Promise<void> {
   }
 
   const dir = args.find((a) => !a.startsWith('--')) ?? './prompts';
+  const testFilePath = join(dirname(dir), 'tests', 'hello.prompt.test.mjs');
+  const promptsDirFromTest = relative(dirname(testFilePath), dir) || '.';
+  const helloPromptTest = createHelloPromptTest(promptsDirFromTest);
 
   const files: Array<{ path: string; content: string }> = [
     { path: join(dir, 'defaults.md'), content: DEFAULTS },
@@ -161,6 +168,7 @@ export async function init(args: string[]): Promise<void> {
     { path: join(dir, 'hello.test.yaml'), content: TEST_SIDECAR },
     { path: join(dir, 'shared', 'tone.md'), content: TONE_INCLUDE },
     { path: join(dir, 'example-usage.ts'), content: EXAMPLE_USAGE },
+    { path: testFilePath, content: helloPromptTest },
   ];
 
   let created = 0;
@@ -190,8 +198,56 @@ export async function init(args: string[]): Promise<void> {
         console.log(`Tip: Add to your package.json scripts:`);
         console.log(`  "build:prompts": "promptopskit compile ${dir}"`);
       }
+      if (!pkg.scripts?.test) {
+        console.log();
+        console.log(`Tip: Add a test script to run the generated prompt test:`);
+        console.log(`  "test": "node --test tests/*.test.mjs"`);
+      }
     } catch {
       // Ignore parse errors
     }
   }
+}
+
+function createHelloPromptTest(promptsDirFromTest: string): string {
+  return `import assert from 'node:assert/strict';
+import { dirname, resolve } from 'node:path';
+import test from 'node:test';
+import { fileURLToPath } from 'node:url';
+import { createPromptOpsKit } from 'promptopskit';
+import {
+  getHardcodedPromptResponse,
+  loadPromptTestSidecar,
+  renderPromptTestCase,
+} from 'promptopskit/testing';
+
+const testDir = dirname(fileURLToPath(import.meta.url));
+const promptsDir = resolve(testDir, ${JSON.stringify(promptsDirFromTest)});
+
+test('hello prompt renders every sidecar case', async () => {
+  const kit = createPromptOpsKit({ sourceDir: promptsDir, cache: false });
+  const sidecar = await loadPromptTestSidecar(resolve(promptsDir, 'hello.test.yaml'));
+
+  for (const testCase of sidecar.cases) {
+    const { rendered } = await renderPromptTestCase(kit, {
+      sidecar,
+      caseName: testCase.name,
+      path: 'hello',
+      provider: 'openai',
+      environment: 'dev',
+      strict: true,
+    });
+
+    assert.ok(rendered.request?.body?.messages);
+  }
+});
+
+test('hello prompt can return a deterministic response without calling a model', async () => {
+  const sidecar = await loadPromptTestSidecar(resolve(promptsDir, 'hello.test.yaml'));
+
+  assert.deepEqual(getHardcodedPromptResponse(sidecar, 'basic-greeting'), {
+    message: 'Hello, World! How can I help you today?',
+  });
+});
+`;
 }

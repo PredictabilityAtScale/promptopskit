@@ -6,7 +6,7 @@
     <title>PromptOpsKit | Repo-Native Prompt Ops for Production AI Apps</title>
     <meta
       name="description"
-      content="PromptOpsKit turns hardcoded prompt strings, model settings, tools, and environment overrides into structured Markdown assets that ship with your app."
+      content="PromptOpsKit turns hardcoded prompt strings, model settings, tools, test fixtures, and environment overrides into structured Markdown assets that ship with your app."
     />
     <meta
       name="keywords"
@@ -26,7 +26,7 @@
     />
     <meta
       property="og:description"
-      content="Turn hardcoded prompt strings, model settings, tools, and environment overrides into structured Markdown assets that ship with your app."
+      content="Turn hardcoded prompt strings, model settings, tools, test fixtures, and environment overrides into structured Markdown assets that ship with your app."
     />
     <meta
       property="og:url"
@@ -41,7 +41,7 @@
     />
     <meta
       name="twitter:description"
-      content="Turn hardcoded prompt strings, model settings, tools, and environment overrides into structured Markdown assets that ship with your app."
+      content="Turn hardcoded prompt strings, model settings, tools, test fixtures, and environment overrides into structured Markdown assets that ship with your app."
     />
 
     <script>
@@ -93,6 +93,7 @@
           <a href="#why">Why</a>
           <a href="#what">What</a>
           <a href="#github-models">Compare</a>
+          <a href="#testing">Testing</a>
           <a href="#quickstart">How</a>
           <a href="#features">Features</a>
           <a href="#faq">FAQ</a>
@@ -114,8 +115,9 @@
         <p class="lead">
           Turn hardcoded prompt strings, model settings, tools, and environment
           overrides into structured Markdown assets that ship with your app.
-          Render for OpenAI Chat, OpenAI Responses, Anthropic, Gemini, and OpenRouter. Validate in CI.
-          Compile for production. Keep your own transport.
+          Add sidecar test cases and hardcoded responses for local development,
+          unit tests, and CI. Render for OpenAI Chat, OpenAI Responses,
+          Anthropic, Gemini, and OpenRouter. Keep your own transport.
         </p>
         <div class="hero-actions">
           <a
@@ -142,6 +144,9 @@ npx promptopskit skill</code></pre>
             <li>
               Teams supporting multiple LLM providers without duplicating prompt
               logic
+            </li>
+            <li>
+              Teams testing prompt behavior in CI without making model calls
             </li>
             <li>
               Teams that want Git + CI governance instead of another dashboard
@@ -193,6 +198,10 @@ npx promptopskit skill</code></pre>
                 release-aware overrides
               </li>
               <li>
+                <code>.test.yaml</code> sidecars capture development inputs and
+                deterministic responses
+              </li>
+              <li>
                 Render at runtime and compile for production when you need it
               </li>
             </ul>
@@ -228,8 +237,8 @@ npx promptopskit skill</code></pre>
             <div>
               <strong>GitHub Actions</strong>
               <p>
-                Run <code>promptopskit validate</code> and compile prompts in CI
-                before deploy.
+                Run <code>promptopskit validate</code>, compile prompts, and
+                execute prompt fixture tests in CI before deploy.
               </p>
             </div>
           </div>
@@ -345,6 +354,93 @@ npx promptopskit skill</code></pre>
               across prompts without copying the same blocks everywhere.
             </p>
           </article>
+          <article>
+            <h3>Testable by default</h3>
+            <p>
+              Keep prompt inputs and hardcoded responses in sidecar fixtures so
+              local dev and CI can exercise behavior without provider calls.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section
+        id="testing"
+        class="container section section-testing"
+        aria-labelledby="testing-title"
+      >
+        <p class="eyebrow">Testing for developers and teams</p>
+        <h2 id="testing-title">Make prompt changes reviewable and testable</h2>
+        <p class="section-intro">
+          PromptOpsKit treats prompt tests like normal code tests. Sidecar
+          fixtures define input variables and optional hardcoded responses, so
+          developers can iterate locally and teams can run deterministic checks
+          in CI without spending tokens or depending on provider availability.
+        </p>
+
+        <div class="testing-layout">
+          <article class="card testing-code-card">
+            <h3>Sidecar fixtures live next to the prompt</h3>
+            <pre><code>prompts/
+├── hello.md
+└── hello.test.yaml
+
+tests/
+└── hello.prompt.test.mjs</code></pre>
+            <pre><code>cases:
+  - name: basic-greeting
+    variables:
+      name: "World"
+      app_context: "Welcome screen"
+    response:
+      message: "Hello, World! How can I help you today?"</code></pre>
+          </article>
+
+          <div class="testing-points">
+            <article class="card">
+              <h3>Local development</h3>
+              <p>
+                Render prompts against realistic test variables while building
+                features. Use canned responses to develop UI states, handlers,
+                and downstream logic before wiring a live model.
+              </p>
+            </article>
+            <article class="card">
+              <h3>Unit tests</h3>
+              <p>
+                Import <code>loadPromptTestSidecar</code>,
+                <code>renderPromptTestCase</code>, and
+                <code>getHardcodedPromptResponse</code> from
+                <code>promptopskit/testing</code> to assert request bodies and
+                app behavior in Node's built-in test runner or your team's
+                preferred framework.
+              </p>
+            </article>
+            <article class="card">
+              <h3>CI confidence</h3>
+              <p>
+                Run prompt fixture tests alongside
+                <code>promptopskit validate</code>. Catch broken variables,
+                schema errors, include drift, and app assumptions before a
+                prompt change reaches production.
+              </p>
+            </article>
+            <article class="card">
+              <h3>Team review</h3>
+              <p>
+                Review the prompt, model settings, test inputs, and expected
+                deterministic responses in one pull request. Product, platform,
+                and application teams can discuss behavior without screenshots.
+              </p>
+            </article>
+          </div>
+        </div>
+
+        <div class="testing-cta">
+          <a class="button button-primary" href="/docs/index.html#/testing"
+            >Read testing docs</a
+          >
+          <a class="button" href="#quickstart">See the scaffold</a>
         </div>
       </section>
 
@@ -510,14 +606,15 @@ npx promptopskit init
 npx promptopskit skill</code></pre>
             <p>
               Creates a <code>prompts/</code> directory with starter files, a
-              shared instructions folder, and deploys AI agent instructions so
-              coding assistants know how to work with your prompts.
+              shared instructions folder, <code>hello.test.yaml</code>, and a
+              starter <code>tests/hello.prompt.test.mjs</code> so coding
+              assistants and CI know how to work with your prompts.
             </p>
             <details class="ai-prompt-tip">
               <summary>
                 Or, give this prompt to your AI coding assistant
               </summary>
-              <pre><code>Install promptopskit, run `npx promptopskit init` to scaffold starter prompt files, run `npx promptopskit skill` to deploy AI agent instructions, and add a "build:prompts": "promptopskit compile" script to package.json.</code></pre>
+              <pre><code>Install promptopskit, run `npx promptopskit init` to scaffold starter prompt files and prompt tests, run `npx promptopskit skill` to deploy AI agent instructions, and add "build:prompts": "promptopskit compile" plus your normal test command to package.json.</code></pre>
             </details>
           </article>
 
@@ -582,7 +679,40 @@ Use tools to look up account details before answering.
           </article>
 
           <article class="card">
-            <h3>3. Render for any provider</h3>
+            <h3>3. Add deterministic test cases</h3>
+            <p>
+              Keep development inputs and hardcoded responses beside the prompt
+              so unit tests and CI can run without calling a model provider.
+            </p>
+            <pre><code>import { createPromptOpsKit } from 'promptopskit';
+import {
+  getHardcodedPromptResponse,
+  loadPromptTestSidecar,
+  renderPromptTestCase,
+} from 'promptopskit/testing';
+
+const kit = createPromptOpsKit({ sourceDir: './prompts', cache: false });
+const sidecar = await loadPromptTestSidecar('./prompts/hello.test.yaml');
+
+const { rendered } = await renderPromptTestCase(kit, {
+  sidecar,
+  caseName: 'basic-greeting',
+  path: 'hello',
+  provider: 'openai',
+  environment: 'dev',
+  strict: true,
+});
+
+const response = getHardcodedPromptResponse(sidecar, 'basic-greeting');
+
+expect(rendered).toHaveProperty('request.body.messages');
+expect(response).toEqual({
+  message: 'Hello, World! How can I help you today?',
+});</code></pre>
+          </article>
+
+          <article class="card">
+            <h3>4. Render for any provider</h3>
             <p>
               Load the prompt, supply variables, and get a ready-to-send request
               body.
@@ -676,7 +806,9 @@ const res = await fetch('https://api.openai.com/v1/chat/completions', {
           <article class="card">
             <h3>CLI for local dev and CI</h3>
             <ul>
-              <li><code>init</code> — scaffold starter prompts</li>
+              <li>
+                <code>init</code> — scaffold starter prompts and prompt tests
+              </li>
               <li><code>validate</code> — check all prompts before merge</li>
               <li>
                 <code>compile</code> — pre-compile <code>.md</code> → JSON or
@@ -685,6 +817,27 @@ const res = await fetch('https://api.openai.com/v1/chat/completions', {
               <li><code>render</code> — preview output with test variables</li>
               <li><code>inspect</code> — print normalized prompt as JSON</li>
               <li><code>skill</code> — deploy AI agent instructions</li>
+            </ul>
+          </article>
+          <article class="card">
+            <h3>Prompt test fixtures</h3>
+            <ul>
+              <li>
+                <code>.test.yaml</code> sidecars keep test variables beside the
+                prompt
+              </li>
+              <li>
+                Optional <code>response</code> fixtures support hardcoded model
+                outputs
+              </li>
+              <li>
+                Testing helpers render named cases and retrieve deterministic
+                responses
+              </li>
+              <li>
+                Works in local development, unit tests, and CI without network
+                calls
+              </li>
             </ul>
           </article>
           <article class="card">
@@ -822,6 +975,17 @@ const res = await fetch('https://api.openai.com/v1/chat/completions', {
               Yes. Run <code>promptopskit validate ./prompts --strict</code> in
               your pipeline. It catches schema errors, missing variables, broken
               includes, and field typos before deploy.
+            </p>
+          </article>
+          <article class="card">
+            <h3>Can I test prompt behavior without calling a model?</h3>
+            <p>
+              Yes. Put variables and optional hardcoded responses in a
+              <code>.test.yaml</code> sidecar, then use
+              <code>promptopskit/testing</code> helpers from your unit tests.
+              This lets local development and CI exercise prompt rendering and
+              downstream app behavior without network calls, token spend, or
+              flaky provider dependencies.
             </p>
           </article>
         </div>

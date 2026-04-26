@@ -19,7 +19,15 @@ npm run test:serial
 Import from `promptopskit/testing`:
 
 ```typescript
-import { createMockAsset, createMockResolvedAsset, parseTestPrompt } from 'promptopskit/testing';
+import {
+  createHardcodedPromptResponder,
+  createMockAsset,
+  createMockResolvedAsset,
+  getHardcodedPromptResponse,
+  loadPromptTestSidecar,
+  parseTestPrompt,
+  renderPromptTestCase,
+} from 'promptopskit/testing';
 ```
 
 ### `createMockAsset(overrides?)`
@@ -82,7 +90,7 @@ Hello {{ name }}!
 
 ## Test sidecar files
 
-By convention, test data for a prompt lives in a `.test.yaml` file alongside the prompt:
+By convention, test data for a prompt lives in a `.test.yaml` file alongside the prompt. `promptopskit init` creates `hello.md`, `hello.test.yaml`, and `tests/hello.prompt.test.mjs` so the starter prompt has executable test coverage immediately.
 
 ```
 prompts/
@@ -100,9 +108,13 @@ cases:
   - name: basic-greeting
     variables:
       name: "World"
+    response:
+      message: "Hello, World! How can I help you today?"
   - name: named-greeting
     variables:
       name: "Alice"
+    response:
+      message: "Hello, Alice! How can I help you today?"
 ```
 
 Each case has:
@@ -111,6 +123,7 @@ Each case has:
 |-------|------|-------------|
 | `name` | `string` | Test case name |
 | `variables` | `Record<string, string>` | Variable values for this case |
+| `response` | `unknown` | Optional hardcoded response for deterministic development and CI tests |
 
 ### CLI integration
 
@@ -124,19 +137,38 @@ promptopskit render hello.md
 ### Using in tests
 
 ```typescript
-import { readFileSync } from 'node:fs';
-import { parse } from 'yaml';
 import { createPromptOpsKit } from 'promptopskit';
+import { loadPromptTestSidecar, renderPromptTestCase } from 'promptopskit/testing';
 
 const kit = createPromptOpsKit({ sourceDir: './prompts' });
-const sidecar = parse(readFileSync('./prompts/hello.test.yaml', 'utf-8'));
+const sidecar = await loadPromptTestSidecar('./prompts/hello.test.yaml');
 
 for (const testCase of sidecar.cases) {
-  const result = await kit.renderPrompt({
+  const { rendered, response } = await renderPromptTestCase(kit, {
+    sidecar,
+    caseName: testCase.name,
     path: 'hello',
     provider: 'openai',
-    variables: testCase.variables,
+    environment: 'dev',
+    strict: true,
   });
-  // Assert on result.request.body
+
+  // Assert on rendered.request.body and, when present, response.
 }
 ```
+
+### Hardcoded responses
+
+PromptOpsKit renders provider request bodies, but your app owns the network call. For unit tests and local development, keep deterministic responses in the sidecar and route your app through a tiny fake model runner:
+
+```typescript
+import { createHardcodedPromptResponder, loadPromptTestSidecar } from 'promptopskit/testing';
+
+const sidecar = await loadPromptTestSidecar('./prompts/hello.test.yaml');
+const respond = createHardcodedPromptResponder(sidecar);
+
+const result = respond('basic-greeting');
+// { message: 'Hello, World! How can I help you today?' }
+```
+
+This is intentionally different from GitHub Models: GitHub Models is useful for interactive prompt prototyping, side-by-side model comparison, and evaluations in GitHub. PromptOpsKit sidecars are repo-native fixtures for rendering, unit tests, CI, and deterministic app development without making provider calls.

@@ -6,6 +6,7 @@
   - [Composition](composition.md)
   - [Overrides](overrides.md)
   - [Providers](providers.md)
+  - [Testing](testing.md)
   - [UsageTap](usagetap.md)
   - [Inline Source](inline-source.md)
   - [Publishing](publishing.md)
@@ -14,5 +15,4 @@
   - [CLI](cli.md)
   - [API Reference](api-reference.md)
   - [Schema](schema.md)
-  - [Testing](testing.md)
   - [Validation](validation.md)

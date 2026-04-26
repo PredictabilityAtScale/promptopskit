@@ -330,10 +330,16 @@ Hello.
     expect(existsSync(join(tmpDir, 'prompts', 'hello.test.yaml'))).toBe(true);
     expect(existsSync(join(tmpDir, 'prompts', 'shared', 'tone.md'))).toBe(true);
     expect(existsSync(join(tmpDir, 'prompts', 'example-usage.ts'))).toBe(true);
+    expect(existsSync(join(tmpDir, 'tests', 'hello.prompt.test.mjs'))).toBe(true);
 
     const helloPrompt = await readFile(join(tmpDir, 'prompts', 'hello.md'), 'utf-8');
+    const helloSidecar = await readFile(join(tmpDir, 'prompts', 'hello.test.yaml'), 'utf-8');
+    const helloTest = await readFile(join(tmpDir, 'tests', 'hello.prompt.test.mjs'), 'utf-8');
     expect(helloPrompt).toContain('id: hello');
-    expect(logSpy.mock.calls.flat().join('\n')).toContain('Created 5 file(s), skipped 0 existing.');
+    expect(helloSidecar).toContain('response:');
+    expect(helloTest).toContain('getHardcodedPromptResponse');
+    expect(helloTest).toContain("node:test");
+    expect(logSpy.mock.calls.flat().join('\n')).toContain('Created 6 file(s), skipped 0 existing.');
   });
 
   it('init skips existing files in a custom directory', async () => {
@@ -348,8 +354,9 @@ Hello.
     expect(await readFile(join(promptsDir, 'hello.md'), 'utf-8')).toBe('existing hello');
     expect(existsSync(join(promptsDir, 'defaults.md'))).toBe(true);
     expect(existsSync(join(promptsDir, 'shared', 'tone.md'))).toBe(true);
+    expect(existsSync(join(tmpDir, 'tests', 'hello.prompt.test.mjs'))).toBe(true);
     expect(logSpy.mock.calls.flat().join('\n')).toContain(`skip ${join(promptsDir, 'hello.md')} (already exists)`);
-    expect(logSpy.mock.calls.flat().join('\n')).toContain('Created 4 file(s), skipped 1 existing.');
+    expect(logSpy.mock.calls.flat().join('\n')).toContain('Created 5 file(s), skipped 1 existing.');
   });
 
   it('skill creates all supported target files by default', async () => {

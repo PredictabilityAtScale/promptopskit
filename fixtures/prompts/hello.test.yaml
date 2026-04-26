@@ -3,7 +3,11 @@ cases:
     variables:
       name: "World"
       app_context: "Onboarding flow"
+    response:
+      message: "Hello, World! How can I help you today?"
   - name: named
     variables:
       name: "Alice"
       app_context: "Dashboard"
+    response:
+      message: "Hello, Alice! How can I help you today?"

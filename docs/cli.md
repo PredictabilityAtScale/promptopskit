@@ -51,6 +51,7 @@ Checks:
 - Unknown front matter keys with Levenshtein-based "did you mean?" suggestions
 - Variable usage — used but undeclared, declared but unused
 - Context regex compilation for `allow_regex` and `deny_regex`
+- YAML quoting problems in context regex fields, such as raw `\s` or `\b` inside double-quoted strings
 - Include resolution — missing files, circular includes
 - Folder defaults inheritance from `defaults.md` (provider, model, metadata, system instructions)
 
@@ -82,7 +83,7 @@ promptopskit compile [sourceDir] [outputDir] [--source <dir>] [--output <dir>] [
 
 Includes are resolved during compilation so compiled artifacts are self-sufficient. The output directory is cleared by default before compiling (unless `--no-clean` is set).
 
-Compilation runs validation before writing artifacts. Invalid `allow_regex` or `deny_regex` definitions fail the compile step early with `POK013` instead of surfacing later during `renderPrompt()`.
+Compilation runs validation before writing artifacts. Invalid `allow_regex` or `deny_regex` definitions, including unsafe double-quoted YAML regex strings with raw backslashes, fail the compile step early with `POK013` instead of surfacing later during `renderPrompt()`.
 
 If you omit `<out>`, the CLI chooses `./.generated-prompts/json` for `json` and `./.generated-prompts/esm` for `esm`.
 

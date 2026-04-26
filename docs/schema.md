@@ -293,12 +293,14 @@ Object-form inputs add optional controls:
 
 - `max_size`: checked during `renderPrompt()` and can produce `POK030` warnings.
 - `trim`: trims incoming values to the `max_size` budget before interpolation (`true`/`end` keeps leading bytes, `start` keeps trailing bytes).
-- `allow_regex`: allowlist validation before interpolation; accepts `"pattern"`, `/pattern/i`, or `{ pattern, flags, return_message? }`. Non-matches throw `POK031` unless `return_message` is configured.
-- `deny_regex`: blocklist validation before interpolation; accepts `"pattern"`, `/pattern/i`, or `{ pattern, flags, return_message? }`. Matches throw `POK032` unless `return_message` is configured.
+- `allow_regex`: allowlist validation before interpolation; accepts `/pattern/i`, `"pattern"`, or `{ pattern, flags, return_message? }`. Non-matches throw `POK031` unless `return_message` is configured.
+- `deny_regex`: blocklist validation before interpolation; accepts `/pattern/i`, `"pattern"`, or `{ pattern, flags, return_message? }`. Matches throw `POK032` unless `return_message` is configured.
 - `non_empty`: accepts `true` or `{ return_message }`; blank values throw `POK033` unless `return_message` is configured.
 - `reject_secrets`: accepts `true` or `{ return_message }`; secret-like values throw `POK034` unless `return_message` is configured.
 
-Malformed `allow_regex` and `deny_regex` values are reported during `validate` and `compile` with `POK013`.
+Prefer unquoted `/pattern/i` literal form for regex validators, especially when the pattern contains backslashes such as `\s` or `\b`. If you use structured `pattern:` form, use single-quoted YAML strings or double each backslash in double-quoted strings.
+
+Malformed `allow_regex` and `deny_regex` values, including unsafe double-quoted YAML regex strings with raw backslashes, are reported during `validate` and `compile` with `POK013`.
 
 ## `includes`
 

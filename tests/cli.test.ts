@@ -249,6 +249,37 @@ context:
     exitSpy.mockRestore();
   });
 
+  it('validate reports double-quoted context regex YAML escapes with a PromptOpsKit error', async () => {
+    await mkdir(join(tmpDir, 'prompts'), { recursive: true });
+    await writeFile(join(tmpDir, 'prompts', 'invalid-yaml-regex.md'), `---
+id: invalid.yaml.regex
+schema_version: 1
+context:
+  inputs:
+    - name: user_message
+      deny_regex:
+        pattern: "(?:ignore|forget)\\s+instructions|(?:^|\\b)system\\s*:"
+---
+
+# Prompt template
+
+{{ user_message }}
+`);
+
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const exitSpy = vi.spyOn(process, 'exit').mockImplementation((code?: string | number | null) => {
+      throw new Error(`process.exit:${code ?? 0}`);
+    }) as never;
+
+    await expect(validate([join(tmpDir, 'prompts')])).rejects.toThrow('process.exit:1');
+
+    const output = errorSpy.mock.calls.flat().join('\n');
+    expect(output).toContain('POK013: Invalid context regex YAML');
+    expect(output).toContain('Use unquoted /pattern/i literal form');
+
+    exitSpy.mockRestore();
+  });
+
   it('validate accepts --source and validates that directory', async () => {
     await mkdir(join(tmpDir, 'custom-prompts'), { recursive: true });
     await writeFile(join(tmpDir, 'custom-prompts', 'hello.md'), `---

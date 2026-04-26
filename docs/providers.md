@@ -149,7 +149,7 @@ interface ProviderAdapter {
 }
 ```
 
-Direct adapter rendering accepts the same `environment` and `tier` selectors as `kit.renderPrompt()`. Use the synchronous `validate()` and `render()` methods when you already have a compiled `ResolvedPromptAsset`, and use the async `validatePrompt()` and `renderPrompt()` helpers when you want the adapter to resolve either markdown source or a compiled artifact from disk. Context input validation runs through the same shared prompt-input wrapper for OpenAI, OpenAI Responses, Anthropic, Gemini, and OpenRouter, so `allow_regex`, `deny_regex`, `non_empty`, `reject_secrets`, and `return_message` behave consistently across all five.
+Direct adapter rendering accepts the same `environment` and `tier` selectors as `kit.renderPrompt()`. Use the synchronous `validate()` and `render()` methods when you already have a compiled `ResolvedPromptAsset`, and use the async `validatePrompt()` and `renderPrompt()` helpers when you want the adapter to resolve either markdown source or a compiled artifact from disk. Context input validation runs through the same shared prompt-input wrapper for OpenAI, OpenAI Responses, Anthropic, Gemini, and OpenRouter, so `allow_regex`, `deny_regex`, `non_empty`, `reject_secrets`, and `return_message` behave consistently across all five. For regex validators authored in YAML, prefer unquoted `/pattern/i` literals so backslash escapes stay copyable.
 
 Server-side example:
 

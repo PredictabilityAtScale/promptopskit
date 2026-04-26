@@ -34,7 +34,7 @@ const result = await kit.validatePrompt('support/reply');
 | `POK010` | Warning | Unknown front matter key (with "did you mean?" suggestion) |
 | `POK011` | Warning | Variable used in template but not declared in `context.inputs` |
 | `POK012` | Warning | Variable declared in `context.inputs` but never used |
-| `POK013` | Error | Invalid context regex pattern (`allow_regex` or `deny_regex`), including prompt id, variable name, field name, and raw configured value |
+| `POK013` | Error | Invalid context regex pattern or YAML regex quoting (`allow_regex` or `deny_regex`), including location and raw configured value when available |
 | `POK014` | Warning | `trim` configured without `max_size` (trim-to-budget skipped) |
 | `POK040` | Warning | Risky context input appears unbounded (`max_size` missing) |
 | `POK041` | Warning | Context input has no hardening validators (`allow/deny regex`, `non_empty`, `reject_secrets`) |
@@ -106,27 +106,27 @@ context:
   inputs:
     - name: user_id
       trim: true
-      allow_regex:
-        pattern: "^user_[a-z0-9]+$"
-        flags: "i"
+      allow_regex: /^user_[a-z0-9]+$/i
     - name: user_message
-      deny_regex: "/(ignore previous instructions|system:)/i"
+      deny_regex: /(?:ignore|disregard|forget)\s+(?:all\s+)?(?:previous|prior|above)\s+instructions|(?:^|\b)(?:system|developer|assistant)\s*:|reveal\s+(?:your|the)\s+(?:system\s+prompt|hidden\s+instructions?)|print\s+(?:the\s+)?(?:policy|rules?)|BEGIN\s+SYSTEM\s+PROMPT|END\s+SYSTEM\s+PROMPT/i
       non_empty: true
       reject_secrets: true
 ```
 
+- Prefer unquoted `/pattern/i` literal form for regex patterns that contain backslashes. If you use a structured `pattern` field, use single-quoted YAML strings or double each backslash in double-quoted strings.
 - `trim` trims values to the `max_size` byte budget before interpolation.
 - `allow_regex` enforces an allowlist pattern before interpolation and throws `POK031` when a value fails validation, unless `return_message` is configured.
 - `deny_regex` enforces a blocklist pattern before interpolation and throws `POK032` when a value matches, unless `return_message` is configured.
 - `non_empty` rejects blank or whitespace-only values with `POK033`, unless `return_message` is configured.
 - `reject_secrets` rejects common secret-like strings with `POK034`, unless `return_message` is configured.
 - During static validation and compilation, malformed `allow_regex` or `deny_regex` patterns are reported as `POK013`.
+- Double-quoted YAML regex strings with raw backslashes, such as `"\s+"`, are reported as `POK013` before YAML parsing. Prefer unquoted `/pattern/i` literals for copyable regexes.
 - During static validation, `trim` without `max_size` returns a `POK014` warning.
 - During static validation, risky unbounded inputs and missing hardening are flagged as `POK040` and `POK041`.
 - During static validation, provider/cache hygiene checks can emit `POK042`–`POK045`.
 - During static validation, inline tool quality checks can emit `POK047`.
 
-Regex compilation errors include the prompt id, variable name, field name, and raw configured value to make bad prompt definitions easy to locate.
+Regex compilation errors include the prompt id, variable name, field name, and raw configured value to make bad prompt definitions easy to locate. YAML quoting errors include the file and line when available.
 
 If a validator declares `return_message`, `renderPrompt()` returns that message in a structured result and omits the provider request instead of throwing.
 

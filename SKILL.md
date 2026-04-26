@@ -105,7 +105,9 @@ Rules:
 - Use object-form inputs with `max_size` when a variable is likely to grow large and should trigger early warnings
 - Use `trim` to enforce byte budgets before interpolation when `max_size` is set
 - Use `allow_regex` for allowlist checks and `deny_regex` for blocklist checks on risky inputs
-- Prefer structured regexes like `{ pattern, flags }`; `/pattern/i` strings are also accepted and normalized internally
+- Prefer unquoted `/pattern/i` literals for regex validators so backslash escapes such as `\s` and `\b` stay copyable from regex tools
+- Use structured regexes like `{ pattern, flags, return_message }` when the validator needs a fallback message or separate flags
+- In structured `pattern:` YAML, use single quotes for patterns with backslashes or double each backslash in double-quoted strings
 - Use `non_empty: true` for required user text and `reject_secrets: true` for common secret redaction checks
 - When the caller should receive a structured fallback message instead of an exception, use object form with `return_message` on `allow_regex`, `deny_regex`, `non_empty`, or `reject_secrets`
 - Escape literal braces with `\{{` and `\}}`
@@ -127,7 +129,7 @@ At render time, callers can also pass `onContextOverflow` to transform oversized
 
 If a validator declares `return_message`, `renderPrompt()` returns that message in a structured result and omits the provider request instead of throwing for that validation failure. Invalid regex definitions still fail during `validate` and `compile` as `POK013` prompt-authoring errors.
 
-Malformed `allow_regex` and `deny_regex` values fail during `validate` and `compile`, not just at render time. When regex compilation fails, the error includes the prompt id, variable name, field name, and raw configured value.
+Malformed `allow_regex` and `deny_regex` values fail during `validate` and `compile`, not just at render time. When regex compilation fails, the error includes the prompt id, variable name, field name, and raw configured value. Double-quoted YAML regex strings with raw backslashes fail as `POK013`; use `/pattern/i`, single-quoted `pattern: '...'`, or doubled backslashes.
 
 Example: this is the minimal valid shape for a prompt that references
 `{{ pull_request }}` even when provider/model are inherited from defaults:

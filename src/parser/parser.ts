@@ -1,6 +1,7 @@
 import matter from 'gray-matter';
 import { PromptAssetSchema } from '../schema/index.js';
 import type { PromptAsset } from '../schema/index.js';
+import { assertRegexFrontMatterQuoting } from './frontmatter-guard.js';
 import { extractSections } from './sections.js';
 
 export interface ParseResult {
@@ -16,6 +17,7 @@ export interface ParseResult {
  * into a validated PromptAsset.
  */
 export function parsePrompt(content: string, filePath?: string): ParseResult {
+  assertRegexFrontMatterQuoting(content, filePath);
   const { data: frontMatter, content: body } = matter(content);
 
   const sections = extractSections(body);

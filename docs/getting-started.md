@@ -47,7 +47,7 @@ context:
       non_empty: true
       reject_secrets: true
     - name: app_context
-      allow_regex: "/^[A-Za-z0-9 _-]+$/i"
+      allow_regex: /^[A-Za-z0-9 _-]+$/i
 includes:
   - ./shared/tone.md
 ---
@@ -121,7 +121,7 @@ Your application owns the HTTP call — PromptOpsKit produces the request body o
 npx promptopskit validate ./prompts
 ```
 
-This checks all `.md` files for schema errors, unknown front matter keys (with "did you mean?" suggestions), variable usage mismatches, and malformed context regex definitions.
+This checks all `.md` files for schema errors, unknown front matter keys (with "did you mean?" suggestions), variable usage mismatches, and malformed context regex definitions. For regex validators, prefer unquoted `/pattern/i` literals so backslash escapes stay copyable; double-quoted YAML regex strings with raw backslashes are reported as `POK013`.
 
 ## Compile for production
 

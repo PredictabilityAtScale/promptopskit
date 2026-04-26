@@ -350,6 +350,32 @@ context:
     expect(result.errors[0]?.message).toContain('field "deny_regex"');
   });
 
+  it('reports double-quoted context regex YAML escapes through the kit API', async () => {
+    await mkdir(join(tmpDir, 'prompts'), { recursive: true });
+    await writeFile(join(tmpDir, 'prompts', 'invalid-yaml-regex.md'), `---
+id: invalid.yaml.regex
+schema_version: 1
+context:
+  inputs:
+    - name: user_message
+      deny_regex:
+        pattern: "(?:ignore|forget)\\s+instructions|(?:^|\\b)system\\s*:"
+---
+
+# Prompt template
+
+{{ user_message }}
+`);
+
+    const kit = createPromptOpsKit({ sourceDir: join(tmpDir, 'prompts') });
+    const result = await kit.validatePrompt('invalid-yaml-regex');
+
+    expect(result.valid).toBe(false);
+    expect(result.errors[0]?.code).toBe('POK013');
+    expect(result.errors[0]?.message).toContain('Invalid context regex YAML');
+    expect(result.errors[0]?.message).toContain('Use unquoted /pattern/i literal form');
+  });
+
   it('reports circular includes through the kit API', async () => {
     await mkdir(join(tmpDir, 'prompts'), { recursive: true });
     await writeFile(join(tmpDir, 'prompts', 'a.md'), `---

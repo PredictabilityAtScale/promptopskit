@@ -234,8 +234,8 @@ Each entry can be either a string variable name or an object with:
 - `name` — the template variable name
 - `max_size` — optional UTF-8 byte limit for the injected value
 - `trim` — optional trim-to-budget (`true`/`end` keeps first bytes, `start` keeps trailing bytes) applied when `max_size` is set
-- `allow_regex` — optional allowlist regex; accepts `"pattern"`, `/pattern/i`, or `{ pattern, flags, return_message? }` and throws `POK031` on mismatch unless `return_message` is configured
-- `deny_regex` — optional blocklist regex; accepts `"pattern"`, `/pattern/i`, or `{ pattern, flags, return_message? }` and throws `POK032` on match unless `return_message` is configured
+- `allow_regex` — optional allowlist regex; accepts `/pattern/i`, `"pattern"`, or `{ pattern, flags, return_message? }` and throws `POK031` on mismatch unless `return_message` is configured
+- `deny_regex` — optional blocklist regex; accepts `/pattern/i`, `"pattern"`, or `{ pattern, flags, return_message? }` and throws `POK032` on match unless `return_message` is configured
 - `non_empty` — optional boolean or object validator; use `true` to throw `POK033`, or `{ return_message }` to short-circuit rendering with a structured message
 - `reject_secrets` — optional boolean or object validator; use `true` to throw `POK034`, or `{ return_message }` to short-circuit rendering with a structured message
 
@@ -245,7 +245,7 @@ The validator warns about:
 
 At render time, PromptOpsKit also emits a non-blocking `POK030` warning when a provided variable exceeds its declared `max_size`. In source and auto modes, the warning is also written to `console.warn` to make local development issues visible early.
 
-Malformed `allow_regex` and `deny_regex` values fail during `validate` and `compile` with `POK013`, so bad patterns are caught before runtime.
+Malformed `allow_regex` and `deny_regex` values fail during `validate` and `compile` with `POK013`, so bad patterns are caught before runtime. Double-quoted YAML regex strings with raw backslashes are also reported as `POK013`; use unquoted `/pattern/i`, single-quoted `pattern: '...'`, or doubled backslashes in double quotes.
 
 Example hardened input definition:
 
@@ -256,15 +256,17 @@ context:
       trim: true
       max_size: 24
       allow_regex:
-        pattern: "^user_[a-z0-9]+$"
-        flags: "i"
-        return_message: "User IDs must use the user_123 format."
+        pattern: '^user_[a-z0-9]+$'
+        flags: 'i'
+        return_message: 'User IDs must use the user_123 format.'
     - name: pull_request_body
       non_empty:
-        return_message: "Pull request content is required."
+        return_message: 'Pull request content is required.'
       reject_secrets: true
-      deny_regex: "/(ignore previous instructions|system:)/i"
+      deny_regex: /(?:ignore|disregard|forget)\s+(?:all\s+)?(?:previous|prior|above)\s+instructions|(?:^|\b)(?:system|developer|assistant)\s*:|reveal\s+(?:your|the)\s+(?:system\s+prompt|hidden\s+instructions?)|print\s+(?:the\s+)?(?:policy|rules?)|BEGIN\s+SYSTEM\s+PROMPT|END\s+SYSTEM\s+PROMPT/i
 ```
+
+Prefer unquoted `/pattern/i` literal form for regex patterns that contain backslashes. If you use a structured `pattern` field, use single-quoted YAML strings or double each backslash in double-quoted strings.
 
 ## Minimal example
 

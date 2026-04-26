@@ -118,7 +118,7 @@ const result = await kit.validatePrompt('support/reply');
 // { valid: boolean, errors: ValidationError[], warnings: ValidationError[] }
 ```
 
-`validatePrompt()` covers schema, include-graph, variable declaration issues, and context regex compilation. Render-time context size warnings are produced by `renderPrompt()`, not validation.
+`validatePrompt()` covers schema, include-graph, variable declaration issues, context regex compilation, and context regex YAML quoting problems. Render-time context size warnings are produced by `renderPrompt()`, not validation.
 
 ## `kit.clearCache()`
 
@@ -223,7 +223,7 @@ const result = validateAsset(asset, ['id', 'schema_version', 'model'], 'hello.md
 // { valid: boolean, errors: ValidationError[], warnings: ValidationError[] }
 ```
 
-`validateAsset()` reports malformed `allow_regex` and `deny_regex` values before runtime, including the prompt id, variable name, field name, and raw configured value in the error message.
+`validateAsset()` reports malformed `allow_regex` and `deny_regex` values before runtime, including the prompt id, variable name, field name, and raw configured value in the error message. When parsing source Markdown through `parsePrompt()`, `loadPromptFile()`, or `validatePrompt()`, parser-level checks also report unsafe double-quoted YAML regex strings with raw backslashes as `POK013`; prefer unquoted `/pattern/i` literal form for copyable regex escapes.
 
 ### `validateAssetWithIncludes(asset, filePath, frontMatterKeys?)`
 

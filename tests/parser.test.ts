@@ -68,4 +68,96 @@ schema_version: 1
 test`, 'prompts/test.md');
     expect(asset.source?.file_path).toBe('prompts/test.md');
   });
+
+  it('rejects unescaped backslashes in double-quoted context regex literals before YAML parsing', () => {
+    const source = `---
+id: bad.regex.yaml
+schema_version: 1
+context:
+  inputs:
+    - name: user_message
+      deny_regex:
+        pattern: "(?:ignore|forget)\\s+(?:previous|above)\\s+instructions|(?:^|\\b)system\\s*:"
+---
+
+# Prompt template
+
+{{ user_message }}
+`;
+
+    expect(() => parsePrompt(source, 'prompts/bad.md')).toThrow(
+      'POK013: Invalid context regex YAML at prompts/bad.md:8',
+    );
+  });
+
+  it('rejects unescaped backslashes in inline object context regex patterns before YAML parsing', () => {
+    const source = `---
+id: bad.inline.regex.yaml
+schema_version: 1
+context:
+  inputs:
+    - name: user_message
+      deny_regex: { pattern: "(?:ignore|forget)\\s+instructions", flags: "i" }
+---
+
+# Prompt template
+
+{{ user_message }}
+`;
+
+    expect(() => parsePrompt(source, 'prompts/bad-inline.md')).toThrow(
+      'POK013: Invalid context regex YAML at prompts/bad-inline.md:7, field "deny_regex.pattern"',
+    );
+  });
+
+  it('allows escaped backslashes in double-quoted context regex patterns', () => {
+    const source = `---
+id: escaped.regex.yaml
+schema_version: 1
+context:
+  inputs:
+    - name: user_message
+      deny_regex:
+        pattern: "(?:ignore|forget)\\\\s+instructions"
+---
+
+# Prompt template
+
+{{ user_message }}
+`;
+
+    const { asset } = parsePrompt(source);
+    const input = asset.context?.inputs?.[0];
+
+    expect(typeof input).toBe('object');
+    expect(input).toMatchObject({
+      name: 'user_message',
+      deny_regex: { pattern: '(?:ignore|forget)\\s+instructions' },
+    });
+  });
+
+  it('allows unquoted regex literal context validators with regex escapes', () => {
+    const source = `---
+id: literal.regex.yaml
+schema_version: 1
+context:
+  inputs:
+    - name: user_message
+      deny_regex: /(?:ignore|forget)\\s+(?:previous|above)\\s+instructions|(?:^|\\b)system\\s*:/i
+---
+
+# Prompt template
+
+{{ user_message }}
+`;
+
+    const { asset } = parsePrompt(source);
+    const input = asset.context?.inputs?.[0];
+
+    expect(typeof input).toBe('object');
+    expect(input).toMatchObject({
+      name: 'user_message',
+      deny_regex: '/(?:ignore|forget)\\s+(?:previous|above)\\s+instructions|(?:^|\\b)system\\s*:/i',
+    });
+  });
 });

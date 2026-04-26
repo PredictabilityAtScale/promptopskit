@@ -283,10 +283,23 @@ export class PromptOpsKit {
    * Validate a prompt file.
    */
   async validatePrompt(promptPath: string): Promise<PromptValidationResult> {
-    const asset = await this.loadPrompt(promptPath);
-
     const sourceFile = resolve(this.config.sourceDir, promptPath + '.md');
-    return validateAssetWithIncludes(asset, sourceFile);
+
+    try {
+      const asset = await this.loadPrompt(promptPath);
+      return validateAssetWithIncludes(asset, sourceFile);
+    } catch (error) {
+      const validationError = toPromptValidationError(error, sourceFile);
+      if (validationError) {
+        return {
+          valid: false,
+          errors: [validationError],
+          warnings: [],
+        };
+      }
+
+      throw error;
+    }
   }
 
   /**
@@ -301,6 +314,23 @@ export class PromptOpsKit {
 
 export function createPromptOpsKit(config: PromptOpsKitConfig = {}): PromptOpsKit {
   return new PromptOpsKit(config);
+}
+
+function toPromptValidationError(error: unknown, filePath: string): PromptValidationResult['errors'][number] | undefined {
+  if (!(error instanceof Error)) {
+    return undefined;
+  }
+
+  const match = error.message.match(/^(POK\d+):\s*(.*)$/);
+  if (!match) {
+    return undefined;
+  }
+
+  return {
+    code: match[1],
+    message: match[2],
+    filePath,
+  };
 }
 
 // --- Standalone convenience ---

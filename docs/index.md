@@ -19,7 +19,7 @@ Open-source developer toolkit for managing prompts, system instructions, tools, 
 - [Schema](./schema.md) — Full YAML front matter schema reference
 - [Vendor Schema Gap Analysis](./vendor-schema-gap-analysis.md) — Snapshot comparison against published OpenAI, Anthropic, Gemini, and OpenRouter schema capabilities
 - [Testing](./testing.md) — Test helpers, mock assets, and sidecar test files
-- [Validation](./validation.md) — Schema validation, "did you mean?" suggestions, variable checks, and early regex validation
+- [Validation](./validation.md) — Schema validation, "did you mean?" suggestions, variable checks, early regex validation, and YAML regex quoting guidance
 
 ## Also see
 

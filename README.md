@@ -94,9 +94,7 @@ context:
       reject_secrets: true
     - name: app_context
       max_size: 2000
-      allow_regex:
-        pattern: "^[A-Za-z0-9 _-]+$"
-        flags: "i"
+      allow_regex: /^[A-Za-z0-9 _-]+$/i
 includes:
   - ./shared/tone.md
 ---
@@ -164,7 +162,7 @@ Supported values for `warnings.contextSize` are `auto`, `off`, `result-only`, `c
 - **Provider-aware input caching controls** — optional `cache` front matter maps to OpenAI prompt cache hints, Anthropic `cache_control`, and Gemini `cachedContent`
 - **Vendor escape hatch** — optional `raw.<provider>` blocks shallow-merge unmodeled request-body fields into the final provider payload
 - **Validation** — Zod schema validation, Levenshtein-based "did you mean?" for typos, variable usage checks
-- **Context hardening** — structured regexes with flags, `/pattern/i` convenience syntax, and built-in `non_empty` / `reject_secrets` validators
+- **Context hardening** — copyable `/pattern/i` regex literals, structured regexes with `return_message`, and built-in `non_empty` / `reject_secrets` validators
 - **Optional short-circuit messages** — validators can return a structured `returnMessage` instead of throwing when configured
 - **Context size guardrails** — optional per-input `max_size` metadata with non-blocking render-time warnings
 - **Warning controls** — top-level config can suppress or emit context size warnings differently in dev and prod
@@ -615,6 +613,8 @@ Prompt files use YAML front matter with these fields:
 | `environments` | `object` | Named environment overrides |
 | `tiers` | `object` | Named tier overrides |
 | `metadata` | `object` | `{ owner, tags, review_required, stable }` |
+
+For `allow_regex` and `deny_regex`, prefer unquoted `/pattern/i` literal form so regex escapes such as `\s` and `\b` stay copyable from tools like regex101. If you use structured `pattern:` form, use single-quoted YAML strings or double each backslash in double-quoted strings.
 
 ## Website
 

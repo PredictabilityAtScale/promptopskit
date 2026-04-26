@@ -57,7 +57,7 @@ Unknown front matter keys are checked against known keys using Levenshtein dista
 ⚠ POK010: Unknown front matter field: "tempreature" (Did you mean "temperature"?)
 ```
 
-Known front matter keys: `id`, `schema_version`, `description`, `provider`, `model`, `fallback_models`, `reasoning`, `sampling`, `response`, `tools`, `mcp`, `context`, `includes`, `environments`, `tiers`, `metadata`, `cache`, `provider_options`.
+Known front matter keys: `id`, `schema_version`, `description`, `provider`, `model`, `fallback_models`, `reasoning`, `sampling`, `response`, `tools`, `mcp`, `context`, `includes`, `environments`, `tiers`, `metadata`, `cache`, `provider_options`, `raw`.
 
 ## Variable validation
 

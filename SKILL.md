@@ -63,10 +63,11 @@ the fields required by that specific file:
 | `fallback_models` | string[] | no | Ordered fallback model list |
 | `reasoning` | object | no | `{ effort: low|medium|high, budget_tokens: number }` |
 | `sampling` | object | no | `{ temperature, top_p, frequency_penalty, presence_penalty, stop, max_output_tokens }` |
-| `response` | object | no | `{ format: text|json|markdown, stream: boolean, schema?: object, schema_name?: string, schema_strict?: boolean }` |
+| `response` | object | no | `{ format: text|json|markdown, stream: boolean, schema?: object, schema_name?: string, schema_description?: string, schema_strict?: boolean }` |
 | `cache` | object | no | Provider-specific cache controls (`openai`, `anthropic`, `gemini`/`google`) |
 | `tools` | array | no | Tool names (strings) or inline definitions with `{ name, description, input_schema }` |
-| `provider_options` | object | no | Provider-specific advanced options (`anthropic`, `gemini`) |
+| `provider_options` | object | no | Provider-specific advanced options (`anthropic`, `gemini`, `openrouter`) |
+| `raw` | object | no | Provider-scoped request-body passthrough for unmodeled vendor fields |
 | `mcp` | object | no | `{ servers: [string | { name, config }] }` |
 | `context.inputs` | `Array<string | { name, max_size?, trim?, allow_regex?, deny_regex?, non_empty?, reject_secrets? }>` | no | Declared variable names used in templates, with optional size budgets and runtime hardening controls |
 | `context.history` | object | no | `{ max_items: number }` |
@@ -232,9 +233,66 @@ tiers:
 ```
 
 Overridable fields: `model`, `fallback_models`, `reasoning`, `sampling`,
-`response`, `cache`, `tools`, `provider_options`.
+`response`, `cache`, `raw`, `tools`, `provider_options`.
 
 Override application order: **base → environment → tier → runtime**.
+
+---
+
+## Provider-specific fields
+
+Prefer portable fields first:
+
+- Use `sampling` for common sampling controls
+- Use `response.schema`, `response.schema_name`, `response.schema_description`, and `response.schema_strict` for structured output when possible
+- Use `cache` for provider cache hints
+- Use `tools` for tool definitions
+
+Treat `response.schema` as the provider-neutral JSON Schema contract. The adapters emit it through provider-specific request fields: OpenAI/OpenRouter `response_format`, OpenAI Responses `text.format`, Anthropic `output_config.format`, and Gemini `generationConfig.responseJsonSchema`.
+
+Use `provider_options` for known non-portable mappings:
+
+```yaml
+provider_options:
+  anthropic:
+    top_k: 40
+    tool_choice:
+      type: auto
+    output_config:
+      format:
+        type: json_schema
+        schema:
+          type: object
+  gemini:
+    # Use only when Gemini's native schema dialect is required.
+    response_schema:
+      type: object
+    response_json_schema:
+      type: object
+  openrouter:
+    provider:
+      order: ["anthropic", "openai"]
+    transforms: ["middle-out"]
+```
+
+Use `raw` only when a vendor request-body field is important and PromptOpsKit does not model it yet:
+
+```yaml
+raw:
+  openai:
+    service_tier: flex
+  anthropic:
+    service_tier: auto
+  gemini:
+    safetySettings:
+      - category: HARM_CATEGORY_DANGEROUS_CONTENT
+        threshold: BLOCK_ONLY_HIGH
+  openrouter:
+    usage:
+      include: true
+```
+
+Raw blocks are provider-scoped (`openai`, `openai-responses`/`openai_responses`, `anthropic`, `gemini`/`google`, `openrouter`) and are shallow-merged into the final request body after normalized fields. When adding `raw`, include a short note in `# Notes` explaining why a first-class field is not being used.
 
 ---
 

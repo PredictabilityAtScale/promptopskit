@@ -8,6 +8,7 @@ import type {
 import { renderSections } from '../renderer/index.js';
 import { resolveAssetForProvider } from './resolve-asset.js';
 import { withPromptInputSupport } from './prompt-input.js';
+import { applyRawProviderBody } from './raw.js';
 
 /**
  * OpenAI provider adapter.
@@ -87,6 +88,7 @@ export const openaiAdapter: ProviderAdapter = withPromptInputSupport({
         type: 'json_schema',
         json_schema: {
           name: resolvedAsset.response.schema_name ?? `${resolvedAsset.id}_response`,
+          ...(resolvedAsset.response.schema_description ? { description: resolvedAsset.response.schema_description } : {}),
           schema: resolvedAsset.response.schema,
           strict: resolvedAsset.response.schema_strict ?? true,
         },
@@ -128,7 +130,7 @@ export const openaiAdapter: ProviderAdapter = withPromptInputSupport({
     }
 
     return {
-      body,
+      body: applyRawProviderBody(body, resolvedAsset, 'openai'),
       provider: 'openai',
       model: resolvedAsset.model ?? 'unknown',
     };

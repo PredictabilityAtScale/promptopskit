@@ -17,7 +17,8 @@ Prompt files use YAML front matter. This page documents every supported field.
 | `response` | `object` | No | Response format and streaming |
 | `cache` | `object` | No | Provider-specific prompt/context caching options |
 | `tools` | `array` | No | Tool references (strings or inline definitions) |
-| `provider_options` | `object` | No | Provider-specific advanced options (`anthropic`, `gemini`) |
+| `provider_options` | `object` | No | Provider-specific advanced options (`anthropic`, `gemini`, `openrouter`) |
+| `raw` | `object` | No | Provider-scoped request-body passthrough for fields PromptOpsKit does not model yet |
 | `mcp` | `object` | No | MCP server references |
 | `context` | `object` | No | Declare expected variables and history settings |
 | `includes` | `string[]` | No | Paths to included prompt files (relative to this file) |
@@ -92,6 +93,7 @@ response:
       answer:
         type: string
   schema_name: support_reply
+  schema_description: Support reply payload
   schema_strict: true
 ```
 
@@ -99,9 +101,18 @@ response:
 |-------|------|-------------|
 | `format` | `'text' \| 'json' \| 'markdown'` | Response format |
 | `stream` | `boolean` | Enable streaming |
-| `schema` | `object` | Portable JSON schema object for structured output |
+| `schema` | `object` | Portable JSON Schema object for structured output |
 | `schema_name` | `string` | Optional schema name (used by OpenAI/OpenAI Responses) |
+| `schema_description` | `string` | Optional schema description (used by OpenAI/OpenAI Responses/OpenRouter structured outputs) |
 | `schema_strict` | `boolean` | Strict schema enforcement toggle (OpenAI/OpenAI Responses) |
+
+Provider mapping:
+- **OpenAI / OpenRouter**: `response.schema` maps to `response_format.json_schema`; `schema_description` maps to `json_schema.description`.
+- **OpenAI Responses**: `response.schema` maps to `text.format`; `schema_description` maps to `text.format.description`.
+- **Anthropic**: `response.schema` maps to `output_config.format` with `type: json_schema` and `schema`.
+- **Gemini**: `response.schema` maps to `generationConfig.responseJsonSchema`.
+
+Use `response.schema` for provider-neutral JSON Schema. Use provider-specific schema fields only for exceptional cases where a vendor's native schema dialect is required.
 
 ## `provider_options`
 
@@ -113,27 +124,77 @@ provider_options:
     top_k: 40
     tool_choice:
       type: auto
+    output_config:
+      format:
+        type: json_schema
+        schema:
+          type: object
   gemini:
     candidate_count: 1
     top_k: 32
     seed: 42
+    # Use only when Gemini's native responseSchema dialect is required.
     response_schema:
+      type: object
+    # Use only for a Gemini-specific JSON Schema override.
+    response_json_schema:
       type: object
     response_modalities:
       - TEXT
     thinking_budget_tokens: 1024
+  openrouter:
+    provider:
+      order:
+        - anthropic
+        - openai
+    transforms:
+      - middle-out
+    models:
+      - anthropic/claude-sonnet-4.5
+      - openai/gpt-4o
 ```
 
 | Field | Type | Description |
 |-------|------|-------------|
 | `anthropic.top_k` | `number` | Anthropic `top_k` sampling control (`>= 0`) |
 | `anthropic.tool_choice` | `object` | Anthropic tool choice object |
+| `anthropic.output_config` | `object` | Anthropic-native structured output config; overrides portable `response.schema` mapping |
 | `gemini.candidate_count` | `number` | Gemini candidate count (`> 0`) |
 | `gemini.top_k` | `number` | Gemini top-k sampling control (`>= 0`) |
 | `gemini.seed` | `number` | Gemini generation seed |
-| `gemini.response_schema` | `object` | Gemini-native response schema |
+| `gemini.response_schema` | `object` | Gemini-native `responseSchema` dialect for exceptional Gemini-only prompts |
+| `gemini.response_json_schema` | `object` | Gemini JSON Schema override mapped to `generationConfig.responseJsonSchema`; overrides portable `response.schema` for Gemini |
 | `gemini.response_modalities` | `string[]` | Gemini response modalities |
 | `gemini.thinking_budget_tokens` | `number` | Gemini thinking budget (`> 0`) |
+| `openrouter.provider` | `object` | OpenRouter provider routing preferences |
+| `openrouter.transforms` | `string[]` | OpenRouter transforms |
+| `openrouter.plugins` | `object[]` | OpenRouter plugin definitions |
+| `openrouter.models` | `string[]` | OpenRouter fallback model list |
+
+## `raw`
+
+Use `raw` as an explicit vendor escape hatch when an API adds a request-body field before PromptOpsKit has a first-class schema field for it.
+
+```yaml
+raw:
+  openai:
+    service_tier: flex
+  openai-responses:
+    truncation: auto
+  anthropic:
+    service_tier: auto
+  gemini:
+    safetySettings:
+      - category: HARM_CATEGORY_DANGEROUS_CONTENT
+        threshold: BLOCK_ONLY_HIGH
+  openrouter:
+    usage:
+      include: true
+```
+
+Supported keys: `openai`, `openai-responses` (or `openai_responses`), `anthropic`, `gemini` (or `google`), and `openrouter`.
+
+Raw fields are shallow-merged into the final provider request body after normalized fields and `provider_options`. That means `raw` can intentionally override generated fields such as `temperature`, but it should be used sparingly and documented in `# Notes` because it is provider-specific.
 
 ## `tools`
 
@@ -266,7 +327,7 @@ tiers:
     model: gpt-5.4
 ```
 
-Each environment/tier key maps to an overrides object. Overridable fields: `model`, `fallback_models`, `reasoning`, `sampling`, `response`, `cache`, `tools`, `provider_options`. See [Overrides](./overrides.md).
+Each environment/tier key maps to an overrides object. Overridable fields: `model`, `fallback_models`, `reasoning`, `sampling`, `response`, `cache`, `raw`, `tools`, `provider_options`. See [Overrides](./overrides.md).
 
 ## `metadata`
 

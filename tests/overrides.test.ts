@@ -49,4 +49,42 @@ describe('applyOverrides', () => {
     const result = applyOverrides(base, { environment: 'staging' });
     expect(result.model).toBe('gpt-5.4');
   });
+
+  it('shallow-merges cache, raw, and provider option blocks', () => {
+    const result = applyOverrides(
+      {
+        ...base,
+        cache: {
+          openai: { prompt_cache_key: 'base-key' },
+        },
+        raw: {
+          openai: { service_tier: 'default', user: 'base-user' },
+        },
+        provider_options: {
+          openrouter: { provider: { order: ['openai'] } },
+        },
+        environments: {
+          dev: {
+            cache: {
+              openai: { retention: '24h' },
+            },
+            raw: {
+              openai: { service_tier: 'flex' },
+            },
+            provider_options: {
+              openrouter: { transforms: ['middle-out'] },
+            },
+          },
+        },
+      },
+      { environment: 'dev' },
+    );
+
+    expect(result.cache?.openai).toEqual({ prompt_cache_key: 'base-key', retention: '24h' });
+    expect(result.raw?.openai).toEqual({ service_tier: 'flex', user: 'base-user' });
+    expect(result.provider_options?.openrouter).toEqual({
+      provider: { order: ['openai'] },
+      transforms: ['middle-out'],
+    });
+  });
 });

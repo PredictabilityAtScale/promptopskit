@@ -49,6 +49,7 @@ export const ResponseSchema = z.object({
   stream: z.boolean().optional(),
   schema: z.record(z.unknown()).optional(),
   schema_name: z.string().optional(),
+  schema_description: z.string().optional(),
   schema_strict: z.boolean().optional(),
 });
 
@@ -58,6 +59,7 @@ export const ResponseSchema = z.object({
 export const AnthropicProviderOptionsSchema = z.object({
   top_k: z.number().int().min(0).optional(),
   tool_choice: z.record(z.unknown()).optional(),
+  output_config: z.record(z.unknown()).optional(),
 });
 
 export const GeminiProviderOptionsSchema = z.object({
@@ -65,14 +67,39 @@ export const GeminiProviderOptionsSchema = z.object({
   top_k: z.number().int().min(0).optional(),
   seed: z.number().int().optional(),
   response_schema: z.record(z.unknown()).optional(),
+  response_json_schema: z.record(z.unknown()).optional(),
   response_modalities: z.array(z.string()).optional(),
   thinking_budget_tokens: z.number().int().positive().optional(),
+});
+
+export const OpenRouterProviderOptionsSchema = z.object({
+  provider: z.record(z.unknown()).optional(),
+  transforms: z.array(z.string()).optional(),
+  plugins: z.array(z.record(z.unknown())).optional(),
+  models: z.array(z.string()).optional(),
 });
 
 export const ProviderOptionsSchema = z.object({
   anthropic: AnthropicProviderOptionsSchema.optional(),
   gemini: GeminiProviderOptionsSchema.optional(),
+  openrouter: OpenRouterProviderOptionsSchema.optional(),
 });
+
+export type ProviderOptions = z.infer<typeof ProviderOptionsSchema>;
+
+// --- Raw provider body passthrough ---
+
+export const RawProviderBodySchema = z.object({
+  openai: z.record(z.unknown()).optional(),
+  'openai-responses': z.record(z.unknown()).optional(),
+  openai_responses: z.record(z.unknown()).optional(),
+  anthropic: z.record(z.unknown()).optional(),
+  gemini: z.record(z.unknown()).optional(),
+  google: z.record(z.unknown()).optional(),
+  openrouter: z.record(z.unknown()).optional(),
+});
+
+export type RawProviderBody = z.infer<typeof RawProviderBodySchema>;
 
 // --- Cache controls ---
 
@@ -171,6 +198,7 @@ export const PromptAssetOverridesSchema = z.object({
   sampling: SamplingSchema.optional(),
   response: ResponseSchema.optional(),
   cache: CacheSchema.optional(),
+  raw: RawProviderBodySchema.optional(),
   tools: z.array(ToolRefSchema).optional(),
   provider_options: ProviderOptionsSchema.optional(),
 });
@@ -221,6 +249,7 @@ export const PromptAssetSchema = z.object({
   sampling: SamplingSchema.optional(),
   response: ResponseSchema.optional(),
   cache: CacheSchema.optional(),
+  raw: RawProviderBodySchema.optional(),
 
   tools: z.array(ToolRefSchema).optional(),
   provider_options: ProviderOptionsSchema.optional(),

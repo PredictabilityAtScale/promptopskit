@@ -8,6 +8,7 @@ import type {
 import { renderSections } from '../renderer/index.js';
 import { resolveAssetForProvider } from './resolve-asset.js';
 import { withPromptInputSupport } from './prompt-input.js';
+import { applyRawProviderBody } from './raw.js';
 
 /**
  * Anthropic provider adapter.
@@ -34,8 +35,8 @@ export const anthropicAdapter: ProviderAdapter = withPromptInputSupport({
     if (resolvedAsset.reasoning?.effort !== undefined) {
       warnings.push('Anthropic uses budget_tokens for thinking, not effort. effort will be mapped approximately.');
     }
-    if (resolvedAsset.response?.schema !== undefined) {
-      warnings.push('Anthropic does not support response.schema structured output in this adapter. It will be ignored.');
+    if (resolvedAsset.response?.schema !== undefined && resolvedAsset.response?.format !== 'json') {
+      warnings.push('Anthropic response.schema is mapped to output_config.format and should usually be paired with response.format: json.');
     }
 
     if (resolvedAsset.provider_options?.anthropic?.top_k !== undefined && resolvedAsset.provider_options.anthropic.top_k < 0) {
@@ -120,6 +121,17 @@ export const anthropicAdapter: ProviderAdapter = withPromptInputSupport({
       body.top_k = resolvedAsset.provider_options.anthropic.top_k;
     }
 
+    if (resolvedAsset.provider_options?.anthropic?.output_config !== undefined) {
+      body.output_config = resolvedAsset.provider_options.anthropic.output_config;
+    } else if (resolvedAsset.response?.schema !== undefined) {
+      body.output_config = {
+        format: {
+          type: 'json_schema',
+          schema: resolvedAsset.response.schema,
+        },
+      };
+    }
+
     // Streaming
     if (resolvedAsset.response?.stream !== undefined) {
       body.stream = resolvedAsset.response.stream;
@@ -163,7 +175,7 @@ export const anthropicAdapter: ProviderAdapter = withPromptInputSupport({
     }
 
     return {
-      body,
+      body: applyRawProviderBody(body, resolvedAsset, 'anthropic'),
       provider: 'anthropic',
       model: resolvedAsset.model ?? 'unknown',
     };

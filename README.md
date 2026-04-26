@@ -162,6 +162,7 @@ Supported values for `warnings.contextSize` are `auto`, `off`, `result-only`, `c
 - **Overrides** — Environment and tier-based overrides (base → env → tier → runtime)
 - **5 provider adapters** — OpenAI (Chat), OpenAI (Responses), Anthropic, Gemini, OpenRouter — body-only output
 - **Provider-aware input caching controls** — optional `cache` front matter maps to OpenAI prompt cache hints, Anthropic `cache_control`, and Gemini `cachedContent`
+- **Vendor escape hatch** — optional `raw.<provider>` blocks shallow-merge unmodeled request-body fields into the final provider payload
 - **Validation** — Zod schema validation, Levenshtein-based "did you mean?" for typos, variable usage checks
 - **Context hardening** — structured regexes with flags, `/pattern/i` convenience syntax, and built-in `non_empty` / `reject_secrets` validators
 - **Optional short-circuit messages** — validators can return a structured `returnMessage` instead of throwing when configured
@@ -249,6 +250,48 @@ const request = openaiAdapter.render(prompt, {
 ```
 
 In browser or client-side code, keep provider credentials on the server. Use the rendered request body with your own server endpoint, server action, or edge function rather than calling a provider directly from the client.
+
+### Provider-specific fields and raw passthrough
+
+Use normalized fields first (`sampling`, `response`, `cache`, `tools`) so prompts stay portable. `response.schema` is the neutral JSON Schema path; adapters emit it as OpenAI/OpenRouter `response_format`, OpenAI Responses `text.format`, Anthropic `output_config.format`, and Gemini `generationConfig.responseJsonSchema`.
+
+Use `provider_options` when PromptOpsKit has a known provider-specific mapping, such as Anthropic `top_k`, Gemini's native `response_schema`, or OpenRouter routing fields.
+
+```yaml
+response:
+  format: json
+  schema_name: support_reply
+  schema_description: Structured support reply
+  schema:
+    type: object
+    properties:
+      answer:
+        type: string
+provider_options:
+  openrouter:
+    provider:
+      order: ["anthropic", "openai"]
+    transforms: ["middle-out"]
+```
+
+When a provider adds a body field PromptOpsKit does not model yet, use `raw`:
+
+```yaml
+raw:
+  openai:
+    service_tier: flex
+  anthropic:
+    service_tier: auto
+  gemini:
+    safetySettings:
+      - category: HARM_CATEGORY_DANGEROUS_CONTENT
+        threshold: BLOCK_ONLY_HIGH
+  openrouter:
+    usage:
+      include: true
+```
+
+Each adapter reads only its matching raw block and shallow-merges it into the generated request body after normalized mappings. This is intentionally an escape hatch; prefer first-class fields when they exist.
 
 On the server, adapters also provide async prompt-aware helpers so you can use the default `./prompts` and `./.generated-prompts/json` directories without creating a `PromptOpsKit` instance:
 
@@ -561,10 +604,11 @@ Prompt files use YAML front matter with these fields:
 | `fallback_models` | `string[]` | Fallback model list |
 | `reasoning` | `object` | `{ effort, budget_tokens }` |
 | `sampling` | `object` | `{ temperature, top_p, frequency_penalty, presence_penalty, stop, max_output_tokens }` |
-| `response` | `object` | `{ format, stream, schema, schema_name, schema_strict }` |
+| `response` | `object` | `{ format, stream, schema, schema_name, schema_description, schema_strict }` |
 | `cache` | `object` | Provider-specific cache controls (`openai`, `anthropic`, `gemini`/`google`) |
 | `tools` | `array` | Tool references (string names or inline definitions) |
-| `provider_options` | `object` | Provider-specific non-portable options (`anthropic`, `gemini`) |
+| `provider_options` | `object` | Provider-specific non-portable options (`anthropic`, `gemini`, `openrouter`) |
+| `raw` | `object` | Provider-scoped request-body passthrough (`openai`, `openai-responses`, `anthropic`, `gemini`/`google`, `openrouter`) |
 | `mcp` | `object` | MCP server references |
 | `context` | `object` | `{ inputs, history }` — declare expected variables, with optional per-input `max_size`, `trim`, structured or literal `allow_regex`/`deny_regex`, and built-in `non_empty` / `reject_secrets` validators |
 | `includes` | `string[]` | Paths to included prompt files |

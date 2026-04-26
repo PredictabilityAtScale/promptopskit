@@ -132,6 +132,44 @@ cache:
 - `gemini.cached_content` (or `google.cached_content`) maps to `cachedContent` for requests that reuse a previously created Gemini cache.
 - You can safely include multiple provider blocks in the same prompt. Each adapter only reads its own block (`openai`, `anthropic`, or `gemini`/`google`) and ignores the others.
 
+## Structured JSON output
+
+Use the neutral `response` block for structured JSON whenever possible:
+
+```yaml
+response:
+  format: json
+  schema_name: support_reply
+  schema_description: Structured support reply
+  schema:
+    type: object
+    properties:
+      answer:
+        type: string
+```
+
+Adapters emit this JSON Schema through the provider-specific body shape: OpenAI/OpenRouter `response_format`, OpenAI Responses `text.format`, Anthropic `output_config.format`, and Gemini `generationConfig.responseJsonSchema`.
+
+Use provider-specific schema fields only when the vendor dialect itself matters, such as `provider_options.gemini.response_schema` for Gemini's native schema form.
+
+## Raw provider passthrough
+
+Use `raw` when a provider supports a request-body field that PromptOpsKit does not expose yet:
+
+```yaml
+raw:
+  openai:
+    service_tier: flex
+  anthropic:
+    service_tier: auto
+  gemini:
+    safetySettings:
+      - category: HARM_CATEGORY_DANGEROUS_CONTENT
+        threshold: BLOCK_ONLY_HIGH
+```
+
+Each adapter reads only its own raw block. Raw values are shallow-merged into the generated body after normalized mappings, so they can override generated fields. Prefer normalized fields (`sampling`, `response`, `cache`, `tools`) and `provider_options` first; reserve `raw` for vendor-specific fields that would otherwise be impossible to send.
+
 ## Sections
 
 The Markdown body is split on **H1 headings** into named sections. Three section names are recognized (case-insensitive):
@@ -261,7 +299,20 @@ sampling:
   temperature: 0.7
   max_output_tokens: 2048
 response:
-  format: text
+  format: json
+  schema_name: support_reply
+  schema_description: Structured support reply
+  schema:
+    type: object
+    properties:
+      answer:
+        type: string
+    required:
+      - answer
+provider_options:
+  openrouter:
+    transforms:
+      - middle-out
 context:
   inputs:
     - user_message
@@ -285,6 +336,9 @@ tiers:
     model: gpt-5.4-mini
   pro:
     model: gpt-5.4
+raw:
+  openai:
+    service_tier: flex
 metadata:
   owner: support-platform
   review_required: true

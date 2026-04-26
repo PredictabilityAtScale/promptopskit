@@ -247,7 +247,9 @@ const request = adapter.render(resolvedAsset, {
 });
 ```
 
-`RuntimeRenderOptions` for direct adapter rendering supports `environment`, `tier`, `runtime`, `variables`, `onContextOverflow`, `history`, `toolRegistry`, and `strict`.
+`RuntimeRenderOptions` for direct adapter rendering supports `environment`, `tier`, `runtime`, `variables`, `onContextOverflow`, `history`, `toolRegistry`, `strict`, and `openaiResponses`.
+
+Runtime overrides can include the same overridable front matter fields as `environments` and `tiers`, including `raw` provider passthrough blocks. Raw blocks are merged into provider request bodies after normalized fields and provider-specific options.
 
 ## Standalone `renderPrompt`
 

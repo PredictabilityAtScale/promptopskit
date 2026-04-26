@@ -8,6 +8,7 @@ import type {
 import { renderSections } from '../renderer/index.js';
 import { resolveAssetForProvider } from './resolve-asset.js';
 import { withPromptInputSupport } from './prompt-input.js';
+import { applyRawProviderBody } from './raw.js';
 
 /**
  * Google Gemini provider adapter.
@@ -95,10 +96,11 @@ export const geminiAdapter: ProviderAdapter = withPromptInputSupport({
     if (geminiOptions?.candidate_count !== undefined) generationConfig.candidateCount = geminiOptions.candidate_count;
     if (geminiOptions?.top_k !== undefined) generationConfig.topK = geminiOptions.top_k;
     if (geminiOptions?.seed !== undefined) generationConfig.seed = geminiOptions.seed;
-    if (geminiOptions?.response_schema !== undefined) generationConfig.responseSchema = geminiOptions.response_schema;
     if (geminiOptions?.response_modalities !== undefined) generationConfig.responseModalities = geminiOptions.response_modalities;
 
-    if (resolvedAsset.response?.schema !== undefined) generationConfig.responseSchema = resolvedAsset.response.schema;
+    if (resolvedAsset.response?.schema !== undefined) generationConfig.responseJsonSchema = resolvedAsset.response.schema;
+    if (geminiOptions?.response_schema !== undefined) generationConfig.responseSchema = geminiOptions.response_schema;
+    if (geminiOptions?.response_json_schema !== undefined) generationConfig.responseJsonSchema = geminiOptions.response_json_schema;
 
     if (resolvedAsset.response?.format === 'json') {
       generationConfig.responseMimeType = 'application/json';
@@ -141,7 +143,7 @@ export const geminiAdapter: ProviderAdapter = withPromptInputSupport({
     }
 
     return {
-      body,
+      body: applyRawProviderBody(body, resolvedAsset, 'gemini'),
       provider: 'gemini',
       model: resolvedAsset.model ?? 'unknown',
     };

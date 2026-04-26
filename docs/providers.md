@@ -17,7 +17,7 @@ PromptOpsKit ships five provider adapters. Direct `render()` calls always produc
 
 PromptOpsKit already normalizes common settings across providers via front matter fields like `sampling`, `reasoning`, `response`, and `tools`.
 
-When a provider has extra knobs with no clean cross-provider equivalent, use `provider_options`:
+When a provider has extra knobs with no clean cross-provider equivalent but PromptOpsKit knows how to place them, use `provider_options`:
 
 ```yaml
 provider_options:
@@ -31,9 +31,56 @@ provider_options:
     seed: 42
     response_modalities: ["TEXT"]
     thinking_budget_tokens: 2048
+  openrouter:
+    provider:
+      order: ["anthropic", "openai"]
+    transforms: ["middle-out"]
 ```
 
 This keeps portable settings in normalized fields, while still exposing advanced provider-specific controls.
+
+For structured JSON output, prefer the neutral `response` block:
+
+```yaml
+response:
+  format: json
+  schema_name: support_reply
+  schema_description: Structured support reply
+  schema:
+    type: object
+    properties:
+      answer:
+        type: string
+```
+
+Adapters emit that neutral JSON Schema through each provider's native request shape:
+
+| Provider | Emitted field |
+|----------|---------------|
+| `openai` / `openrouter` | `response_format: { type: "json_schema", json_schema: { name, description?, schema, strict } }` |
+| `openai-responses` | `text: { format: { type: "json_schema", name, description?, schema, strict } }` |
+| `anthropic` | `output_config: { format: { type: "json_schema", schema } }` |
+| `gemini` / `google` | `generationConfig.responseJsonSchema` |
+
+Only drop to provider-specific schema fields for exceptional dialect needs, such as Gemini's native `provider_options.gemini.response_schema` or an Anthropic-native `provider_options.anthropic.output_config`.
+
+When a vendor adds a request-body field that PromptOpsKit does not model yet, use the explicit `raw` passthrough:
+
+```yaml
+raw:
+  openai:
+    service_tier: flex
+  anthropic:
+    service_tier: auto
+  gemini:
+    safetySettings:
+      - category: HARM_CATEGORY_DANGEROUS_CONTENT
+        threshold: BLOCK_ONLY_HIGH
+```
+
+`raw.<provider>` is shallow-merged into the final request body after normalized fields and `provider_options`, so it can intentionally override generated fields. Treat it as a last-resort escape hatch and document why the raw field is present.
+
+GitHub Models `.prompt.yml` files use a simpler top-level shape (`model`, `modelParameters`, `messages`, plus optional test/evaluator data) and do not currently define an equivalent raw vendor-body block. PromptOpsKit keeps `raw` explicit because these prompt assets are meant to render production request bodies directly.
 
 
 ## Streaming support
@@ -74,6 +121,7 @@ const { request } = result;
 
 The provider passed to `renderPrompt` determines which adapter shapes the body. The `provider` field in front matter is informational — the render-time provider controls output.
 When a prompt includes multiple cache blocks (for example `cache.openai` + `cache.anthropic`), adapters ignore non-matching blocks so cross-provider settings never leak into the wrong payload.
+When a prompt includes multiple raw blocks, adapters also read only the block for the selected provider (`raw.openai`, `raw.openai-responses`, `raw.anthropic`, `raw.gemini`/`raw.google`, or `raw.openrouter`).
 
 ## Direct adapter imports
 
@@ -257,6 +305,7 @@ Field mapping (differences from `openai`):
 | `reasoning.effort` | `reasoning: { effort }` |
 | `response.format: json` | `text: { format: { type: "json_object" } }` |
 | `response.schema` | `text: { format: { type: "json_schema", name, schema, strict } }` |
+| `response.schema_description` | `text: { format: { description } }` |
 | `sections.system_instructions` | `instructions` (top-level) |
 | `history + prompt_template` | `input` items instead of `messages` |
 | `tools` | Responses function tools (`{ type, name, description, parameters }`) |
@@ -285,6 +334,7 @@ Field mapping:
 | `reasoning.effort` | `reasoning_effort` |
 | `response.format: json` | `response_format: { type: "json_object" }` |
 | `response.schema` | `response_format: { type: "json_schema", json_schema: { name, schema, strict } }` |
+| `response.schema_description` | `response_format.json_schema.description` |
 | `response.stream` | `stream` |
 | `cache.openai.prompt_cache_key` | `prompt_cache_key` |
 | `cache.openai.retention` | `prompt_cache_retention` |
@@ -321,8 +371,11 @@ Key differences from OpenAI:
 - `cache.anthropic.mode: automatic` maps to top-level `cache_control`.
 - `cache.anthropic.mode: explicit` applies `cache_control` at block level for selected sections/tools.
 - `cache.anthropic.ttl` supports `5m` (default) or `1h`.
+- `response.schema` maps to `output_config.format: { type: "json_schema", schema }`.
+- `response.schema_name` and `response.schema_description` are ignored by Anthropic because `output_config.format` only carries the schema contract.
 - `provider_options.anthropic.top_k` maps to `top_k`.
 - `provider_options.anthropic.tool_choice` maps to `tool_choice`.
+- `provider_options.anthropic.output_config` maps directly to `output_config` and overrides the portable `response.schema` mapping.
 
 Warnings:
 - `frequency_penalty` and `presence_penalty` are not supported — ignored with a warning.
@@ -355,14 +408,15 @@ Key differences:
 - Sampling parameters are nested under `generationConfig`.
 - `top_p` maps to `topP`, `max_output_tokens` maps to `maxOutputTokens`, `stop` maps to `stopSequences`.
 - `response.format: json` maps to `generationConfig.responseMimeType: "application/json"`.
-- `response.schema` maps to `generationConfig.responseSchema` (portable normalized schema shape).
+- `response.schema` maps to `generationConfig.responseJsonSchema` (portable JSON Schema shape).
 - `response.stream` is not body-mapped for Gemini; use the streaming endpoint (`streamGenerateContent`).
 - `reasoning.effort` maps to `thinkingConfig.thinkingBudget` (high=8192, medium=4096, low=1024).
 - `cache.gemini.cached_content` (or `cache.google.cached_content`) maps to top-level `cachedContent`.
 - `provider_options.gemini.candidate_count` maps to `generationConfig.candidateCount`.
 - `provider_options.gemini.top_k` maps to `generationConfig.topK`.
 - `provider_options.gemini.seed` maps to `generationConfig.seed`.
-- `provider_options.gemini.response_schema` maps to `generationConfig.responseSchema`.
+- `provider_options.gemini.response_schema` maps to Gemini-native `generationConfig.responseSchema`.
+- `provider_options.gemini.response_json_schema` maps to `generationConfig.responseJsonSchema` and overrides portable `response.schema` for Gemini.
 - `provider_options.gemini.response_modalities` maps to `generationConfig.responseModalities`.
 - `provider_options.gemini.thinking_budget_tokens` overrides effort-derived thinking budget.
 
@@ -371,9 +425,27 @@ Warnings:
 
 ## OpenRouter
 
-Body shape: Same as OpenAI. OpenRouter is a thin layer over the OpenAI adapter — same body structure, only the `provider` label differs to `"openrouter"`.
+Body shape: OpenAI-compatible chat payloads, with additional OpenRouter routing fields when configured. The adapter reuses the normalized OpenAI chat mappings for shared fields, then applies `provider_options.openrouter` and `raw.openrouter`.
 
 Your application is responsible for setting the different base URL and any extra headers (`HTTP-Referer`, `X-Title`).
+
+OpenRouter-specific body fields can be supplied through `provider_options.openrouter`:
+
+```yaml
+provider_options:
+  openrouter:
+    provider:
+      order:
+        - anthropic
+        - openai
+    transforms:
+      - middle-out
+    models:
+      - anthropic/claude-sonnet-4.5
+      - openai/gpt-4o
+```
+
+Use `raw.openrouter` for less common OpenRouter body fields that PromptOpsKit does not model yet.
 
 ## Conversation history
 

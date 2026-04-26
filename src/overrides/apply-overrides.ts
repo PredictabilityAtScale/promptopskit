@@ -55,6 +55,29 @@ function mergeOverride(
   if (override.response !== undefined) {
     result.response = { ...result.response, ...override.response };
   }
+  if (override.cache !== undefined) {
+    result.cache = {
+      ...result.cache,
+      ...override.cache,
+      openai: mergeRecordBlock(result.cache?.openai, override.cache.openai),
+      anthropic: mergeRecordBlock(result.cache?.anthropic, override.cache.anthropic),
+      gemini: mergeRecordBlock(result.cache?.gemini, override.cache.gemini),
+      google: mergeRecordBlock(result.cache?.google, override.cache.google),
+    };
+  }
+  if (override.raw !== undefined) {
+    result.raw = {
+      ...result.raw,
+      ...override.raw,
+      openai: mergeRecordBlock(result.raw?.openai, override.raw.openai),
+      'openai-responses': mergeRecordBlock(result.raw?.['openai-responses'], override.raw['openai-responses']),
+      openai_responses: mergeRecordBlock(result.raw?.openai_responses, override.raw.openai_responses),
+      anthropic: mergeRecordBlock(result.raw?.anthropic, override.raw.anthropic),
+      gemini: mergeRecordBlock(result.raw?.gemini, override.raw.gemini),
+      google: mergeRecordBlock(result.raw?.google, override.raw.google),
+      openrouter: mergeRecordBlock(result.raw?.openrouter, override.raw.openrouter),
+    };
+  }
 
   if (override.provider_options !== undefined) {
     result.provider_options = {
@@ -68,8 +91,20 @@ function mergeOverride(
         ...result.provider_options?.gemini,
         ...override.provider_options.gemini,
       },
+      openrouter: {
+        ...result.provider_options?.openrouter,
+        ...override.provider_options.openrouter,
+      },
     };
   }
 
   return result;
+}
+
+function mergeRecordBlock<T extends object>(
+  base: T | undefined,
+  override: T | undefined,
+): T | undefined {
+  if (override === undefined) return base;
+  return { ...base, ...override } as T;
 }

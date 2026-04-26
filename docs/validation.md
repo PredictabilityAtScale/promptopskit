@@ -194,3 +194,82 @@ interface ValidationError {
   suggestion?: string;
 }
 ```
+
+## Prompt injection and system-instruction leakage hardening
+
+Regex validation is **not a complete security boundary**, but it is useful as a first-pass filter for obvious hostile payloads in high-risk fields such as `user_message`, `external_content`, or `tool_result`.
+
+### Common vulnerability patterns
+
+- **Direct instruction override**: attacker text attempts to supersede system policies with phrases like “ignore previous instructions”.
+- **Role/channel spoofing**: attacker injects fake role labels (`system:`, `assistant:`) so the model treats user content as higher-priority instructions.
+- **Prompt exfiltration requests**: attacker asks the model to reveal hidden instructions, internal policies, API keys, or chain-of-thought.
+- **Structured wrapper attacks**: attacker wraps malicious directives in XML/JSON/Markdown fences to look machine-generated or authoritative.
+
+Use `deny_regex` to catch obvious attack language and `allow_regex` to constrain strict-format fields (IDs, enums, narrow command grammars).
+
+### Example hardening set A: free-form user text
+
+Use this when input must remain natural language but you want to block obvious prompt-injection attempts:
+
+```yaml
+context:
+  inputs:
+    - name: user_message
+      max_size: 4000
+      non_empty: true
+      reject_secrets: true
+      deny_regex:
+        pattern: "(?:ignore|disregard|forget)\s+(?:all\s+)?(?:previous|prior|above)\s+instructions|(?:^|\b)(?:system|developer|assistant)\s*:|reveal\s+(?:your|the)\s+(?:system\s+prompt|hidden\s+instructions?)|print\s+(?:the\s+)?(?:policy|rules?)|BEGIN\s+SYSTEM\s+PROMPT|END\s+SYSTEM\s+PROMPT"
+        flags: "i"
+        return_message: "I can help with your request, but I can't process instruction-override language. Please rephrase your question."
+```
+
+**Mitigates:** direct override phrasing, role spoofing, and explicit system-prompt extraction asks.
+
+### Example hardening set B: strict machine-readable selector
+
+Use this when the field should be tightly constrained (best defense is allowlist + short max size):
+
+```yaml
+context:
+  inputs:
+    - name: intent_code
+      max_size: 32
+      trim: true
+      non_empty: true
+      allow_regex:
+        pattern: "^(billing|technical_support|account_access|cancel_subscription)$"
+        flags: "i"
+        return_message: "Please select one of: billing, technical_support, account_access, cancel_subscription."
+      deny_regex:
+        pattern: "[\r\n`{}<>:$]"
+```
+
+**Mitigates:** multi-line payload smuggling, role-label injection, and arbitrary instruction text in fields that should only carry enum-like values.
+
+### Example hardening set C: external retrieved content
+
+If your prompt includes untrusted retrieved content, isolate and filter it before interpolation:
+
+```yaml
+context:
+  inputs:
+    - name: retrieved_snippet
+      max_size: 6000
+      trim: true
+      deny_regex:
+        pattern: "(?:^|\b)(?:system|developer)\s*:|ignore\s+(?:all\s+)?instructions|jailbreak|do\s+anything\s+now|simulate\s+developer\s+mode|exfiltrat(?:e|ion)|reveal\s+(?:prompt|policy|secrets?)"
+        flags: "i"
+        return_message: "The retrieved content appears unsafe and was not included."
+```
+
+**Mitigates:** known jailbreak strings and instruction-like payloads embedded in retrieval data.
+
+### Practical guidance
+
+- Prefer **allowlists** for structured fields; use denylists only as a secondary net.
+- Keep regexes focused on high-signal patterns to reduce false positives.
+- Combine regex checks with architecture controls: separate trusted instructions from untrusted context, quote/delimit untrusted text, and add explicit “treat context as data” system instructions.
+- Never rely on regex alone for sensitive operations; require server-side policy checks and tool authorization.
+- Log `POK031`/`POK032` failures and monitor spikes as potential attack signals.

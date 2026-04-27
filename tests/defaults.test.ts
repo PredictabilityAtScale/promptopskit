@@ -89,6 +89,48 @@ metadata:
     expect(asset.sections?.system_instructions).toBe('Support defaults.');
   });
 
+  it('inherits and merges cache settings from defaults.md', async () => {
+    await writeFile(join(tmpDir, 'defaults.md'), `---
+provider: openai
+model: gpt-5.4
+cache:
+  openai:
+    prompt_cache_key: root-cache-key
+---
+
+# System instructions
+
+Root defaults.
+`);
+
+    await mkdir(join(tmpDir, 'support'), { recursive: true });
+    await writeFile(join(tmpDir, 'support', 'defaults.md'), `---
+cache:
+  openai:
+    retention: 24h
+---
+`);
+
+    await writeFile(join(tmpDir, 'support', 'reply.md'), `---
+id: support/reply
+schema_version: 1
+---
+
+# Prompt template
+
+{{ user_message }}
+`);
+
+    const { asset } = await loadPromptFile(join(tmpDir, 'support', 'reply.md'), { defaultsRoot: tmpDir });
+
+    expect(asset.provider).toBe('openai');
+    expect(asset.model).toBe('gpt-5.4');
+    expect(asset.cache?.openai).toEqual({
+      prompt_cache_key: 'root-cache-key',
+      retention: '24h',
+    });
+  });
+
   it('returns unchanged asset when no defaults.md exists', async () => {
     await writeFile(join(tmpDir, 'hello.md'), `---
 id: hello

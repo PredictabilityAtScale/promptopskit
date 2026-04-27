@@ -87,6 +87,7 @@ function mergeDefaults(base: PromptDefaults, local: PromptDefaults): PromptDefau
   return {
     provider: local.provider ?? base.provider,
     model: local.model ?? base.model,
+    cache: mergeCache(base.cache, local.cache),
     metadata: {
       ...(base.metadata ?? {}),
       ...(local.metadata ?? {}),
@@ -99,13 +100,15 @@ function mergeDefaults(base: PromptDefaults, local: PromptDefaults): PromptDefau
 }
 
 function applyDefaults(asset: ParseResult['asset'], defaults: PromptDefaults): ParseResult['asset'] {
+  const cache = mergeCache(defaults.cache, asset.cache);
   const hasDefaultMetadata = defaults.metadata && Object.keys(defaults.metadata).length > 0;
   const hasDefaultSystem = !!defaults.sections?.system_instructions;
   const hasDefaultScalars = defaults.provider !== undefined
     || defaults.model !== undefined;
+  const hasDefaultCache = cache !== undefined;
 
   // Short-circuit: nothing to merge
-  if (!hasDefaultMetadata && !hasDefaultSystem && !hasDefaultScalars) {
+  if (!hasDefaultMetadata && !hasDefaultSystem && !hasDefaultScalars && !hasDefaultCache) {
     return asset;
   }
 
@@ -127,7 +130,38 @@ function applyDefaults(asset: ParseResult['asset'], defaults: PromptDefaults): P
     ...asset,
     provider: asset.provider ?? defaults.provider,
     model: asset.model ?? defaults.model,
+    cache,
     metadata,
     sections,
   };
+}
+
+function mergeCache(base: PromptDefaults['cache'], local: PromptDefaults['cache']): PromptDefaults['cache'] {
+  const merged = {
+    ...(base ?? {}),
+    ...(local ?? {}),
+    openai: {
+      ...(base?.openai ?? {}),
+      ...(local?.openai ?? {}),
+    },
+    anthropic: {
+      ...(base?.anthropic ?? {}),
+      ...(local?.anthropic ?? {}),
+    },
+    gemini: {
+      ...(base?.gemini ?? {}),
+      ...(local?.gemini ?? {}),
+    },
+    google: {
+      ...(base?.google ?? {}),
+      ...(local?.google ?? {}),
+    },
+  };
+
+  if (Object.keys(merged.openai).length === 0) delete merged.openai;
+  if (Object.keys(merged.anthropic).length === 0) delete merged.anthropic;
+  if (Object.keys(merged.gemini).length === 0) delete merged.gemini;
+  if (Object.keys(merged.google).length === 0) delete merged.google;
+
+  return Object.keys(merged).length > 0 ? merged : undefined;
 }

@@ -1,13 +1,14 @@
-import { readdir } from 'node:fs/promises';
-import { join, extname } from 'node:path';
+import { readdir, stat } from 'node:fs/promises';
+import { dirname, join, extname } from 'node:path';
 import { loadPromptFile } from '../../parser/index.js';
 import { validateAssetWithIncludes } from '../../validation/index.js';
 import { DEFAULT_PROMPTS_DIR } from '../../prompt-resolution.js';
+import { findDefaultsRoot } from './defaults-root.js';
 
 const HELP = `
 promptopskit validate [sourceDir] [options]
 
-Validate all prompt .md files in a directory.
+Validate prompt .md files in a directory or a single prompt file.
 
 Options:
   --source, -s  Source directory (default: ./prompts)
@@ -22,12 +23,12 @@ export async function validate(args: string[]): Promise<void> {
   }
 
   const positional = getPositionalArgs(args, new Set(['--source', '-s']));
-  const dir = getFlag(args, '--source', '-s') ?? positional[0] ?? DEFAULT_PROMPTS_DIR;
+  const target = getFlag(args, '--source', '-s') ?? positional[0] ?? DEFAULT_PROMPTS_DIR;
   const strict = args.includes('--strict');
-  const files = await collectPromptFiles(dir);
+  const files = await collectPromptFiles(target);
 
   if (files.length === 0) {
-    console.log(`No .md prompt files found in ${dir}`);
+    console.log(`No .md prompt files found in ${target}`);
     return;
   }
 
@@ -36,7 +37,10 @@ export async function validate(args: string[]): Promise<void> {
 
   for (const file of files) {
     try {
-      const { asset, raw } = await loadPromptFile(file, { defaultsRoot: dir });
+      const defaultsRoot = files.length === 1 && file === target
+        ? findDefaultsRoot(file)
+        : target;
+      const { asset, raw } = await loadPromptFile(file, { defaultsRoot });
       const result = await validateAssetWithIncludes(asset, file, Object.keys(raw.frontMatter));
 
       if (result.errors.length > 0) {
@@ -103,9 +107,19 @@ function getFlag(args: string[], ...flags: string[]): string | undefined {
   return undefined;
 }
 
-async function collectPromptFiles(dir: string): Promise<string[]> {
+async function collectPromptFiles(target: string): Promise<string[]> {
+  const targetStats = await stat(target);
+
+  if (targetStats.isFile()) {
+    if (extname(target) !== '.md' || target.endsWith('defaults.md') || target.endsWith('.test.md')) {
+      return [];
+    }
+
+    return [target];
+  }
+
   const results: string[] = [];
-  const entries = await readdir(dir, { withFileTypes: true, recursive: true });
+  const entries = await readdir(target, { withFileTypes: true, recursive: true });
   for (const entry of entries) {
     if (
       entry.isFile()
@@ -113,7 +127,7 @@ async function collectPromptFiles(dir: string): Promise<string[]> {
       && !entry.name.endsWith('.test.md')
       && entry.name !== 'defaults.md'
     ) {
-      results.push(join(entry.parentPath ?? dir, entry.name));
+      results.push(join(entry.parentPath ?? target, entry.name));
     }
   }
   return results.sort();

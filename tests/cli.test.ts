@@ -41,14 +41,11 @@ Root defaults.
     await writeFile(join(tmpDir, 'prompts', 'support', 'reply.md'), `---
 id: support/reply
 schema_version: 1
-context:
-  inputs:
-    - user_message
 ---
 
 # Prompt template
 
-{{ user_message }}
+  {{ user_message }}
 `);
 
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
@@ -317,6 +314,46 @@ Hello.
     await validate([]);
 
     expect(logSpy.mock.calls.flat().join('\n')).toContain('Validated 1 file(s): 0 error(s), 0 warning(s)');
+  });
+
+  it('validate accepts a single file path and applies inherited cache defaults without warnings', async () => {
+    await mkdir(join(tmpDir, 'prompts', 'support'), { recursive: true });
+    await writeFile(join(tmpDir, 'prompts', 'defaults.md'), `---
+provider: openai
+model: gpt-5.4-mini
+cache:
+  openai:
+    prompt_cache_key: support-v1
+    retention: 24h
+metadata:
+  owner: my-team
+  review_required: true
+---
+
+# System instructions
+
+You are a helpful AI assistant. Follow company guidelines at all times.
+`);
+
+    await writeFile(join(tmpDir, 'prompts', 'support', 'reply.md'), `---
+id: support/reply
+schema_version: 1
+---
+
+# Prompt template
+
+Hello.
+`);
+
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    await validate([
+      join(tmpDir, 'prompts', 'support', 'reply.md'),
+    ]);
+
+    expect(logSpy.mock.calls.flat().join('\n')).toContain('Validated 1 file(s): 0 error(s), 0 warning(s)');
+    expect(warnSpy).not.toHaveBeenCalled();
   });
 
   it('init scaffolds the default prompts directory inside the current working directory', async () => {

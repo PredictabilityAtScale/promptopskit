@@ -137,7 +137,7 @@ function applyDefaults(asset: ParseResult['asset'], defaults: PromptDefaults): P
 }
 
 function mergeCache(base: PromptDefaults['cache'], local: PromptDefaults['cache']): PromptDefaults['cache'] {
-  const merged = {
+  const merged: NonNullable<PromptDefaults['cache']> = {
     ...(base ?? {}),
     ...(local ?? {}),
     openai: {
@@ -158,10 +158,10 @@ function mergeCache(base: PromptDefaults['cache'], local: PromptDefaults['cache'
     },
   };
 
-  if (Object.keys(merged.openai).length === 0) delete merged.openai;
-  if (Object.keys(merged.anthropic).length === 0) delete merged.anthropic;
-  if (Object.keys(merged.gemini).length === 0) delete merged.gemini;
-  if (Object.keys(merged.google).length === 0) delete merged.google;
+  if (merged.openai && Object.keys(merged.openai).length === 0) delete merged.openai;
+  if (merged.anthropic && Object.keys(merged.anthropic).length === 0) delete merged.anthropic;
+  if (merged.gemini && Object.keys(merged.gemini).length === 0) delete merged.gemini;
+  if (merged.google && Object.keys(merged.google).length === 0) delete merged.google;
 
   return Object.keys(merged).length > 0 ? merged : undefined;
 }

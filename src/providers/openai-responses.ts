@@ -9,6 +9,7 @@ import { renderSections } from '../renderer/index.js';
 import { resolveAssetForProvider } from './resolve-asset.js';
 import { withPromptInputSupport } from './prompt-input.js';
 import { applyRawProviderBody } from './raw.js';
+import { compactHistoryForPrompt } from '../history.js';
 
 /**
  * OpenAI Responses provider adapter.
@@ -51,8 +52,9 @@ export const openaiResponsesAdapter: ProviderAdapter = withPromptInputSupport({
 
     const input: Array<Record<string, unknown>> = [];
 
-    if (runtime.history) {
-      for (const msg of runtime.history) {
+    const history = compactHistoryForPrompt(resolvedAsset, runtime);
+    if (history) {
+      for (const msg of history) {
         input.push({ role: msg.role, content: msg.content });
       }
     }

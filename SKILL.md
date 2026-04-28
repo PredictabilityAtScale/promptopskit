@@ -70,7 +70,7 @@ the fields required by that specific file:
 | `raw` | object | no | Provider-scoped request-body passthrough for unmodeled vendor fields |
 | `mcp` | object | no | `{ servers: [string | { name, config }] }` |
 | `context.inputs` | `Array<string | { name, max_size?, trim?, allow_regex?, deny_regex?, non_empty?, reject_secrets? }>` | no | Declared variable names used in templates, with optional size budgets and runtime hardening controls |
-| `context.history` | object | no | `{ max_items: number }` |
+| `context.history` | object | no | `{ max_items: number }`; caps rendered history by compacting older turns into one preserved message |
 | `includes` | string[] | no | Relative paths to other prompt files to include |
 | `environments` | object | no | Per-environment overrides (see Overrides) |
 | `tiers` | object | no | Per-tier overrides (see Overrides) |
@@ -130,6 +130,32 @@ At render time, callers can also pass `onContextOverflow` to transform oversized
 If a validator declares `return_message`, `renderPrompt()` returns that message in a structured result and omits the provider request instead of throwing for that validation failure. Invalid regex definitions still fail during `validate` and `compile` as `POK013` prompt-authoring errors.
 
 Malformed `allow_regex` and `deny_regex` values fail during `validate` and `compile`, not just at render time. When regex compilation fails, the error includes the prompt id, variable name, field name, and raw configured value. Double-quoted YAML regex strings with raw backslashes fail as `POK013`; use `/pattern/i`, single-quoted `pattern: '...'`, or doubled backslashes.
+
+### Conversation history limits
+
+Use `context.history.max_items` when a chat-style prompt should bound rendered conversation history:
+
+```yaml
+context:
+  history:
+    max_items: 10
+```
+
+When runtime `history` exceeds `max_items`, PromptOpsKit preserves history by compacting older turns into one synthetic history message and keeping the most recent turns. Callers can provide `onHistoryCompaction` to create a custom summary:
+
+```typescript
+const result = await kit.renderPrompt({
+  path: 'support/reply',
+  provider: 'openai',
+  history,
+  onHistoryCompaction: ({ overflow }) => ({
+    role: 'user',
+    content: `Earlier conversation summary: ${summarizeConversationUsingLLM(overflow)}`,
+  }),
+});
+```
+
+If no callback is supplied, PromptOpsKit creates a plain text compacted history message. Do not describe `max_items` as dropping history; it preserves overflow through compaction.
 
 Example: this is the minimal valid shape for a prompt that references
 `{{ pull_request }}` even when provider/model are inherited from defaults:

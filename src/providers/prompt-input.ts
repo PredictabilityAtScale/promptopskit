@@ -1,6 +1,7 @@
 import { resolveInlinePromptSource, resolvePromptAsset } from '../prompt-resolution.js';
 import type { ResolvedPromptAsset } from '../schema/index.js';
 import { sanitizeContextVariables } from '../context.js';
+import { compactHistoryForPrompt } from '../history.js';
 import type {
   ProviderAdapter,
   ProviderPromptInput,
@@ -57,6 +58,7 @@ export function withPromptInputSupport(adapter: SyncProviderAdapter): ProviderAd
     return adapter.render(resolved, {
       ...runtime,
       variables: sanitization.variables,
+      history: compactHistoryForPrompt(resolved, runtime),
     });
   };
 

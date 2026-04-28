@@ -41,6 +41,21 @@ export interface OpenAIResponsesRuntimeOptions {
   background?: boolean;
 }
 
+export interface RuntimeHistoryMessage {
+  role: string;
+  content: string;
+}
+
+export interface RuntimeHistoryCompactionInfo {
+  promptId: string;
+  maxItems: number;
+  overflow: RuntimeHistoryMessage[];
+  preserved: RuntimeHistoryMessage[];
+  history: RuntimeHistoryMessage[];
+}
+
+export type RuntimeHistoryCompactionResult = string | RuntimeHistoryMessage;
+
 /**
  * Options passed at render time.
  */
@@ -56,7 +71,8 @@ export interface RuntimeRenderOptions {
     maxSize: number;
     actualSize: number;
   }) => string;
-  history?: Array<{ role: string; content: string }>;
+  history?: RuntimeHistoryMessage[];
+  onHistoryCompaction?: (info: RuntimeHistoryCompactionInfo) => RuntimeHistoryCompactionResult;
   toolRegistry?: Record<string, unknown>;
   strict?: boolean;
   openaiResponses?: OpenAIResponsesRuntimeOptions;

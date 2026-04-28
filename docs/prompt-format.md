@@ -247,6 +247,34 @@ At render time, PromptOpsKit also emits a non-blocking `POK030` warning when a p
 
 Malformed `allow_regex` and `deny_regex` values fail during `validate` and `compile` with `POK013`, so bad patterns are caught before runtime. Double-quoted YAML regex strings with raw backslashes are also reported as `POK013`; use unquoted `/pattern/i`, single-quoted `pattern: '...'`, or doubled backslashes in double quotes.
 
+### Conversation history
+
+Declare `context.history.max_items` when a prompt should bound rendered conversation history:
+
+```yaml
+context:
+  history:
+    max_items: 8
+```
+
+When runtime `history` has more than `max_items` messages, PromptOpsKit preserves all history by compacting older turns into one synthetic history message, then keeping the most recent turns. The final provider request receives at most `max_items` history items before the current prompt template is added.
+
+Callers can customize the compacted message with `onHistoryCompaction`:
+
+```typescript
+const result = await kit.renderPrompt({
+  path: 'support/reply',
+  provider: 'openai',
+  history,
+  onHistoryCompaction: ({ overflow }) => ({
+    role: 'user',
+    content: `Earlier conversation summary: ${summarizeConversationUsingLLM(overflow)}`,
+  }),
+});
+```
+
+If no callback is supplied, PromptOpsKit creates a plain text compacted history message. This behavior is provider-agnostic: OpenAI/OpenRouter use `messages`, OpenAI Responses uses `input`, Anthropic uses `messages`, and Gemini maps assistant history to `model`.
+
 Example hardened input definition:
 
 ```yaml

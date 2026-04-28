@@ -42,6 +42,8 @@ reasoning:
 sampling:
   temperature: 0.7
 context:
+  history:
+    max_items: 10
   inputs:
     - name: user_message
       non_empty: true
@@ -77,6 +79,12 @@ const result = await kit.renderPrompt({
     user_message: 'How do I reset my password?',
     app_context: 'Billing settings page',
   },
+  history: [
+    { role: 'user', content: 'I am looking at my account page.' },
+    { role: 'assistant', content: 'I can help with account access.' },
+  ],
+  onHistoryCompaction: ({ overflow }) =>
+    `Earlier conversation summary: ${summarizeConversationUsingLLM(overflow)}`,
 });
 
 if (!result.request) {
@@ -114,6 +122,8 @@ const kit = createPromptOpsKit({
 | `warnings` | `string[]` | Non-fatal warnings (e.g. unsupported parameters for the chosen provider) |
 
 Your application owns the HTTP call — PromptOpsKit produces the request body only.
+
+When `context.history.max_items` is set and runtime history exceeds that count, PromptOpsKit compacts older turns into one preserved history item and keeps the most recent turns. Use `onHistoryCompaction` when your app wants to provide its own summary.
 
 ## Validate prompts
 

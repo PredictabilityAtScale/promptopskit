@@ -37,4 +37,4 @@ Demonstrates context hardening and guards:
 - `non_empty` + `reject_secrets` built-ins.
 - Structured `deny_regex` with a return message.
 - `max_size` and `trim` for large values.
-- `history.max_items` for bounded conversation context.
+- `history.max_items` to compact long conversation history without dropping it.

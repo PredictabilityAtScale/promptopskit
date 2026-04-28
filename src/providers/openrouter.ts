@@ -46,6 +46,7 @@ export const openrouterAdapter: ProviderAdapter = withPromptInputSupport({
       {
         variables: runtime.variables,
         history: runtime.history,
+        onHistoryCompaction: runtime.onHistoryCompaction,
         toolRegistry: runtime.toolRegistry,
         strict: runtime.strict,
       },

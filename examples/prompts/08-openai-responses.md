@@ -5,8 +5,6 @@ provider: openai-responses
 model: gpt-5.4-mini
 sampling:
   temperature: 0.3
-response:
-  format: markdown
 context:
   inputs:
     - name: changelog
@@ -25,4 +23,4 @@ Turn this changelog into release notes:
 
 # Notes
 
-Demonstrates the `openai-responses` provider with a simple markdown response format.
+Demonstrates the `openai-responses` provider and its request body shape.

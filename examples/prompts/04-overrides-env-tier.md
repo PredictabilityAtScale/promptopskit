@@ -2,8 +2,6 @@
 id: examples/overrides
 schema_version: 1
 model: gpt-5.4
-fallback_models:
-  - gpt-5.4-mini
 reasoning:
   effort: medium
 sampling:

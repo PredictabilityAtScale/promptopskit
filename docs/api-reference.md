@@ -55,6 +55,8 @@ const result = await kit.renderPrompt({
     { role: 'user', content: 'Hello' },
     { role: 'assistant', content: 'Hi!' },
   ],
+  onHistoryCompaction: ({ overflow }) =>
+    `Earlier conversation summary: ${summarizeConversationUsingLLM(overflow)}`,
   strict: false,
 });
 ```
@@ -66,9 +68,10 @@ const result = await kit.renderPrompt({
 | `provider` | `string` | `'openai'`, `'openai-responses'`, `'anthropic'`, `'gemini'`, `'openrouter'` (required) |
 | `variables` | `Record<string, string>` | Template variables |
 | `onContextOverflow` | `(info) => string` | Optional callback to transform an oversized context value before rendering |
+| `onHistoryCompaction` | `(info) => string \| { role, content }` | Optional callback used when `context.history.max_items` compacts overflow history |
 | `environment` | `string` | Environment override name |
 | `tier` | `string` | Tier override name |
-| `history` | `Array<{ role, content }>` | Conversation history |
+| `history` | `Array<{ role, content }>` | Conversation history. If the prompt declares `context.history.max_items`, overflow history is compacted into one preserved history item before provider rendering. |
 | `toolRegistry` | `Record<string, unknown>` | Tool definitions for resolving string tool references |
 | `strict` | `boolean` | Fail on missing variables (default `false`) |
 | `openaiResponses` | `object` | Optional Responses API extras (`previous_response_id`, `conversation`, `instructions`, `parallel_tool_calls`, `max_tool_calls`, `store`, `metadata`, `include`, `background`) |
@@ -247,7 +250,7 @@ const request = adapter.render(resolvedAsset, {
 });
 ```
 
-`RuntimeRenderOptions` for direct adapter rendering supports `environment`, `tier`, `runtime`, `variables`, `onContextOverflow`, `history`, `toolRegistry`, `strict`, and `openaiResponses`.
+`RuntimeRenderOptions` for direct adapter rendering supports `environment`, `tier`, `runtime`, `variables`, `onContextOverflow`, `history`, `onHistoryCompaction`, `toolRegistry`, `strict`, and `openaiResponses`.
 
 Runtime overrides can include the same overridable front matter fields as `environments` and `tiers`, including `raw` provider passthrough blocks. Raw blocks are merged into provider request bodies after normalized fields and provider-specific options.
 

@@ -9,6 +9,7 @@ import { getAdapter } from './providers/index.js';
 import { validateAsset, validateAssetWithIncludes } from './validation/index.js';
 import { PromptCache } from './cache.js';
 import { collectContextSizeWarnings, sanitizeContextVariables } from './context.js';
+import { compactHistoryForPrompt } from './history.js';
 import {
   DEFAULT_PROMPTS_DIR,
   loadPromptAsset,
@@ -26,6 +27,9 @@ export type {
   ProviderRequest,
   ProviderPromptRenderResult,
   RuntimeRenderOptions,
+  RuntimeHistoryCompactionInfo,
+  RuntimeHistoryCompactionResult,
+  RuntimeHistoryMessage,
   ProviderAdapter,
   ProviderInlinePromptSource,
   ProviderPromptInput,
@@ -116,7 +120,9 @@ export interface RenderPromptOptions {
   /** Optional callback to transform oversized context values before warnings/rendering */
   onContextOverflow?: RuntimeRenderOptions['onContextOverflow'];
   /** Conversation history */
-  history?: Array<{ role: string; content: string }>;
+  history?: RuntimeRenderOptions['history'];
+  /** Optional callback to compact history overflow when context.history.max_items is exceeded */
+  onHistoryCompaction?: RuntimeRenderOptions['onHistoryCompaction'];
   /** Tool registry for resolving tool references */
   toolRegistry?: Record<string, unknown>;
   /** Strict mode — fail on missing variables */
@@ -264,7 +270,11 @@ export class PromptOpsKit {
 
     const request = adapter.render(resolved, {
       variables: sanitization.variables,
-      history: options.history,
+      history: compactHistoryForPrompt(resolved, {
+        history: options.history,
+        onHistoryCompaction: options.onHistoryCompaction,
+      }),
+      onHistoryCompaction: options.onHistoryCompaction,
       toolRegistry: options.toolRegistry,
       strict: options.strict,
       openaiResponses: options.openaiResponses,

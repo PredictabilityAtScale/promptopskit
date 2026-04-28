@@ -471,6 +471,28 @@ const { request } = result;
 
 History messages are inserted between system instructions and the prompt template in the messages array. For Gemini, role `assistant` is mapped to `model`.
 
+If the prompt declares `context.history.max_items`, provider rendering compacts overflow history before shaping the request. Older turns become one preserved history item, and the most recent turns are kept as-is:
+
+```yaml
+context:
+  history:
+    max_items: 4
+```
+
+```typescript
+const result = await kit.renderPrompt({
+  path: 'chat',
+  provider: 'openai',
+  history,
+  onHistoryCompaction: ({ overflow }) => ({
+    role: 'user',
+    content: `Earlier conversation summary: ${summarizeConversationUsingLLM(overflow)}`,
+  }),
+});
+```
+
+If no `onHistoryCompaction` callback is supplied, PromptOpsKit creates a plain text compacted history message. The behavior is shared by OpenAI, OpenAI Responses, Anthropic, Gemini, and OpenRouter.
+
 ## Tools
 
 Tools defined in front matter are included in the request body. They can be string references or inline definitions:

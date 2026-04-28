@@ -90,6 +90,8 @@ reasoning:
 sampling:
   temperature: 0.7
 context:
+  history:
+    max_items: 10
   inputs:
     - name: user_message
       non_empty:
@@ -125,6 +127,12 @@ const result = await kit.renderPrompt({
     user_message: 'How do I reset my password?',
     app_context: 'Account settings page',
   },
+  history: [
+    { role: 'user', content: 'I am on the account settings page.' },
+    { role: 'assistant', content: 'I can help with account access.' },
+  ],
+  onHistoryCompaction: ({ overflow }) =>
+    `Earlier conversation summary: ${summarizeConversationUsingLLM(overflow)}`,
 });
 
 if (result.returnMessage) {
@@ -168,6 +176,7 @@ Supported values for `warnings.contextSize` are `auto`, `off`, `result-only`, `c
 - **Context hardening** — copyable `/pattern/i` regex literals, structured regexes with `return_message`, and built-in `non_empty` / `reject_secrets` validators
 - **Optional short-circuit messages** — validators can return a structured `returnMessage` instead of throwing when configured
 - **Context size guardrails** — optional per-input `max_size` metadata with non-blocking render-time warnings
+- **History preservation** — optional `context.history.max_items` compacts older conversation turns into one preserved history item, with a runtime `onHistoryCompaction` hook for custom summaries
 - **Warning controls** — top-level config can suppress or emit context size warnings differently in dev and prod
 - **Caching** — LRU cache with mtime-based invalidation
 - **CLI** — init, validate, compile, render, inspect, skill
@@ -585,9 +594,10 @@ Renders a prompt for a specific provider. Returns `{ resolved, request?, returnM
 | `provider` | `string` | `'openai'`, `'openai-responses'`, `'anthropic'`, `'gemini'`, `'openrouter'` |
 | `variables` | `Record<string, string>` | Template variables |
 | `onContextOverflow` | `(info) => string` | Optional callback to transform oversized context values before rendering |
+| `onHistoryCompaction` | `(info) => string \| { role, content }` | Optional callback to compact overflow history when `context.history.max_items` is exceeded |
 | `environment` | `string` | Environment override name |
 | `tier` | `string` | Tier override name |
-| `history` | `Array<{ role, content }>` | Conversation history |
+| `history` | `Array<{ role, content }>` | Conversation history. If the prompt declares `context.history.max_items`, older turns are compacted into one preserved history item before provider rendering. |
 | `toolRegistry` | `Record<string, unknown>` | Tool definitions for resolving string tool references |
 | `strict` | `boolean` | Fail on missing variables |
 | `openaiResponses` | `object` | Optional Responses API extras (`previous_response_id`, `conversation`, `instructions`, `parallel_tool_calls`, `max_tool_calls`, `store`, `metadata`, `include`, `background`) |
@@ -621,7 +631,7 @@ Prompt files use YAML front matter with these fields:
 | `provider_options` | `object` | Provider-specific non-portable options (`anthropic`, `gemini`, `openrouter`) |
 | `raw` | `object` | Provider-scoped request-body passthrough (`openai`, `openai-responses`, `anthropic`, `gemini`/`google`, `openrouter`) |
 | `mcp` | `object` | MCP server references |
-| `context` | `object` | `{ inputs, history }` — declare expected variables, with optional per-input `max_size`, `trim`, structured or literal `allow_regex`/`deny_regex`, and built-in `non_empty` / `reject_secrets` validators |
+| `context` | `object` | `{ inputs, history }` — declare expected variables, with optional per-input `max_size`, `trim`, structured or literal `allow_regex`/`deny_regex`, built-in `non_empty` / `reject_secrets` validators, and `history.max_items` compaction |
 | `includes` | `string[]` | Paths to included prompt files |
 | `environments` | `object` | Named environment overrides |
 | `tiers` | `object` | Named tier overrides |

@@ -176,6 +176,34 @@ describe('OpenAI adapter', () => {
     expect(messages).toHaveLength(4); // system + 2 history + user
   });
 
+  it('compacts history directly from adapter render when max_items is exceeded', () => {
+    const result = openaiAdapter.render(
+      {
+        ...baseAsset,
+        context: {
+          history: { max_items: 2 },
+        },
+      },
+      {
+        variables: { name: 'World' },
+        history: [
+          { role: 'user', content: 'first' },
+          { role: 'assistant', content: 'second' },
+          { role: 'user', content: 'third' },
+        ],
+        onHistoryCompaction: (info) => `Compacted ${info.overflow.length} message(s).`,
+      },
+    );
+
+    const messages = result.body.messages as Array<{ role: string; content: string }>;
+    expect(messages).toEqual([
+      { role: 'system', content: 'You are a test assistant.' },
+      { role: 'user', content: 'Compacted 2 message(s).' },
+      { role: 'user', content: 'third' },
+      { role: 'user', content: 'Hello World.' },
+    ]);
+  });
+
   it('renders directly from a prompt path', async () => {
     const result = await openaiAdapter.renderPrompt(
       {

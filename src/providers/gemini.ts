@@ -9,6 +9,7 @@ import { renderSections } from '../renderer/index.js';
 import { resolveAssetForProvider } from './resolve-asset.js';
 import { withPromptInputSupport } from './prompt-input.js';
 import { applyRawProviderBody } from './raw.js';
+import { compactHistoryForPrompt } from '../history.js';
 
 /**
  * Google Gemini provider adapter.
@@ -54,8 +55,9 @@ export const geminiAdapter: ProviderAdapter = withPromptInputSupport({
     const contents: Array<Record<string, unknown>> = [];
 
     // History
-    if (runtime.history) {
-      for (const msg of runtime.history) {
+    const history = compactHistoryForPrompt(resolvedAsset, runtime);
+    if (history) {
+      for (const msg of history) {
         contents.push({
           role: msg.role === 'assistant' ? 'model' : 'user',
           parts: [{ text: msg.content }],

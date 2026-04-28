@@ -278,7 +278,9 @@ context:
 |-------|------|-------------|
 | `inputs` | `Array<string | { name, max_size?, trim?, allow_regex?, deny_regex?, non_empty?, reject_secrets? }>` | Expected variable names, optionally with size and runtime sanitization constraints |
 | `history` | `object` | History settings |
-| `history.max_items` | `number` | Maximum history items |
+| `history.max_items` | `number` | Maximum rendered history items. Overflow history is compacted into one preserved message rather than dropped. |
+
+When runtime `history` exceeds `history.max_items`, PromptOpsKit creates one compacted history item for the older overflow and keeps the most recent turns. Applications can pass `onHistoryCompaction` to `renderPrompt()` or direct adapter rendering to produce their own summary message.
 
 String-form inputs remain valid:
 

@@ -772,4 +772,109 @@ Context: {{ app_context }}
     expect(messages[0].content).toContain('Context: summary');
     expect(result.warnings).toHaveLength(0);
   });
+
+  it('compacts overflow history when context.history.max_items is exceeded', async () => {
+    const sourceDir = join(tmpDir, 'prompts');
+    await mkdir(sourceDir, { recursive: true });
+
+    await writeFile(join(sourceDir, 'history-limited.md'), `---
+id: history.limited
+schema_version: 1
+provider: openai
+model: gpt-5.4
+context:
+  history:
+    max_items: 3
+---
+
+# Prompt template
+
+Continue.
+`);
+
+    const kit = createPromptOpsKit({ sourceDir, mode: 'source-only', cache: false });
+    const result = await kit.renderPrompt({
+      path: 'history-limited',
+      provider: 'openai',
+      history: [
+        { role: 'user', content: 'old question' },
+        { role: 'assistant', content: 'old answer' },
+        { role: 'user', content: 'newer question' },
+        { role: 'assistant', content: 'newer answer' },
+        { role: 'user', content: 'latest question' },
+      ],
+    });
+
+    const messages = result.request.body.messages as Array<{ role: string; content: string }>;
+    expect(messages).toHaveLength(4);
+    expect(messages[0].role).toBe('user');
+    expect(messages[0].content).toContain('Earlier conversation compacted to preserve history');
+    expect(messages[0].content).toContain('old question');
+    expect(messages[0].content).toContain('old answer');
+    expect(messages[0].content).toContain('newer question');
+    expect(messages[1]).toEqual({ role: 'assistant', content: 'newer answer' });
+    expect(messages[2]).toEqual({ role: 'user', content: 'latest question' });
+    expect(messages[3]).toEqual({ role: 'user', content: 'Continue.' });
+  });
+
+  it('uses an onHistoryCompaction callback for overflow history', async () => {
+    const sourceDir = join(tmpDir, 'prompts');
+    await mkdir(sourceDir, { recursive: true });
+
+    await writeFile(join(sourceDir, 'history-callback.md'), `---
+id: history.callback
+schema_version: 1
+provider: openai
+model: gpt-5.4
+context:
+  history:
+    max_items: 2
+---
+
+# Prompt template
+
+Continue.
+`);
+
+    const kit = createPromptOpsKit({ sourceDir, mode: 'source-only', cache: false });
+    const callback = vi.fn((info) => ({
+      role: 'assistant',
+      content: `Summary of ${info.overflow.length} earlier turns. Last kept: ${info.preserved[0].content}`,
+    }));
+
+    const result = await kit.renderPrompt({
+      path: 'history-callback',
+      provider: 'openai',
+      history: [
+        { role: 'user', content: 'first' },
+        { role: 'assistant', content: 'second' },
+        { role: 'user', content: 'third' },
+      ],
+      onHistoryCompaction: callback,
+    });
+
+    expect(callback).toHaveBeenCalledWith({
+      promptId: 'history.callback',
+      maxItems: 2,
+      overflow: [
+        { role: 'user', content: 'first' },
+        { role: 'assistant', content: 'second' },
+      ],
+      preserved: [
+        { role: 'user', content: 'third' },
+      ],
+      history: [
+        { role: 'user', content: 'first' },
+        { role: 'assistant', content: 'second' },
+        { role: 'user', content: 'third' },
+      ],
+    });
+
+    const messages = result.request.body.messages as Array<{ role: string; content: string }>;
+    expect(messages).toEqual([
+      { role: 'assistant', content: 'Summary of 2 earlier turns. Last kept: third' },
+      { role: 'user', content: 'third' },
+      { role: 'user', content: 'Continue.' },
+    ]);
+  });
 });

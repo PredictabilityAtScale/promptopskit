@@ -12,6 +12,278 @@ Gemini, OpenRouter, and OpenAI Responses). Follow these instructions when creati
 
 ---
 
+## User request intents
+
+When a user asks for prompt work, infer their intent from phrasing and act directly.
+Do not stop at explanation when the user is asking for a file or code artifact.
+
+### Create a new prompt
+
+Treat requests like these as instructions to create a new prompt markdown file:
+
+- "Create a prompt that ..."
+- "Add a prompt that ..."
+- "Write a prompt for ..."
+- "Make a prompt to ..."
+- "Build me a prompt that ..."
+- "I need a prompt that ..."
+- "Scaffold a prompt for ..."
+- "Create an eval/rewrite/classifier/extractor/summarizer prompt ..."
+
+Behavior:
+
+1. Create a new `kebab-case.md` file under the project's prompt source directory
+   (`./prompts` by default, or the existing prompt folder used by the repo).
+2. Give the file a meaningful name derived from the task, not a generic name like
+   `prompt.md` or `new-prompt.md`.
+3. Set `id` to a stable slash path or camel/snake identifier that matches local
+   conventions. Prefer path-like ids such as `support/reply`,
+   `content/seo-brief`, or `examples/basic` when prompts are organized in folders.
+4. Include all appropriate defaults for the requested use case:
+   - Always include `id` and `schema_version: 1`.
+   - Include `description` when the purpose is not obvious from the id.
+   - Include `provider` and `model` only if they are requested or not supplied by
+     a nearby `defaults.md`.
+   - Include `sampling`, `reasoning`, `response`, `tools`, `cache`,
+     `provider_options`, or `raw` only when the prompt behavior requires them.
+   - Include `context.inputs` for every `{{ variable }}` in the body.
+   - Use object-form inputs with `non_empty: true`, `max_size`, `trim`, and
+     validation controls when the input is user-provided or unbounded.
+   - Add `context.history.max_items` for chat or support prompts that should
+     preserve bounded conversation history through compaction.
+   - Add `# Notes` only for authoring details, examples, or explanations that
+     must not be sent to the model.
+5. If the prompt should return JSON or another structured result, define
+   `response.format: json` and a JSON Schema in `response.schema`.
+6. When the user gives a vague task, choose sensible placeholders and defaults
+   from the task instead of asking for every detail. Ask only if the missing
+   detail would change the prompt's purpose, provider, or output contract.
+7. After writing the file, run or recommend `promptopskit validate` for the prompt
+   source directory.
+
+Example response to "Create a prompt that turns a support ticket into a concise triage summary":
+
+```markdown
+---
+id: support/triage-summary
+schema_version: 1
+description: Summarize a support ticket for triage.
+context:
+  inputs:
+    - name: ticket
+      non_empty: true
+      trim: true
+      max_size: 12000
+      reject_secrets: true
+response:
+  format: json
+  schema_name: support_triage_summary
+  schema:
+    type: object
+    additionalProperties: false
+    required: [summary, urgency, category, next_action]
+    properties:
+      summary:
+        type: string
+      urgency:
+        type: string
+        enum: [low, medium, high]
+      category:
+        type: string
+      next_action:
+        type: string
+---
+
+# System instructions
+
+You summarize support tickets for a triage queue. Be concise, specific, and avoid
+inventing details that are not in the ticket.
+
+# Prompt template
+
+Summarize this support ticket:
+
+{{ ticket }}
+```
+
+### Generate provider render code
+
+Treat requests like these as instructions to generate code that renders a prompt
+into a provider request body:
+
+- "render the body for the prompt [name] for openai"
+- "generate the body for [name] using anthropic"
+- "create the call for prompt [name] for google"
+- "convert prompt [name] to an openrouter request"
+- "show me the OpenAI body for [name]"
+- "generate the Anthropic call for the prompt [name]"
+- "render/generate/build/create/produce the request/body/call/payload/messages
+  for prompt [name] with provider [provider]"
+- "turn [name] into a provider request for openai/anthropic/google/gemini/openrouter"
+- "wire up prompt [name] to OpenAI/Anthropic/Gemini/OpenRouter"
+- "give me code to call [provider] with prompt [name]"
+
+Provider aliases:
+
+| User says | Use provider |
+|-----------|--------------|
+| `openai`, `chat completions`, `OpenAI chat` | `openai` |
+| `responses`, `OpenAI Responses`, `responses api` | `openai-responses` |
+| `anthropic`, `claude` | `anthropic` |
+| `google`, `gemini` | `gemini` |
+| `openrouter` | `openrouter` |
+
+Behavior:
+
+1. Generate code unless the user explicitly asks for only the raw rendered JSON.
+2. Prefer `createPromptOpsKit().renderPrompt()` for server-side app code that loads
+   prompt source or compiled JSON by path.
+3. Prefer provider adapters (`openaiAdapter`, `anthropicAdapter`,
+   `geminiAdapter`, `openrouterAdapter`) when the user asks for provider-specific
+   integration code or already has a compiled asset.
+4. Include `variables` for every declared prompt input, using realistic placeholder
+   values or function parameters.
+5. Include `history` only if the prompt is chat-style or declares
+   `context.history`.
+6. Check `returnMessage` before reading `request` when using `kit.renderPrompt()`
+   or `adapter.renderPrompt()`.
+7. Return or pass `request.body` as the provider request payload; `request.provider`
+   and `request.model` are metadata for the caller.
+8. Do not put API keys in generated snippets. Use environment variables and keep
+   provider calls on the server.
+
+OpenAI example:
+
+```typescript
+import OpenAI from 'openai';
+import { createPromptOpsKit } from 'promptopskit';
+
+const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const kit = createPromptOpsKit({
+  sourceDir: './prompts',
+  compiledDir: './.generated-prompts/json',
+  mode: 'auto',
+});
+
+const result = await kit.renderPrompt({
+  path: 'support/triage-summary',
+  provider: 'openai',
+  variables: {
+    ticket: ticketText,
+  },
+  strict: true,
+});
+
+if (result.returnMessage) {
+  return result.returnMessage;
+}
+if (!result.request) {
+  throw new Error('Prompt rendering did not produce an OpenAI request.');
+}
+
+const completion = await client.chat.completions.create(result.request.body as any);
+```
+
+Anthropic example:
+
+```typescript
+import Anthropic from '@anthropic-ai/sdk';
+import { createPromptOpsKit } from 'promptopskit';
+
+const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const kit = createPromptOpsKit({ sourceDir: './prompts' });
+
+const result = await kit.renderPrompt({
+  path: 'support/triage-summary',
+  provider: 'anthropic',
+  variables: { ticket: ticketText },
+  strict: true,
+});
+
+if (result.returnMessage) return result.returnMessage;
+if (!result.request) throw new Error('Prompt rendering did not produce an Anthropic request.');
+
+const message = await client.messages.create(result.request.body as any);
+```
+
+Google Gemini example:
+
+```typescript
+import { GoogleGenAI } from '@google/genai';
+import { createPromptOpsKit } from 'promptopskit';
+
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const kit = createPromptOpsKit({ sourceDir: './prompts' });
+
+const result = await kit.renderPrompt({
+  path: 'support/triage-summary',
+  provider: 'gemini',
+  variables: { ticket: ticketText },
+  strict: true,
+});
+
+if (result.returnMessage) return result.returnMessage;
+if (!result.request) throw new Error('Prompt rendering did not produce a Gemini request.');
+
+const response = await ai.models.generateContent({
+  model: result.request.model,
+  ...(result.request.body as Record<string, unknown>),
+});
+```
+
+OpenRouter example:
+
+```typescript
+import OpenAI from 'openai';
+import { createPromptOpsKit } from 'promptopskit';
+
+const client = new OpenAI({
+  apiKey: process.env.OPENROUTER_API_KEY,
+  baseURL: 'https://openrouter.ai/api/v1',
+});
+const kit = createPromptOpsKit({ sourceDir: './prompts' });
+
+const result = await kit.renderPrompt({
+  path: 'support/triage-summary',
+  provider: 'openrouter',
+  variables: { ticket: ticketText },
+  strict: true,
+});
+
+if (result.returnMessage) return result.returnMessage;
+if (!result.request) throw new Error('Prompt rendering did not produce an OpenRouter request.');
+
+const completion = await client.chat.completions.create(result.request.body as any);
+```
+
+If the user asks for "just the body", render with `kit.renderPrompt()` and show
+or return `result.request.body`, not the whole render result.
+
+### Other useful promptopskit request examples
+
+Handle these common requests with the same conventions:
+
+- "Add defaults for this prompt folder" -> create or update `defaults.md` with
+  shared `provider`, `model`, `metadata`, cache settings, and optional fallback
+  `# System instructions`.
+- "Add inputs to this prompt" -> add exact `context.inputs` entries for every
+  placeholder and choose validation controls for risky or large values.
+- "Make this prompt return JSON" -> add `response.format: json`,
+  `response.schema_name`, and a strict `response.schema`.
+- "Add a test for this prompt" -> create a sidecar `.test.yaml` with realistic
+  `cases` and `variables`.
+- "Compile/render/inspect/validate my prompts" -> use the matching
+  `promptopskit` CLI command and report validation errors with file references.
+- "Move common instructions into a reusable prompt" -> create a shared fragment
+  and reference it with `includes`.
+- "Add provider-specific options" -> prefer portable fields first, then
+  `provider_options`, and use `raw` only for unmodeled vendor fields with a note.
+- "Make this safe for production" -> add validation for untrusted inputs, keep API
+  calls server-side, validate before compile, and avoid committing generated
+  artifacts unless the project already does.
+
+---
+
 ## Prompt file format
 
 Every prompt is a `.md` file with two parts:

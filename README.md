@@ -5,48 +5,40 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](https://nodejs.org)
 
-**Centralize prompts, system instructions, tools, and model settings — without leaving your codebase.**
+**Turn hardcoded AI prompts into versioned, tested application assets.**
 
-Your prompts are already in Git. PromptOpsKit makes them manageable. It replaces hardcoded strings and scattered provider-specific glue with structured Markdown files where prompt text, model settings, sampling parameters, tool bindings, environment overrides, and composable shared instructions all live together — diffable, reviewable, and release-aware.
+Your prompts are already in Git. PromptOpsKit makes them manageable.
 
-Provider adapters for OpenAI, Anthropic, Gemini, and OpenRouter produce a ready-to-send **request body only** — no HTTP client, no auth, no headers. Your application owns transport, so PromptOpsKit slots into any stack without opinions about how you call the API.
+Keep prompts, model settings, tools, input validation, shared instructions, environment overrides, and tests together in Markdown files that live in Git and ship with your app. Render provider-ready request bodies without giving up your SDK, gateway, auth, retries, routing, observability, or billing.
 
-## How is this different from GitHub Models?
+PromptOpsKit is not a prompt dashboard, LLM gateway, or hosted runtime service. It is the repo-native layer between scattered prompt strings and production AI calls.
 
-GitHub Models is a great place to prototype prompts, compare models, and run evaluations inside GitHub.
+## Why PromptOpsKit?
 
-PromptOpsKit is focused on the application runtime layer.
+From scattered prompt glue:
 
-It helps you turn prompt behavior into repo-native assets that your application can load, validate, compose, compile, and render into provider-specific request bodies.
+- Prompt strings live inline in code
+- Model config and tools drift in separate files
+- Validation checks happen outside the prompt
+- Environment logic hides in if/else branches
+- Testing is ad hoc and hard to review
 
-Use GitHub Models when you want:
+To one reviewable asset:
 
-- a GitHub-hosted prompt editor and playground
-- side-by-side model comparisons
-- structured evaluations inside GitHub
-- `.prompt.yml` files for prompt experiments and evals
+- Prompt, model, tools, and input rules live together
+- `includes` and `defaults.md` avoid copy-paste drift
+- `environments` and `tiers` handle overrides cleanly
+- `.test.yaml` sidecars keep deterministic test behavior
+- Runtime rendering and compiled artifacts support production deployment
 
-Use PromptOpsKit when you want:
+Core capabilities:
 
-- Markdown prompt assets with YAML metadata
-- production input hardening and validation
-- environment-specific model and parameter overrides
-- reusable prompt composition
-- compiled artifacts for deployment
-- provider-specific request bodies for your own runtime code
-- control over SDKs, auth, retries, routing, observability, and billing
-
-### Why PromptOpsKit?
-
-- **Centralized, not scattered** — each prompt is a single Markdown file that captures prompt text, model config, tool bindings, and context rules together.
-- **Operational, not just templated** — model name, temperature, reasoning effort, tools, and response format are declared alongside the prompt they govern.
-- **Reusable, not duplicated** — `includes` lets you define shared tone, policy, or safety instructions once and compose them into any prompt.
-- **Layered defaults, not repetition** — `defaults.md` in any folder sets shared `provider`, `model`, `metadata`, and `# System instructions` for that subtree, with nearest-folder override behavior.
-- **Release-aware, not ad hoc** — environment and tier overrides swap models and parameters without forking prompt files.
-- **Provider-portable** — write once, render for OpenAI, Anthropic, Gemini, or OpenRouter with correct body shapes.
-- **Validate early** — Zod schema validation, Levenshtein-based "did you mean?" suggestions for typos, and variable usage checks catch mistakes before runtime.
-- **Compile for production** — pre-compile `.md` to JSON or ESM so deployments skip parsing entirely.
-- **Repo-native, not dashboard-native** — no hosted service, no external admin tool. Everything lives in source control.
+- **Markdown prompt assets** — capture prompt text, model config, tool bindings, context rules, and metadata together.
+- **Provider-ready output** — render request bodies for OpenAI Chat, OpenAI Responses, Anthropic, Gemini, and OpenRouter while your app owns transport.
+- **Input hardening** — define required values, size limits, allow/deny patterns, and secret rejection close to the prompt template.
+- **Reusable composition** — share tone, policy, and safety instructions with `includes`, and apply folder-level standards with `defaults.md`.
+- **Environment and tier overrides** — keep dev/prod and plan-specific behavior in one prompt source with explicit, reviewable overrides.
+- **Sidecar tests** — run deterministic prompt checks in local development and CI without calling a model.
 
 ## Install
 
@@ -85,28 +77,21 @@ id: support/reply
 schema_version: 1
 provider: openai
 model: gpt-5.4
-reasoning:
-  effort: medium
-sampling:
-  temperature: 0.7
-context:
-  history:
-    max_items: 10
-  inputs:
-    - name: user_message
-      non_empty:
-        return_message: "Please enter a message before continuing."
-      reject_secrets: true
-    - name: app_context
-      max_size: 2000
-      allow_regex: /^[A-Za-z0-9 _-]+$/i
 includes:
   - ./shared/tone.md
+context:
+  inputs:
+    - name: user_message
+      non_empty: true
+      reject_secrets: true
+environments:
+  dev:
+    model: gpt-5.4-mini
 ---
 
 # System instructions
 
-You are a helpful support assistant working in {{ app_context }}.
+You are a helpful support assistant.
 
 # Prompt template
 
@@ -118,21 +103,15 @@ You are a helpful support assistant working in {{ app_context }}.
 ```typescript
 import { createPromptOpsKit } from 'promptopskit';
 
-const kit = createPromptOpsKit();
+const kit = createPromptOpsKit({ sourceDir: './prompts' });
 
 const result = await kit.renderPrompt({
   path: 'support/reply',
   provider: 'openai',
+  environment: 'prod',
   variables: {
     user_message: 'How do I reset my password?',
-    app_context: 'Account settings page',
   },
-  history: [
-    { role: 'user', content: 'I am on the account settings page.' },
-    { role: 'assistant', content: 'I can help with account access.' },
-  ],
-  onHistoryCompaction: ({ overflow }) =>
-    `Earlier conversation summary: ${summarizeConversationUsingLLM(overflow)}`,
 });
 
 if (result.returnMessage) {
@@ -331,6 +310,29 @@ const request = result;
 If you need a different layout, keep passing `sourceDir` and `compiledDir` explicitly.
 
 `renderPrompt()` and `validatePrompt()` use the same source-versus-compiled resolution rules as `kit.renderPrompt()`. The existing synchronous `render()` and `validate()` methods still work for already-resolved compiled or inline assets.
+
+## How It Compares to GitHub Models
+
+GitHub Models is a good place to prototype prompts, compare models, and run evaluations inside GitHub.
+
+PromptOpsKit is focused on the application runtime layer. Use it when prompt behavior needs to live in your repo with validated inputs, reusable composition, environment and tier overrides, sidecar tests, compiled artifacts, and provider-ready request bodies.
+
+Use GitHub Models when you want:
+
+- A GitHub-hosted prompt playground
+- Side-by-side model comparison
+- Evaluation workflows inside GitHub
+- `.prompt.yml` files for prompt experiments and evals
+
+Use PromptOpsKit when you want:
+
+- Runtime-focused Markdown prompt assets
+- Production input hardening and validation
+- Reusable `includes` and folder-level `defaults.md`
+- Environment-specific model and parameter overrides
+- Deterministic local and CI testing without model calls
+- Provider-specific request bodies for your own runtime code
+- Control over SDKs, auth, retries, routing, observability, and billing
 
 ## Optional UsageTap Tracking
 

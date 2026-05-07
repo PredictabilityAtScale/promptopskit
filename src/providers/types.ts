@@ -8,6 +8,8 @@ export interface ProviderRequest {
   body: Record<string, unknown>;
   provider: string;
   model: string;
+  baseURL?: string;
+  headers?: Record<string, string>;
 }
 
 export interface ProviderPromptReturnMessageResult {

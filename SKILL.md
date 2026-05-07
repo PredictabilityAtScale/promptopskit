@@ -8,7 +8,7 @@ description: Guidance for creating and editing promptopskit prompt files, defaul
 This project uses **promptopskit** to manage LLM prompts as code.
 Prompts live in markdown files with YAML front matter, are validated against
 a schema, and render into provider-specific request bodies (OpenAI, Anthropic,
-Gemini, OpenRouter, and OpenAI Responses). Follow these instructions when creating or editing prompts.
+Gemini, OpenRouter, LLMAsAService, and OpenAI Responses). Follow these instructions when creating or editing prompts.
 
 ---
 
@@ -119,8 +119,8 @@ into a provider request body:
 - "generate the Anthropic call for the prompt [name]"
 - "render/generate/build/create/produce the request/body/call/payload/messages
   for prompt [name] with provider [provider]"
-- "turn [name] into a provider request for openai/anthropic/google/gemini/openrouter"
-- "wire up prompt [name] to OpenAI/Anthropic/Gemini/OpenRouter"
+- "turn [name] into a provider request for openai/anthropic/google/gemini/openrouter/llmasaservice"
+- "wire up prompt [name] to OpenAI/Anthropic/Gemini/OpenRouter/LLMAsAService"
 - "give me code to call [provider] with prompt [name]"
 
 Provider aliases:
@@ -132,6 +132,7 @@ Provider aliases:
 | `anthropic`, `claude` | `anthropic` |
 | `google`, `gemini` | `gemini` |
 | `openrouter` | `openrouter` |
+| `llmasaservice`, `llmasaservice.io`, `llm gateway` | `llmasaservice` |
 
 Behavior:
 
@@ -139,7 +140,7 @@ Behavior:
 2. Prefer `createPromptOpsKit().renderPrompt()` for server-side app code that loads
    prompt source or compiled JSON by path.
 3. Prefer provider adapters (`openaiAdapter`, `anthropicAdapter`,
-   `geminiAdapter`, `openrouterAdapter`) when the user asks for provider-specific
+   `geminiAdapter`, `openrouterAdapter`, `llmasaserviceAdapter`) when the user asks for provider-specific
    integration code or already has a compiled asset.
 4. Include `variables` for every declared prompt input, using realistic placeholder
    values or function parameters.
@@ -256,6 +257,51 @@ if (!result.request) throw new Error('Prompt rendering did not produce an OpenRo
 const completion = await client.chat.completions.create(result.request.body as any);
 ```
 
+LLMAsAService example:
+
+```typescript
+import OpenAI from 'openai';
+import {
+  createLLMAsAServiceOpenAIConfig,
+  llmasaserviceAdapter,
+} from 'promptopskit/llmasaservice';
+
+const client = new OpenAI(createLLMAsAServiceOpenAIConfig({
+  baseURL: process.env.LLM_GATEWAY_BASE_URL,
+  projectId: process.env.LLM_GATEWAY_PROJECT_ID,
+}));
+
+const result = await llmasaserviceAdapter.renderPrompt(
+  {
+    path: 'support/triage-summary',
+  },
+  {
+    runtime: {
+      provider_options: {
+        llmasaservice: {
+          project_id: process.env.LLM_GATEWAY_PROJECT_ID,
+          customer: {
+            customer_id: customer.id,
+            customer_name: customer.name,
+            customer_user_id: user.id,
+            customer_user_email: user.email,
+          },
+        },
+      },
+    },
+    variables: { ticket: ticketText },
+    strict: true,
+  },
+);
+
+if (result.returnMessage) return result.returnMessage;
+if (!('body' in result)) {
+  throw new Error('Prompt rendering did not produce an LLMAsAService request.');
+}
+
+const completion = await client.chat.completions.create(result.body as any);
+```
+
 If the user asks for "just the body", render with `kit.renderPrompt()` and show
 or return `result.request.body`, not the whole render result.
 
@@ -330,7 +376,7 @@ the fields required by that specific file:
 | `id` | string | **yes** | Unique identifier for the prompt |
 | `schema_version` | number | yes | Always `1` |
 | `description` | string | no | Human-readable description |
-| `provider` | enum | no | `openai`, `openai-responses`, `anthropic`, `google`, `gemini`, `openrouter`, or `any` |
+| `provider` | enum | no | `openai`, `openai-responses`, `anthropic`, `google`, `gemini`, `openrouter`, `llmasaservice`, or `any` |
 | `model` | string | no | Model identifier (e.g. `gpt-5.4`, `claude-sonnet-4-20250514`) |
 | `fallback_models` | string[] | no | Ordered fallback model list |
 | `reasoning` | object | no | `{ effort: low|medium|high, budget_tokens: number }` |
@@ -338,7 +384,7 @@ the fields required by that specific file:
 | `response` | object | no | `{ format: text|json|markdown, stream: boolean, schema?: object, schema_name?: string, schema_description?: string, schema_strict?: boolean }` |
 | `cache` | object | no | Provider-specific cache controls (`openai`, `anthropic`, `gemini`/`google`) |
 | `tools` | array | no | Tool names (strings) or inline definitions with `{ name, description, input_schema }` |
-| `provider_options` | object | no | Provider-specific advanced options (`anthropic`, `gemini`, `openrouter`) |
+| `provider_options` | object | no | Provider-specific advanced options (`anthropic`, `gemini`, `openrouter`, `llmasaservice`) |
 | `raw` | object | no | Provider-scoped request-body passthrough for unmodeled vendor fields |
 | `mcp` | object | no | `{ servers: [string | { name, config }] }` |
 | `context.inputs` | `Array<string | { name, max_size?, trim?, allow_regex?, deny_regex?, non_empty?, reject_secrets? }>` | no | Declared variable names used in templates, with optional size budgets and runtime hardening controls |
@@ -548,7 +594,7 @@ Prefer portable fields first:
 - Use `cache` for provider cache hints
 - Use `tools` for tool definitions
 
-Treat `response.schema` as the provider-neutral JSON Schema contract. The adapters emit it through provider-specific request fields: OpenAI/OpenRouter `response_format`, OpenAI Responses `text.format`, Anthropic `output_config.format`, and Gemini `generationConfig.responseJsonSchema`.
+Treat `response.schema` as the provider-neutral JSON Schema contract. The adapters emit it through provider-specific request fields: OpenAI/OpenRouter/LLMAsAService `response_format`, OpenAI Responses `text.format`, Anthropic `output_config.format`, and Gemini `generationConfig.responseJsonSchema`.
 
 Use `provider_options` for known non-portable mappings:
 
@@ -573,7 +619,15 @@ provider_options:
     provider:
       order: ["anthropic", "openai"]
     transforms: ["middle-out"]
+  llmasaservice:
+    project_id: llm-project-id
+    # Optional default; usually pass the real customer at render time.
+    customer:
+      customer_id: cust_123
+      customer_name: Acme
 ```
+
+For LLMAsAService, prefer putting the current customer/account/user attribution in `runtime.provider_options.llmasaservice.customer` during rendering. Static prompt metadata may include a default, but runtime values should override it for real requests.
 
 Use `raw` only when a vendor request-body field is important and PromptOpsKit does not model it yet:
 
@@ -590,9 +644,11 @@ raw:
   openrouter:
     usage:
       include: true
+  llmasaservice:
+    conversationId: conv_123
 ```
 
-Raw blocks are provider-scoped (`openai`, `openai-responses`/`openai_responses`, `anthropic`, `gemini`/`google`, `openrouter`) and are shallow-merged into the final request body after normalized fields. When adding `raw`, include a short note in `# Notes` explaining why a first-class field is not being used.
+Raw blocks are provider-scoped (`openai`, `openai-responses`/`openai_responses`, `anthropic`, `gemini`/`google`, `openrouter`, `llmasaservice`) and are shallow-merged into the final request body after normalized fields. When adding `raw`, include a short note in `# Notes` explaining why a first-class field is not being used.
 
 ---
 

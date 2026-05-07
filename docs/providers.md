@@ -1,6 +1,6 @@
 # Provider Adapters
 
-PromptOpsKit ships five provider adapters. Direct `render()` calls always produce a `{ body, provider, model }` object shaped for the target API. Async `renderPrompt()` helpers may instead return `{ provider, model, returnMessage }` when context validation is configured to short-circuit before request shaping. You handle the HTTP call — no auth, no headers, no HTTP client opinions.
+PromptOpsKit ships six provider adapters. Direct `render()` calls always produce a `{ body, provider, model }` object shaped for the target API. Some providers also include optional transport metadata such as `baseURL` and `headers`. Async `renderPrompt()` helpers may instead return `{ provider, model, returnMessage }` when context validation is configured to short-circuit before request shaping. You handle the HTTP call and SDK setup.
 
 ## Supported providers
 
@@ -11,6 +11,7 @@ PromptOpsKit ships five provider adapters. Direct `render()` calls always produc
 | Anthropic | `anthropic` | `anthropicAdapter` |
 | Google Gemini | `gemini` or `google` | `geminiAdapter` |
 | OpenRouter | `openrouter` | `openrouterAdapter` |
+| LLMAsAService Gateway | `llmasaservice` | `llmasaserviceAdapter` |
 
 
 ## Normalized front matter vs provider-specific options
@@ -35,6 +36,11 @@ provider_options:
     provider:
       order: ["anthropic", "openai"]
     transforms: ["middle-out"]
+  llmasaservice:
+    project_id: "llm-project-id"
+    customer:
+      customer_id: "cust_123"
+      customer_name: "Acme"
 ```
 
 This keeps portable settings in normalized fields, while still exposing advanced provider-specific controls.
@@ -57,7 +63,7 @@ Adapters emit that neutral JSON Schema through each provider's native request sh
 
 | Provider | Emitted field |
 |----------|---------------|
-| `openai` / `openrouter` | `response_format: { type: "json_schema", json_schema: { name, description?, schema, strict } }` |
+| `openai` / `openrouter` / `llmasaservice` | `response_format: { type: "json_schema", json_schema: { name, description?, schema, strict } }` |
 | `openai-responses` | `text: { format: { type: "json_schema", name, description?, schema, strict } }` |
 | `anthropic` | `output_config: { format: { type: "json_schema", schema } }` |
 | `gemini` / `google` | `generationConfig.responseJsonSchema` |
@@ -76,6 +82,9 @@ raw:
     safetySettings:
       - category: HARM_CATEGORY_DANGEROUS_CONTENT
         threshold: BLOCK_ONLY_HIGH
+  llmasaservice:
+    customer:
+      customer_id: cust_123
 ```
 
 `raw.<provider>` is shallow-merged into the final request body after normalized fields and `provider_options`, so it can intentionally override generated fields. Treat it as a last-resort escape hatch and document why the raw field is present.
@@ -93,6 +102,7 @@ GitHub Models `.prompt.yml` files use a simpler top-level shape (`model`, `model
 | `openai-responses` | Mapped to body `stream` |
 | `anthropic` | Mapped to body `stream` |
 | `openrouter` | Mapped to body `stream` (same as OpenAI) |
+| `llmasaservice` | Mapped to body `stream` (same as OpenAI) |
 | `gemini` | **Not body-mapped**; Gemini streaming is endpoint-based (`streamGenerateContent`) |
 
 ## Usage via `renderPrompt`
@@ -121,7 +131,7 @@ const { request } = result;
 
 The provider passed to `renderPrompt` determines which adapter shapes the body. The `provider` field in front matter is informational — the render-time provider controls output.
 When a prompt includes multiple cache blocks (for example `cache.openai` + `cache.anthropic`), adapters ignore non-matching blocks so cross-provider settings never leak into the wrong payload.
-When a prompt includes multiple raw blocks, adapters also read only the block for the selected provider (`raw.openai`, `raw.openai-responses`, `raw.anthropic`, `raw.gemini`/`raw.google`, or `raw.openrouter`).
+When a prompt includes multiple raw blocks, adapters also read only the block for the selected provider (`raw.openai`, `raw.openai-responses`, `raw.anthropic`, `raw.gemini`/`raw.google`, `raw.openrouter`, or `raw.llmasaservice`).
 
 ## Direct adapter imports
 
@@ -131,6 +141,7 @@ import { openaiResponsesAdapter } from 'promptopskit/openai-responses';
 import { anthropicAdapter } from 'promptopskit/anthropic';
 import { geminiAdapter } from 'promptopskit/gemini';
 import { openrouterAdapter } from 'promptopskit/openrouter';
+import { llmasaserviceAdapter } from 'promptopskit/llmasaservice';
 ```
 
 Each adapter implements the `ProviderAdapter` interface:
@@ -149,7 +160,7 @@ interface ProviderAdapter {
 }
 ```
 
-Direct adapter rendering accepts the same `environment` and `tier` selectors as `kit.renderPrompt()`. Use the synchronous `validate()` and `render()` methods when you already have a compiled `ResolvedPromptAsset`, and use the async `validatePrompt()` and `renderPrompt()` helpers when you want the adapter to resolve either markdown source or a compiled artifact from disk. Context input validation runs through the same shared prompt-input wrapper for OpenAI, OpenAI Responses, Anthropic, Gemini, and OpenRouter, so `allow_regex`, `deny_regex`, `non_empty`, `reject_secrets`, and `return_message` behave consistently across all five. For regex validators authored in YAML, prefer unquoted `/pattern/i` literals so backslash escapes stay copyable.
+Direct adapter rendering accepts the same `environment` and `tier` selectors as `kit.renderPrompt()`. Use the synchronous `validate()` and `render()` methods when you already have a compiled `ResolvedPromptAsset`, and use the async `validatePrompt()` and `renderPrompt()` helpers when you want the adapter to resolve either markdown source or a compiled artifact from disk. Context input validation runs through the same shared prompt-input wrapper for OpenAI, OpenAI Responses, Anthropic, Gemini, OpenRouter, and LLMAsAService, so `allow_regex`, `deny_regex`, `non_empty`, `reject_secrets`, and `return_message` behave consistently across all six. For regex validators authored in YAML, prefer unquoted `/pattern/i` literals so backslash escapes stay copyable.
 
 Server-side example:
 
@@ -259,7 +270,7 @@ This pattern keeps PromptOpsKit responsible for prompt rendering while leaving H
 If you want UsageTap begin/end tracking around a provider call, use the optional `promptopskit/usagetap` helper layer.
 
 - The core adapters still only produce request bodies.
-- Provider-specific runners are available for OpenAI, OpenRouter, Anthropic, and Gemini.
+- Provider-specific runners are available for OpenAI, OpenRouter, LLMAsAService, Anthropic, and Gemini.
 - Manual lifecycle control is available through `withUsageTapCall`.
 - Entitlement-aware request mutation is opt-in and runs on a cloned request.
 
@@ -447,6 +458,102 @@ provider_options:
 
 Use `raw.openrouter` for less common OpenRouter body fields that PromptOpsKit does not model yet.
 
+## LLMAsAService Gateway
+
+Body shape: OpenAI-compatible Chat Completions payloads sent to `https://gateway.llmasaservice.io`. The adapter reuses the OpenAI chat mapping, applies `provider_options.llmasaservice`, and reads `raw.llmasaservice` for gateway-only body fields.
+
+If you use environment variables in your application, read them in app code and pass them explicitly to the adapter/helper:
+
+```bash
+LLM_GATEWAY_BASE_URL=https://gateway.llmasaservice.io
+LLM_GATEWAY_PROJECT_ID=<project id from llmasaservice admin>
+LLM_GATEWAY_DEFAULT_MODEL=group:standard
+```
+
+Gateway-specific fields:
+
+```yaml
+provider: llmasaservice
+model: group:standard
+provider_options:
+  llmasaservice:
+    project_id: "llm-project-id"
+    # Optional default; most applications should override customer at render time.
+    customer:
+      customer_id: "cust_123"
+      customer_name: "Acme"
+      customer_user_id: "user_456"
+      customer_user_email: "user@example.com"
+    conversationId: "optional-conversation-id"
+    conversationTitle: "optional conversation title"
+```
+
+`project_id` is emitted as the `x-project-id` request header. `customer`, `conversationId`, and `conversationTitle` are emitted in the JSON body. Customer attribution is usually known only at request time, so pass it through `runtime.provider_options.llmasaservice.customer` when rendering. A prompt file may include a default customer, but runtime values should override it for real user/customer traffic.
+
+Adapter validation without render-time overrides warns when `project_id` or `customer.customer_id` is missing. When validating with render-time overrides, the adapter requires `provider_options.llmasaservice.project_id` and a `customer.customer_id` value after overrides are applied.
+
+OpenAI SDK setup:
+
+```typescript
+import OpenAI from 'openai';
+import {
+  createLLMAsAServiceOpenAIConfig,
+  llmasaserviceAdapter,
+} from 'promptopskit/llmasaservice';
+
+const gateway = new OpenAI(createLLMAsAServiceOpenAIConfig({
+  baseURL: process.env.LLM_GATEWAY_BASE_URL,
+  projectId: process.env.LLM_GATEWAY_PROJECT_ID,
+}));
+
+const request = llmasaserviceAdapter.render(prompt, {
+  variables,
+  runtime: {
+    model: process.env.LLM_GATEWAY_DEFAULT_MODEL,
+    provider_options: {
+      llmasaservice: {
+        project_id: process.env.LLM_GATEWAY_PROJECT_ID,
+        customer: {
+          customer_id: account.id,
+          customer_name: account.name,
+          customer_user_id: user.id,
+          customer_user_email: user.email,
+        },
+      },
+    },
+  },
+});
+
+const completion = await gateway.chat.completions.create(request.body as any);
+```
+
+The gateway does not require an OpenAI provider API key or LLM Gateway API key for gateway-routed calls. `createLLMAsAServiceOpenAIConfig()` sets the OpenAI SDK `apiKey` to `not-used-by-llm-gateway` only because the SDK constructor requires a value.
+
+For GPT-5 class OpenAI model selectors such as `gpt-5.2` or `openai:gpt-5.2`, `sampling.max_output_tokens` is emitted as `max_completion_tokens`. Other gateway selectors preserve the normal OpenAI-compatible fields.
+
+Recommended response header logging after the SDK call, when your runtime exposes response headers:
+
+- `x-request-id`
+- `x-llm-model-id`
+- `x-llm-model-group`
+
+Manual smoke test:
+
+```bash
+curl https://gateway.llmasaservice.io/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "x-project-id: $LLM_GATEWAY_PROJECT_ID" \
+  -d '{
+    "model": "group:standard",
+    "messages": [{"role": "user", "content": "Say ok"}],
+    "max_completion_tokens": 10,
+    "customer": {
+      "customer_id": "smoke-test",
+      "customer_name": "Smoke Test"
+    }
+  }'
+```
+
 ## Conversation history
 
 Pass conversation history via the `history` option:
@@ -491,7 +598,7 @@ const result = await kit.renderPrompt({
 });
 ```
 
-If no `onHistoryCompaction` callback is supplied, PromptOpsKit creates a plain text compacted history message. The behavior is shared by OpenAI, OpenAI Responses, Anthropic, Gemini, and OpenRouter.
+If no `onHistoryCompaction` callback is supplied, PromptOpsKit creates a plain text compacted history message. The behavior is shared by OpenAI, OpenAI Responses, Anthropic, Gemini, OpenRouter, and LLMAsAService.
 
 ## Tools
 

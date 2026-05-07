@@ -188,7 +188,7 @@ export function applyUsageTapEntitlements(
     return nextRequest;
   }
 
-  if (nextRequest.provider === 'openai' || nextRequest.provider === 'openrouter') {
+  if (nextRequest.provider === 'openai' || nextRequest.provider === 'openrouter' || nextRequest.provider === 'llmasaservice') {
     capOpenAIReasoning(nextRequest.body, allowed);
     if (isRecordArray(nextRequest.body.tools)) {
       nextRequest.body.tools = filterOpenAITools(nextRequest.body.tools, allowed, options);
@@ -303,6 +303,10 @@ export function runOpenAIWithUsageTap<TResult>(client: UsageTapClient, options: 
 }
 
 export function runOpenRouterWithUsageTap<TResult>(client: UsageTapClient, options: UsageTapProviderRunOptions<TResult>) {
+  return runProviderWithUsageTap(client, options, extractOpenAIUsage);
+}
+
+export function runLLMAsAServiceWithUsageTap<TResult>(client: UsageTapClient, options: UsageTapProviderRunOptions<TResult>) {
   return runProviderWithUsageTap(client, options, extractOpenAIUsage);
 }
 

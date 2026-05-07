@@ -12,6 +12,7 @@ export default defineConfig([
       'providers/anthropic': 'src/providers/anthropic.ts',
       'providers/gemini': 'src/providers/gemini.ts',
       'providers/openrouter': 'src/providers/openrouter.ts',
+      'providers/llmasaservice': 'src/providers/llmasaservice.ts',
     },
     format: ['esm', 'cjs'],
     dts: true,

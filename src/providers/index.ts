@@ -12,6 +12,14 @@ export { openaiResponsesAdapter } from './openai-responses.js';
 export { anthropicAdapter } from './anthropic.js';
 export { geminiAdapter } from './gemini.js';
 export { openrouterAdapter } from './openrouter.js';
+export {
+  LLMASASERVICE_BASE_URL,
+  LLMASASERVICE_DEFAULT_MODEL,
+  LLMASASERVICE_RESPONSE_HEADER_NAMES,
+  LLMASASERVICE_SDK_PLACEHOLDER_API_KEY,
+  createLLMAsAServiceOpenAIConfig,
+  llmasaserviceAdapter,
+} from './llmasaservice.js';
 
 import type { ProviderAdapter } from './types.js';
 import { openaiAdapter } from './openai.js';
@@ -19,6 +27,7 @@ import { openaiResponsesAdapter } from './openai-responses.js';
 import { anthropicAdapter } from './anthropic.js';
 import { geminiAdapter } from './gemini.js';
 import { openrouterAdapter } from './openrouter.js';
+import { llmasaserviceAdapter } from './llmasaservice.js';
 
 const adapters: Record<string, ProviderAdapter> = {
   openai: openaiAdapter,
@@ -27,6 +36,7 @@ const adapters: Record<string, ProviderAdapter> = {
   google: geminiAdapter,
   gemini: geminiAdapter,
   openrouter: openrouterAdapter,
+  llmasaservice: llmasaserviceAdapter,
 };
 
 /**

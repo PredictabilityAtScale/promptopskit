@@ -28,6 +28,7 @@ export {
   extractOpenAIUsage,
   runAnthropicWithUsageTap,
   runGeminiWithUsageTap,
+  runLLMAsAServiceWithUsageTap,
   runOpenAIWithUsageTap,
   runOpenRouterWithUsageTap,
 } from './providers.js';

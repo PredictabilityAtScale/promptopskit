@@ -71,6 +71,14 @@ export { getAdapter, openaiAdapter, openaiResponsesAdapter } from './providers/i
 export { anthropicAdapter } from './providers/anthropic.js';
 export { geminiAdapter } from './providers/gemini.js';
 export { openrouterAdapter } from './providers/openrouter.js';
+export {
+  LLMASASERVICE_BASE_URL,
+  LLMASASERVICE_DEFAULT_MODEL,
+  LLMASASERVICE_RESPONSE_HEADER_NAMES,
+  LLMASASERVICE_SDK_PLACEHOLDER_API_KEY,
+  createLLMAsAServiceOpenAIConfig,
+  llmasaserviceAdapter,
+} from './providers/llmasaservice.js';
 export { PromptAssetSchema, PromptAssetOverridesSchema } from './schema/index.js';
 export {
   applyUsageTapEntitlements,
@@ -83,6 +91,7 @@ export {
   extractOpenAIUsage,
   runAnthropicWithUsageTap,
   runGeminiWithUsageTap,
+  runLLMAsAServiceWithUsageTap,
   runOpenAIWithUsageTap,
   runOpenRouterWithUsageTap,
   withUsageTapCall,

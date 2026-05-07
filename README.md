@@ -34,7 +34,7 @@ To one reviewable asset:
 Core capabilities:
 
 - **Markdown prompt assets** — capture prompt text, model config, tool bindings, context rules, and metadata together.
-- **Provider-ready output** — render request bodies for OpenAI Chat, OpenAI Responses, Anthropic, Gemini, and OpenRouter while your app owns transport.
+- **Provider-ready output** — render request bodies for OpenAI Chat, OpenAI Responses, Anthropic, Gemini, OpenRouter, and LLMAsAService while your app owns transport.
 - **Input hardening** — define required values, size limits, allow/deny patterns, and secret rejection close to the prompt template.
 - **Reusable composition** — share tone, policy, and safety instructions with `includes`, and apply folder-level standards with `defaults.md`.
 - **Environment and tier overrides** — keep dev/prod and plan-specific behavior in one prompt source with explicit, reviewable overrides.
@@ -148,7 +148,7 @@ Supported values for `warnings.contextSize` are `auto`, `off`, `result-only`, `c
 - **Composition** — `includes` to share system instructions across prompts, with circular detection
 - **Folder defaults** — `defaults.md` inheritance for shared provider, model, metadata, and system instructions
 - **Overrides** — Environment and tier-based overrides (base → env → tier → runtime)
-- **5 provider adapters** — OpenAI (Chat), OpenAI (Responses), Anthropic, Gemini, OpenRouter — body-only output
+- **6 provider adapters** — OpenAI (Chat), OpenAI (Responses), Anthropic, Gemini, OpenRouter, LLMAsAService
 - **Provider-aware input caching controls** — optional `cache` front matter maps to OpenAI prompt cache hints, Anthropic `cache_control`, and Gemini `cachedContent`
 - **Vendor escape hatch** — optional `raw.<provider>` blocks shallow-merge unmodeled request-body fields into the final provider payload
 - **Validation** — Zod schema validation, Levenshtein-based "did you mean?" for typos, variable usage checks
@@ -203,6 +203,24 @@ result = await kit.renderPrompt({
   variables: { name: 'World', app_context: 'Welcome screen' },
 });
 if (!result.request) throw new Error(result.returnMessage ?? 'Prompt rendering failed.');
+
+// LLMAsAService — OpenAI-compatible gateway with project and customer metadata
+result = await kit.renderPrompt({
+  path: 'hello',
+  provider: 'llmasaservice',
+  runtime: {
+    provider_options: {
+      llmasaservice: {
+        project_id: process.env.LLM_GATEWAY_PROJECT_ID,
+        customer: { customer_id: 'cust_123', customer_name: 'Acme' },
+      },
+    },
+  },
+  variables: { name: 'World', app_context: 'Welcome screen' },
+});
+if (!result.request) throw new Error(result.returnMessage ?? 'Prompt rendering failed.');
+// result.request.body → { model, messages, customer, ... }
+// result.request.headers → { 'x-project-id': '...' }
 ```
 
 Provider adapters are also available as direct imports:
@@ -213,6 +231,7 @@ import { openaiResponsesAdapter } from 'promptopskit/openai-responses';
 import { anthropicAdapter } from 'promptopskit/anthropic';
 import { geminiAdapter } from 'promptopskit/gemini';
 import { openrouterAdapter } from 'promptopskit/openrouter';
+import { llmasaserviceAdapter } from 'promptopskit/llmasaservice';
 ```
 
 Direct adapter rendering also accepts `environment` and `tier` selectors. This is useful for compiled JSON/ESM assets in browser, edge, or worker code:
@@ -242,9 +261,9 @@ In browser or client-side code, keep provider credentials on the server. Use the
 
 ### Provider-specific fields and raw passthrough
 
-Use normalized fields first (`sampling`, `response`, `cache`, `tools`) so prompts stay portable. `response.schema` is the neutral JSON Schema path; adapters emit it as OpenAI/OpenRouter `response_format`, OpenAI Responses `text.format`, Anthropic `output_config.format`, and Gemini `generationConfig.responseJsonSchema`.
+Use normalized fields first (`sampling`, `response`, `cache`, `tools`) so prompts stay portable. `response.schema` is the neutral JSON Schema path; adapters emit it as OpenAI/OpenRouter/LLMAsAService `response_format`, OpenAI Responses `text.format`, Anthropic `output_config.format`, and Gemini `generationConfig.responseJsonSchema`.
 
-Use `provider_options` when PromptOpsKit has a known provider-specific mapping, such as Anthropic `top_k`, Gemini's native `response_schema`, or OpenRouter routing fields.
+Use `provider_options` when PromptOpsKit has a known provider-specific mapping, such as Anthropic `top_k`, Gemini's native `response_schema`, OpenRouter routing fields, or LLMAsAService gateway routing/customer metadata.
 
 ```yaml
 response:
@@ -261,7 +280,15 @@ provider_options:
     provider:
       order: ["anthropic", "openai"]
     transforms: ["middle-out"]
+  llmasaservice:
+    project_id: "llm-project-id"
+    # Optional default; usually pass the real customer at render time.
+    customer:
+      customer_id: "cust_123"
+      customer_name: "Acme"
 ```
+
+For LLMAsAService, `provider_options.llmasaservice.customer` is intended to be render-time attribution for the current account/user. A prompt can keep a default, but production calls should normally override it through `runtime.provider_options.llmasaservice.customer`.
 
 When a provider adds a body field PromptOpsKit does not model yet, use `raw`:
 
@@ -278,6 +305,8 @@ raw:
   openrouter:
     usage:
       include: true
+  llmasaservice:
+    conversationId: "conv_123"
 ```
 
 Each adapter reads only its matching raw block and shallow-merges it into the generated request body after normalized mappings. This is intentionally an escape hatch; prefer first-class fields when they exist.
@@ -336,7 +365,7 @@ Use PromptOpsKit when you want:
 
 ## Optional UsageTap Tracking
 
-PromptOpsKit can also help you track provider calls with UsageTap.com while keeping the core render API body-only.
+PromptOpsKit can also help you track provider calls with UsageTap.com while keeping the core render API transport-light.
 
 ```typescript
 import { createPromptOpsKit } from 'promptopskit';
@@ -400,7 +429,7 @@ const tracked = await runOpenAIWithUsageTap(usageTap, {
 
 Notes:
 - `entitlementMode` defaults to `'off'`. Set it to `'apply'` only when you want UsageTap allowances to mutate a cloned provider request.
-- `runOpenRouterWithUsageTap`, `runAnthropicWithUsageTap`, and `runGeminiWithUsageTap` follow the same pattern.
+- `runOpenRouterWithUsageTap`, `runLLMAsAServiceWithUsageTap`, `runAnthropicWithUsageTap`, and `runGeminiWithUsageTap` follow the same pattern.
 - `extractOpenAIUsage`, `extractAnthropicUsage`, and `extractGeminiUsage` are public if you want to manage UsageTap lifecycle yourself.
 
 For explicit lifecycle control, use `beginUsageTapCall`, `endUsageTapCall`, or `withUsageTapCall` from `promptopskit/usagetap`. Full documentation: [docs/usagetap.md](./docs/usagetap.md).
@@ -593,7 +622,7 @@ Renders a prompt for a specific provider. Returns `{ resolved, request?, returnM
 |--------|------|-------------|
 | `path` | `string` | Prompt path (no extension), e.g. `'support/reply'` |
 | `source` | `string` | Inline prompt source (alternative to path) |
-| `provider` | `string` | `'openai'`, `'openai-responses'`, `'anthropic'`, `'gemini'`, `'openrouter'` |
+| `provider` | `string` | `'openai'`, `'openai-responses'`, `'anthropic'`, `'gemini'`, `'openrouter'`, `'llmasaservice'` |
 | `variables` | `Record<string, string>` | Template variables |
 | `onContextOverflow` | `(info) => string` | Optional callback to transform oversized context values before rendering |
 | `onHistoryCompaction` | `(info) => string \| { role, content }` | Optional callback to compact overflow history when `context.history.max_items` is exceeded |
@@ -622,7 +651,7 @@ Prompt files use YAML front matter with these fields:
 |-------|------|-------------|
 | `id` | `string` | Unique prompt identifier (required) |
 | `schema_version` | `number` | Schema version, currently `1` |
-| `provider` | `string` | `openai`, `openai-responses`, `anthropic`, `gemini` (or `google`), `openrouter`, `any` |
+| `provider` | `string` | `openai`, `openai-responses`, `anthropic`, `gemini` (or `google`), `openrouter`, `llmasaservice`, `any` |
 | `model` | `string` | Model name |
 | `fallback_models` | `string[]` | Fallback model list |
 | `reasoning` | `object` | `{ effort, budget_tokens }` |
@@ -630,8 +659,8 @@ Prompt files use YAML front matter with these fields:
 | `response` | `object` | `{ format, stream, schema, schema_name, schema_description, schema_strict }` |
 | `cache` | `object` | Provider-specific cache controls (`openai`, `anthropic`, `gemini`/`google`) |
 | `tools` | `array` | Tool references (string names or inline definitions) |
-| `provider_options` | `object` | Provider-specific non-portable options (`anthropic`, `gemini`, `openrouter`) |
-| `raw` | `object` | Provider-scoped request-body passthrough (`openai`, `openai-responses`, `anthropic`, `gemini`/`google`, `openrouter`) |
+| `provider_options` | `object` | Provider-specific non-portable options (`anthropic`, `gemini`, `openrouter`, `llmasaservice`) |
+| `raw` | `object` | Provider-scoped request-body passthrough (`openai`, `openai-responses`, `anthropic`, `gemini`/`google`, `openrouter`, `llmasaservice`) |
 | `mcp` | `object` | MCP server references |
 | `context` | `object` | `{ inputs, history }` — declare expected variables, with optional per-input `max_size`, `trim`, structured or literal `allow_regex`/`deny_regex`, built-in `non_empty` / `reject_secrets` validators, and `history.max_items` compaction |
 | `includes` | `string[]` | Paths to included prompt files |

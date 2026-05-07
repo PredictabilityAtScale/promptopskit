@@ -65,7 +65,7 @@ const result = await kit.renderPrompt({
 |--------|------|-------------|
 | `path` | `string` | Prompt path (no extension), e.g. `'support/reply'` |
 | `source` | `string` | Inline prompt source (alternative to `path`) |
-| `provider` | `string` | `'openai'`, `'openai-responses'`, `'anthropic'`, `'gemini'`, `'openrouter'` (required) |
+| `provider` | `string` | `'openai'`, `'openai-responses'`, `'anthropic'`, `'gemini'`, `'openrouter'`, `'llmasaservice'` (required) |
 | `variables` | `Record<string, string>` | Template variables |
 | `onContextOverflow` | `(info) => string` | Optional callback to transform an oversized context value before rendering |
 | `onHistoryCompaction` | `(info) => string \| { role, content }` | Optional callback used when `context.history.max_items` compacts overflow history |
@@ -83,7 +83,7 @@ Either `path` or `source` must be provided.
 ```typescript
 interface RenderResult {
   resolved: ResolvedPromptAsset;  // Fully resolved asset
-  request?: ProviderRequest;      // { body, provider, model } when rendering continues
+  request?: ProviderRequest;      // { body, provider, model, baseURL?, headers? } when rendering continues
   returnMessage?: string;         // Short-circuit message from context validation when configured
   warnings: string[];             // Non-fatal provider and render-time warnings
 }
@@ -249,6 +249,8 @@ const request = adapter.render(resolvedAsset, {
   variables: { name: 'World' },
 });
 ```
+
+Supported adapter names are `openai`, `openai-responses`, `anthropic`, `gemini`/`google`, `openrouter`, and `llmasaservice`.
 
 `RuntimeRenderOptions` for direct adapter rendering supports `environment`, `tier`, `runtime`, `variables`, `onContextOverflow`, `history`, `onHistoryCompaction`, `toolRegistry`, `strict`, and `openaiResponses`.
 

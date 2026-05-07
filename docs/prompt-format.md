@@ -130,7 +130,7 @@ cache:
 - `openai.prompt_cache_key` and `openai.retention` map to OpenAI prompt caching fields.
 - `anthropic.mode: automatic` sets top-level `cache_control`; `explicit` applies block-level cache controls to configured sections/tools.
 - `gemini.cached_content` (or `google.cached_content`) maps to `cachedContent` for requests that reuse a previously created Gemini cache.
-- You can safely include multiple provider blocks in the same prompt. Each adapter only reads its own block (`openai`, `anthropic`, or `gemini`/`google`) and ignores the others.
+- You can safely include multiple provider blocks in the same prompt. Each adapter only reads its own block (`openai`, `anthropic`, `gemini`/`google`, `openrouter`, or `llmasaservice`) and ignores the others.
 
 ## Structured JSON output
 
@@ -148,7 +148,7 @@ response:
         type: string
 ```
 
-Adapters emit this JSON Schema through the provider-specific body shape: OpenAI/OpenRouter `response_format`, OpenAI Responses `text.format`, Anthropic `output_config.format`, and Gemini `generationConfig.responseJsonSchema`.
+Adapters emit this JSON Schema through the provider-specific body shape: OpenAI/OpenRouter/LLMAsAService `response_format`, OpenAI Responses `text.format`, Anthropic `output_config.format`, and Gemini `generationConfig.responseJsonSchema`.
 
 Use provider-specific schema fields only when the vendor dialect itself matters, such as `provider_options.gemini.response_schema` for Gemini's native schema form.
 
@@ -166,6 +166,11 @@ raw:
     safetySettings:
       - category: HARM_CATEGORY_DANGEROUS_CONTENT
         threshold: BLOCK_ONLY_HIGH
+  openrouter:
+    usage:
+      include: true
+  llmasaservice:
+    conversationId: conv_123
 ```
 
 Each adapter reads only its own raw block. Raw values are shallow-merged into the generated body after normalized mappings, so they can override generated fields. Prefer normalized fields (`sampling`, `response`, `cache`, `tools`) and `provider_options` first; reserve `raw` for vendor-specific fields that would otherwise be impossible to send.
@@ -273,7 +278,7 @@ const result = await kit.renderPrompt({
 });
 ```
 
-If no callback is supplied, PromptOpsKit creates a plain text compacted history message. This behavior is provider-agnostic: OpenAI/OpenRouter use `messages`, OpenAI Responses uses `input`, Anthropic uses `messages`, and Gemini maps assistant history to `model`.
+If no callback is supplied, PromptOpsKit creates a plain text compacted history message. This behavior is provider-agnostic: OpenAI/OpenRouter/LLMAsAService use `messages`, OpenAI Responses uses `input`, Anthropic uses `messages`, and Gemini maps assistant history to `model`.
 
 Example hardened input definition:
 
@@ -343,6 +348,10 @@ provider_options:
   openrouter:
     transforms:
       - middle-out
+  llmasaservice:
+    project_id: llm-project-id
+    customer:
+      customer_id: cust_123
 context:
   inputs:
     - user_message

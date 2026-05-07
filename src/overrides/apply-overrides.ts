@@ -76,6 +76,7 @@ function mergeOverride(
       gemini: mergeRecordBlock(result.raw?.gemini, override.raw.gemini),
       google: mergeRecordBlock(result.raw?.google, override.raw.google),
       openrouter: mergeRecordBlock(result.raw?.openrouter, override.raw.openrouter),
+      llmasaservice: mergeRecordBlock(result.raw?.llmasaservice, override.raw.llmasaservice),
     };
   }
 
@@ -94,6 +95,10 @@ function mergeOverride(
       openrouter: {
         ...result.provider_options?.openrouter,
         ...override.provider_options.openrouter,
+      },
+      llmasaservice: {
+        ...result.provider_options?.llmasaservice,
+        ...override.provider_options.llmasaservice,
       },
     };
   }

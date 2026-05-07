@@ -118,10 +118,10 @@ const kit = createPromptOpsKit({
 | Field | Type | Description |
 |-------|------|-------------|
 | `resolved` | `ResolvedPromptAsset` | The fully resolved asset (includes inlined, overrides applied) |
-| `request` | `ProviderRequest` | `{ body, provider, model }` shaped for the target API |
+| `request` | `ProviderRequest` | `{ body, provider, model }` plus optional transport metadata shaped for the target API |
 | `warnings` | `string[]` | Non-fatal warnings (e.g. unsupported parameters for the chosen provider) |
 
-Your application owns the HTTP call — PromptOpsKit produces the request body only.
+Your application owns the HTTP call — PromptOpsKit produces the provider request shape and any provider-specific transport hints.
 
 When `context.history.max_items` is set and runtime history exceeds that count, PromptOpsKit compacts older turns into one preserved history item and keeps the most recent turns. Use `onHistoryCompaction` when your app wants to provide its own summary.
 

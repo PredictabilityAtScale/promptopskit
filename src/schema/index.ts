@@ -12,6 +12,8 @@ export {
   AnthropicProviderOptionsSchema,
   GeminiProviderOptionsSchema,
   OpenRouterProviderOptionsSchema,
+  LLMAsAServiceCustomerSchema,
+  LLMAsAServiceProviderOptionsSchema,
   ProviderOptionsSchema,
   ContextSchema,
   ContextInputDefinitionSchema,

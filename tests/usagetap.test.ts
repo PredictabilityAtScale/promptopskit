@@ -8,6 +8,7 @@ import {
   extractOpenAIUsage,
   runAnthropicWithUsageTap,
   runGeminiWithUsageTap,
+  runLLMAsAServiceWithUsageTap,
   runOpenAIWithUsageTap,
   withUsageTapCall,
 } from '../src/usagetap/index.js';
@@ -323,6 +324,43 @@ describe('UsageTap entitlement helpers', () => {
 
     expect(next.body.thinkingConfig).toEqual({ thinkingBudget: 1024 });
   });
+
+  it('applies OpenAI-compatible entitlement rules to LLMAsAService requests', () => {
+    const next = applyUsageTapEntitlements(
+      {
+        provider: 'llmasaservice',
+        model: 'openai:gpt-5.2',
+        body: {
+          model: 'openai:gpt-5.2',
+          reasoning_effort: 'high',
+          tools: [{ type: 'web_search' }],
+        },
+        headers: { 'x-project-id': 'proj_123' },
+      },
+      {
+        data: {
+          callId: 'call_gateway',
+          allowed: {
+            standard: true,
+            premium: false,
+            search: false,
+            reasoningLevel: 'LOW',
+          },
+        },
+      },
+      {
+        modelTiers: {
+          standard: 'group:standard',
+        },
+      },
+    );
+
+    expect(next.model).toBe('group:standard');
+    expect(next.body.model).toBe('group:standard');
+    expect(next.body.reasoning_effort).toBe('low');
+    expect(next.body.tools).toEqual([]);
+    expect(next.headers).toEqual({ 'x-project-id': 'proj_123' });
+  });
 });
 
 describe('runOpenAIWithUsageTap', () => {
@@ -445,6 +483,42 @@ describe('runOpenAIWithUsageTap', () => {
 });
 
 describe('other UsageTap provider runners', () => {
+  it('runs LLMAsAService tracking with the OpenAI-compatible extractor', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ data: { callId: 'call_gateway', allowed: {} } }))
+      .mockResolvedValueOnce(jsonResponse({ data: { costUSD: 0.02 } }));
+
+    const client = createUsageTapClient({ apiKey: 'secret-key', fetch: fetchMock as typeof fetch });
+
+    const result = await runLLMAsAServiceWithUsageTap(client, {
+      begin: { customerId: 'customer-gateway', feature: 'chat.send' },
+      request: {
+        provider: 'llmasaservice',
+        model: 'group:standard',
+        body: {
+          model: 'group:standard',
+          messages: [{ role: 'user', content: 'Hello' }],
+        },
+      },
+      invoke: async () => ({
+        usage: {
+          prompt_tokens: 12,
+          completion_tokens: 9,
+          prompt_tokens_details: { cached_tokens: 2 },
+        },
+      }),
+    });
+
+    expect(result.effectiveUsage).toMatchObject({
+      modelUsed: 'group:standard',
+      inputTokens: 12,
+      responseTokens: 9,
+      cachedInputTokens: 2,
+      responseStatusCode: 200,
+    });
+  });
+
   it('runs Anthropic tracking with the Anthropic extractor', async () => {
     const fetchMock = vi
       .fn()

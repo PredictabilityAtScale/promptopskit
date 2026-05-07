@@ -1,6 +1,6 @@
 # UsageTap
 
-PromptOpsKit includes an optional `promptopskit/usagetap` helper layer for UsageTap.com call tracking. It wraps your own provider call with `call_begin` and `call_end` requests while keeping the core prompt rendering API body-only.
+PromptOpsKit includes an optional `promptopskit/usagetap` helper layer for UsageTap.com call tracking. It wraps your own provider call with `call_begin` and `call_end` requests while keeping the core prompt rendering API transport-light.
 
 ## Install surface
 
@@ -11,6 +11,7 @@ import {
   createUsageTapClient,
   runOpenAIWithUsageTap,
   runOpenRouterWithUsageTap,
+  runLLMAsAServiceWithUsageTap,
   runAnthropicWithUsageTap,
   runGeminiWithUsageTap,
   withUsageTapCall,
@@ -101,7 +102,7 @@ tracked.effectiveUsage;
 tracked.allowed;
 ```
 
-`runOpenRouterWithUsageTap`, `runAnthropicWithUsageTap`, and `runGeminiWithUsageTap` follow the same pattern.
+`runOpenRouterWithUsageTap`, `runLLMAsAServiceWithUsageTap`, `runAnthropicWithUsageTap`, and `runGeminiWithUsageTap` follow the same pattern.
 
 ## Entitlement mode
 
@@ -113,10 +114,10 @@ tracked.allowed;
 When `entitlementMode: 'apply'` is enabled, helpers can:
 
 - Swap to `modelTiers.standard` or `modelTiers.premium`.
-- Cap OpenAI or OpenRouter `reasoning_effort`.
+- Cap OpenAI, OpenRouter, or LLMAsAService `reasoning_effort`.
 - Cap Gemini `thinkingConfig.thinkingBudget`. If no Gemini thinking budget was present, the helper now sets one from the allowed reasoning level.
-- Remove built-in OpenAI `web_search` when `allowed.search === false`.
-- Remove named tools according to `toolEntitlements` for OpenAI, Anthropic, and Gemini function declarations.
+- Remove built-in OpenAI-compatible `web_search` when `allowed.search === false`.
+- Remove named tools according to `toolEntitlements` for OpenAI, OpenRouter, LLMAsAService, Anthropic, and Gemini function declarations.
 
 Notes:
 
@@ -176,7 +177,7 @@ The provider runners use public extractor helpers that you can call yourself:
 
 They map common token fields into the UsageTap `call_end` payload shape:
 
-- OpenAI and OpenRouter: `usage.prompt_tokens`, `completion_tokens`, cached prompt tokens, reasoning tokens
+- OpenAI, OpenRouter, and LLMAsAService: `usage.prompt_tokens`, `completion_tokens`, cached prompt tokens, reasoning tokens
 - Anthropic: `usage.input_tokens`, `output_tokens`, `cache_read_input_tokens`
 - Gemini: `usageMetadata.promptTokenCount`, `candidatesTokenCount`, `cachedContentTokenCount`, `thoughtsTokenCount`
 
@@ -191,6 +192,7 @@ Main exports:
 - `applyUsageTapEntitlements`
 - `runOpenAIWithUsageTap`
 - `runOpenRouterWithUsageTap`
+- `runLLMAsAServiceWithUsageTap`
 - `runAnthropicWithUsageTap`
 - `runGeminiWithUsageTap`
 - `extractOpenAIUsage`

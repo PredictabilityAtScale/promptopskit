@@ -9,7 +9,7 @@ Prompt files use YAML front matter. This page documents every supported field.
 | `id` | `string` | Yes | Unique prompt identifier (e.g. `support/reply`) |
 | `schema_version` | `number` | Yes | Schema version — currently `1` |
 | `description` | `string` | No | Human-readable description of the prompt |
-| `provider` | `string` | No | `openai`, `openai-responses`, `anthropic`, `gemini`, `google`, `openrouter`, `any` |
+| `provider` | `string` | No | `openai`, `openai-responses`, `anthropic`, `gemini`, `google`, `openrouter`, `llmasaservice`, `any` |
 | `model` | `string` | No | Model name (e.g. `gpt-5.4`, `claude-sonnet-4-20250514`) |
 | `fallback_models` | `string[]` | No | Ordered list of fallback models |
 | `reasoning` | `object` | No | Reasoning/thinking configuration |
@@ -17,7 +17,7 @@ Prompt files use YAML front matter. This page documents every supported field.
 | `response` | `object` | No | Response format and streaming |
 | `cache` | `object` | No | Provider-specific prompt/context caching options |
 | `tools` | `array` | No | Tool references (strings or inline definitions) |
-| `provider_options` | `object` | No | Provider-specific advanced options (`anthropic`, `gemini`, `openrouter`) |
+| `provider_options` | `object` | No | Provider-specific advanced options (`anthropic`, `gemini`, `openrouter`, `llmasaservice`) |
 | `raw` | `object` | No | Provider-scoped request-body passthrough for fields PromptOpsKit does not model yet |
 | `mcp` | `object` | No | MCP server references |
 | `context` | `object` | No | Declare expected variables and history settings |
@@ -32,7 +32,7 @@ Prompt files use YAML front matter. This page documents every supported field.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `provider` | `enum` | Default provider (`openai`, `openai-responses`, `anthropic`, `google`, `gemini`, `openrouter`, `any`) |
+| `provider` | `enum` | Default provider (`openai`, `openai-responses`, `anthropic`, `google`, `gemini`, `openrouter`, `llmasaservice`, `any`) |
 | `model` | `string` | Default model identifier |
 | `cache` | `object` | Same as prompt-level `cache` block |
 | `metadata` | `object` | Same as the prompt `metadata` block (`owner`, `tags`, `review_required`, `stable`) |
@@ -103,11 +103,11 @@ response:
 | `stream` | `boolean` | Enable streaming |
 | `schema` | `object` | Portable JSON Schema object for structured output |
 | `schema_name` | `string` | Optional schema name (used by OpenAI/OpenAI Responses) |
-| `schema_description` | `string` | Optional schema description (used by OpenAI/OpenAI Responses/OpenRouter structured outputs) |
+| `schema_description` | `string` | Optional schema description (used by OpenAI/OpenAI Responses/OpenRouter/LLMAsAService structured outputs) |
 | `schema_strict` | `boolean` | Strict schema enforcement toggle (OpenAI/OpenAI Responses) |
 
 Provider mapping:
-- **OpenAI / OpenRouter**: `response.schema` maps to `response_format.json_schema`; `schema_description` maps to `json_schema.description`.
+- **OpenAI / OpenRouter / LLMAsAService**: `response.schema` maps to `response_format.json_schema`; `schema_description` maps to `json_schema.description`.
 - **OpenAI Responses**: `response.schema` maps to `text.format`; `schema_description` maps to `text.format.description`.
 - **Anthropic**: `response.schema` maps to `output_config.format` with `type: json_schema` and `schema`.
 - **Gemini**: `response.schema` maps to `generationConfig.responseJsonSchema`.
@@ -152,6 +152,12 @@ provider_options:
     models:
       - anthropic/claude-sonnet-4.5
       - openai/gpt-4o
+  llmasaservice:
+    project_id: llm-project-id
+    customer:
+      customer_id: cust_123
+      customer_name: Acme
+    conversationId: conv_123
 ```
 
 | Field | Type | Description |
@@ -170,6 +176,13 @@ provider_options:
 | `openrouter.transforms` | `string[]` | OpenRouter transforms |
 | `openrouter.plugins` | `object[]` | OpenRouter plugin definitions |
 | `openrouter.models` | `string[]` | OpenRouter fallback model list |
+| `llmasaservice.base_url` | `string` | Gateway base URL override |
+| `llmasaservice.project_id` | `string` | Gateway project id emitted as `x-project-id` |
+| `llmasaservice.customer` | `object` | Optional default gateway customer attribution object; usually supplied through runtime overrides |
+| `llmasaservice.conversationId` | `string` | Optional gateway conversation id |
+| `llmasaservice.conversationTitle` | `string` | Optional gateway conversation title |
+
+For `provider: llmasaservice`, static validation warns if `project_id` or `customer.customer_id` is missing because these values are often supplied at render time. When validating with render-time overrides, the adapter requires `provider_options.llmasaservice.project_id` so the rendered request can emit `headers['x-project-id']`, and it requires a gateway customer id in `provider_options.llmasaservice.customer.customer_id` or `raw.llmasaservice.customer.customer_id`.
 
 ## `raw`
 
@@ -190,9 +203,12 @@ raw:
   openrouter:
     usage:
       include: true
+  llmasaservice:
+    customer:
+      customer_id: cust_123
 ```
 
-Supported keys: `openai`, `openai-responses` (or `openai_responses`), `anthropic`, `gemini` (or `google`), and `openrouter`.
+Supported keys: `openai`, `openai-responses` (or `openai_responses`), `anthropic`, `gemini` (or `google`), `openrouter`, and `llmasaservice`.
 
 Raw fields are shallow-merged into the final provider request body after normalized fields and `provider_options`. That means `raw` can intentionally override generated fields such as `temperature`, but it should be used sparingly and documented in `# Notes` because it is provider-specific.
 

@@ -80,6 +80,16 @@
         "default": "./dist/providers/openrouter.cjs"
       }
     },
+    "./llmasaservice": {
+      "import": {
+        "types": "./dist/providers/llmasaservice.d.ts",
+        "default": "./dist/providers/llmasaservice.js"
+      },
+      "require": {
+        "types": "./dist/providers/llmasaservice.d.cts",
+        "default": "./dist/providers/llmasaservice.cjs"
+      }
+    },
     "./openai-responses": {
       "import": {
         "types": "./dist/providers/openai-responses.d.ts",

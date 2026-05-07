@@ -79,10 +79,28 @@ export const OpenRouterProviderOptionsSchema = z.object({
   models: z.array(z.string()).optional(),
 });
 
+export const LLMAsAServiceCustomerSchema = z.object({
+  customer_id: z.string(),
+  customer_name: z.string().optional(),
+  customer_user_id: z.string().optional(),
+  customer_user_name: z.string().optional(),
+  customer_user_email: z.string().optional(),
+});
+
+export const LLMAsAServiceProviderOptionsSchema = z.object({
+  base_url: z.string().url().optional(),
+  project_id: z.string().optional(),
+  customer: LLMAsAServiceCustomerSchema.optional(),
+  conversationId: z.string().optional(),
+  conversationTitle: z.string().optional(),
+  projectId: z.string().optional(),
+});
+
 export const ProviderOptionsSchema = z.object({
   anthropic: AnthropicProviderOptionsSchema.optional(),
   gemini: GeminiProviderOptionsSchema.optional(),
   openrouter: OpenRouterProviderOptionsSchema.optional(),
+  llmasaservice: LLMAsAServiceProviderOptionsSchema.optional(),
 });
 
 export type ProviderOptions = z.infer<typeof ProviderOptionsSchema>;
@@ -97,6 +115,7 @@ export const RawProviderBodySchema = z.object({
   gemini: z.record(z.unknown()).optional(),
   google: z.record(z.unknown()).optional(),
   openrouter: z.record(z.unknown()).optional(),
+  llmasaservice: z.record(z.unknown()).optional(),
 });
 
 export type RawProviderBody = z.infer<typeof RawProviderBodySchema>;
@@ -223,7 +242,7 @@ export const SectionsSchema = z.object({
 // --- Defaults files (folder-level inheritance) ---
 
 export const PromptDefaultsSchema = z.object({
-  provider: z.enum(['openai', 'openai-responses', 'anthropic', 'google', 'gemini', 'openrouter', 'any']).optional(),
+  provider: z.enum(['openai', 'openai-responses', 'anthropic', 'google', 'gemini', 'openrouter', 'llmasaservice', 'any']).optional(),
   model: z.string().optional(),
   cache: CacheSchema.optional(),
   metadata: MetadataSchema.optional(),
@@ -241,7 +260,7 @@ export const PromptAssetSchema = z.object({
   schema_version: z.number().int().positive().default(1),
   description: z.string().optional(),
 
-  provider: z.enum(['openai', 'openai-responses', 'anthropic', 'google', 'gemini', 'openrouter', 'any']).optional(),
+  provider: z.enum(['openai', 'openai-responses', 'anthropic', 'google', 'gemini', 'openrouter', 'llmasaservice', 'any']).optional(),
   model: z.string().optional(),
   fallback_models: z.array(z.string()).optional(),
 

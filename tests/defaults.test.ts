@@ -131,6 +131,172 @@ schema_version: 1
     });
   });
 
+  it('inherits and merges provider_options from defaults.md', async () => {
+    await writeFile(join(tmpDir, 'defaults.md'), `---
+provider: llmasaservice
+model: group:standard
+provider_options:
+  llmasaservice:
+    project_id: 39a5e4a0-681c-463d-ae7b-bca25d4487ae
+    conversationTitle: Default title
+---
+`);
+
+    await mkdir(join(tmpDir, 'support'), { recursive: true });
+    await writeFile(join(tmpDir, 'support', 'defaults.md'), `---
+provider_options:
+  llmasaservice:
+    conversationId: conv_123
+---
+`);
+
+    await writeFile(join(tmpDir, 'support', 'reply.md'), `---
+id: support/reply
+schema_version: 1
+provider_options:
+  llmasaservice:
+    conversationTitle: Local title
+---
+
+# Prompt template
+
+{{ user_message }}
+`);
+
+    const { asset } = await loadPromptFile(join(tmpDir, 'support', 'reply.md'), { defaultsRoot: tmpDir });
+
+    expect(asset.provider).toBe('llmasaservice');
+    expect(asset.model).toBe('group:standard');
+    expect(asset.provider_options?.llmasaservice).toEqual({
+      project_id: '39a5e4a0-681c-463d-ae7b-bca25d4487ae',
+      conversationId: 'conv_123',
+      conversationTitle: 'Local title',
+    });
+  });
+
+  it('inherits prompt configuration defaults beyond provider and model', async () => {
+    await writeFile(join(tmpDir, 'defaults.md'), `---
+provider: openai
+model: gpt-5.4
+fallback_models:
+  - gpt-5.4-mini
+reasoning:
+  effort: medium
+sampling:
+  temperature: 0.4
+  max_output_tokens: 2048
+response:
+  format: json
+raw:
+  openai:
+    service_tier: flex
+tools:
+  - lookup_account
+context:
+  inputs:
+    - user_message
+  history:
+    max_items: 8
+mcp:
+  servers:
+    - customer-db
+includes:
+  - ./shared/tone.md
+environments:
+  dev:
+    model: gpt-5.4-mini
+    sampling:
+      temperature: 0.1
+tiers:
+  pro:
+    model: gpt-5.4
+metadata:
+  owner: platform
+---
+`);
+
+    await writeFile(join(tmpDir, 'hello.md'), `---
+id: hello
+schema_version: 1
+sampling:
+  top_p: 0.9
+context:
+  history:
+    max_items: 4
+---
+
+# Prompt template
+
+Hello {{ user_message }}.
+`);
+
+    const { asset } = await loadPromptFile(join(tmpDir, 'hello.md'), { defaultsRoot: tmpDir });
+
+    expect(asset.fallback_models).toEqual(['gpt-5.4-mini']);
+    expect(asset.reasoning).toEqual({ effort: 'medium' });
+    expect(asset.sampling).toEqual({
+      temperature: 0.4,
+      max_output_tokens: 2048,
+      top_p: 0.9,
+    });
+    expect(asset.response).toEqual({ format: 'json' });
+    expect(asset.raw?.openai).toEqual({ service_tier: 'flex' });
+    expect(asset.tools).toEqual(['lookup_account']);
+    expect(asset.context).toEqual({
+      inputs: ['user_message'],
+      history: { max_items: 4 },
+    });
+    expect(asset.mcp).toEqual({ servers: ['customer-db'] });
+    expect(asset.includes).toEqual(['./shared/tone.md']);
+    expect(asset.environments?.dev).toEqual({
+      model: 'gpt-5.4-mini',
+      sampling: { temperature: 0.1 },
+    });
+    expect(asset.tiers?.pro).toEqual({ model: 'gpt-5.4' });
+    expect(asset.metadata?.owner).toBe('platform');
+  });
+
+  it('resolves inherited default includes relative to the defaults.md file', async () => {
+    await mkdir(join(tmpDir, 'shared'), { recursive: true });
+    await writeFile(join(tmpDir, 'shared', 'tone.md'), `---
+id: shared/tone
+schema_version: 1
+---
+
+# System instructions
+
+Use the shared tone.
+`);
+
+    await writeFile(join(tmpDir, 'defaults.md'), `---
+includes:
+  - ./shared/tone.md
+---
+
+# System instructions
+
+Use default instructions.
+`);
+
+    await mkdir(join(tmpDir, 'support'), { recursive: true });
+    await writeFile(join(tmpDir, 'support', 'reply.md'), `---
+id: support/reply
+schema_version: 1
+---
+
+# Prompt template
+
+{{ user_message }}
+`);
+
+    const { resolveIncludes } = await import('../src/composition/index.js');
+    const { asset } = await loadPromptFile(join(tmpDir, 'support', 'reply.md'), { defaultsRoot: tmpDir });
+    const resolved = await resolveIncludes(asset, join(tmpDir, 'support', 'reply.md'));
+
+    expect(asset.includes).toEqual(['../shared/tone.md']);
+    expect(resolved.sections?.system_instructions).toBe('Use the shared tone.\n\nUse default instructions.');
+  });
+
   it('returns unchanged asset when no defaults.md exists', async () => {
     await writeFile(join(tmpDir, 'hello.md'), `---
 id: hello

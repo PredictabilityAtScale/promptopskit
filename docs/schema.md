@@ -28,15 +28,31 @@ Prompt files use YAML front matter. This page documents every supported field.
 
 ## `defaults.md` schema
 
-`defaults.md` files use a subset of the prompt schema. Only these fields are recognized:
+`defaults.md` files use the shareable behavior/configuration subset of the prompt schema. Identity fields such as `id`, `schema_version`, and `description` stay prompt-local.
 
 | Field | Type | Description |
 |-------|------|-------------|
 | `provider` | `enum` | Default provider (`openai`, `openai-responses`, `anthropic`, `google`, `gemini`, `openrouter`, `llmasaservice`, `any`) |
 | `model` | `string` | Default model identifier |
+| `fallback_models` | `string[]` | Default fallback models |
+| `reasoning` | `object` | Same as prompt-level `reasoning` block |
+| `sampling` | `object` | Same as prompt-level `sampling` block |
+| `response` | `object` | Same as prompt-level `response` block |
 | `cache` | `object` | Same as prompt-level `cache` block |
+| `provider_options` | `object` | Same as prompt-level `provider_options` block |
+| `raw` | `object` | Same as prompt-level `raw` block |
+| `tools` | `array` | Same as prompt-level `tools` block |
+| `mcp` | `object` | Same as prompt-level `mcp` block |
+| `context` | `object` | Same as prompt-level `context` block |
+| `includes` | `string[]` | Same as prompt-level `includes` block |
+| `environments` | `object` | Same as prompt-level `environments` block |
+| `tiers` | `object` | Same as prompt-level `tiers` block |
 | `metadata` | `object` | Same as the prompt `metadata` block (`owner`, `tags`, `review_required`, `stable`) |
 | `# System instructions` | section | System instructions inherited by prompts in this folder |
+
+Scalars and arrays are replaced by nearer defaults or prompt-local values. Object blocks are shallow-merged, including provider-specific sub-blocks such as `provider_options.llmasaservice`.
+
+Inherited `includes` are authored relative to the `defaults.md` file that declares them and normalized before prompt include resolution.
 
 See [Prompt Format — Folder defaults](./prompt-format.md#folder-defaults-defaultsmd) for inheritance rules.
 

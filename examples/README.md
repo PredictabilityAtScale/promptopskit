@@ -6,7 +6,7 @@ GitHub Markdown does not support native tabbed panels, so this README uses compa
 
 ## Layout
 
-- `prompts/defaults.md`: folder defaults for provider, model, metadata, cache, and system instructions
+- `prompts/defaults.md`: folder defaults for provider, model, options, metadata, cache, and system instructions
 - `prompts/shared/`: reusable includes used by composition examples
 - `prompts/*.md`: standalone examples with a `# Notes` section
 

@@ -59,7 +59,7 @@ This creates:
 
 ```
 prompts/
-├── defaults.md         # Folder-level defaults (provider, model, metadata, system instructions)
+├── defaults.md         # Folder-level defaults (provider, model, options, metadata, system instructions)
 ├── hello.md            # Sample prompt with variables
 ├── hello.test.yaml     # Test sidecar with sample inputs and hardcoded responses
 └── shared/
@@ -146,7 +146,7 @@ Supported values for `warnings.contextSize` are `auto`, `off`, `result-only`, `c
 - **Prompts as Markdown** — YAML front matter for settings, H1 headings for sections (`# System instructions`, `# Prompt template`, `# Notes`)
 - **Variable interpolation** — `{{ variable }}` syntax with strict and permissive modes
 - **Composition** — `includes` to share system instructions across prompts, with circular detection
-- **Folder defaults** — `defaults.md` inheritance for shared provider, model, metadata, and system instructions
+- **Folder defaults** — `defaults.md` inheritance for shared provider, model, options, metadata, and system instructions
 - **Overrides** — Environment and tier-based overrides (base → env → tier → runtime)
 - **6 provider adapters** — OpenAI (Chat), OpenAI (Responses), Anthropic, Gemini, OpenRouter, LLMAsAService
 - **Provider-aware input caching controls** — optional `cache` front matter maps to OpenAI prompt cache hints, Anthropic `cache_control`, and Gemini `cachedContent`
@@ -496,12 +496,14 @@ Handle support requests carefully.
 
 Define a `defaults.md` file in `prompts/` (and optional subfolders) to provide inherited defaults for prompts:
 
-- Shared `provider` and `model` in front matter
+- Shared `provider`, `model`, `fallback_models`, `reasoning`, `sampling`, `response`, `cache`, `provider_options`, `raw`, `tools`, `mcp`, `context`, `includes`, `environments`, and `tiers` in front matter
 - Shared `metadata` defaults in front matter
 - Shared `# System instructions` in body
 - Nearest subfolder `defaults.md` overrides parent defaults
 - Prompt-local values always win over defaults
 - Included files (`includes`) are not affected by folder defaults
+
+Scalars and arrays are replaced by nearer values. Object blocks are shallow-merged, including provider sub-blocks such as `provider_options.llmasaservice` and `cache.openai`.
 
 > `promptopskit init` scaffolds a starter `defaults.md` in the prompts root.
 

@@ -522,28 +522,32 @@ folder:
 
 ```text
 prompts/
-├── defaults.md          # global provider, model, metadata + system instructions
+├── defaults.md          # global provider, model, options, metadata + system instructions
 └── support/
     ├── defaults.md      # overrides for support/*
     └── reply.md         # inherits from support/defaults.md
 ```
 
 Supported default fields:
-- `provider` (front matter) — default provider for the folder
-- `model` (front matter) — default model for the folder
-- `cache` (front matter) — default provider-specific cache hints
+- `provider`, `model`, `fallback_models` (front matter) — default routing
+- `reasoning`, `sampling`, `response` (front matter) — default model behavior
+- `cache`, `provider_options`, `raw` (front matter) — default provider-specific options
+- `tools`, `mcp`, `context`, `includes` (front matter) — default bindings and input/include configuration
+- `environments`, `tiers` (front matter) — default override maps
 - `metadata` (front matter) — merged with prompt-local metadata
 - `# System instructions` (body section) — used when the prompt has none
 
 This lets you configure app-wide settings like `provider` and `model`
 in a single root `defaults.md`, so individual prompts only declare what's unique to them.
 
-Important: `defaults.md` does not declare or infer `context.inputs` for a prompt.
-If a prompt body uses placeholders, the prompt file itself must declare them.
+Important: use shared `context.inputs` in `defaults.md` only when every prompt
+under that folder uses the same placeholders. Prompt-local `context.inputs`
+replace the inherited array.
 
 Rules:
 - Nearest subfolder `defaults.md` overrides parent defaults
 - Prompt-local values always take precedence over defaults
+- Inherited `includes` are authored relative to the `defaults.md` file that declares them
 - `defaults.md` files are skipped during compilation and validation
 - `loadPromptFile` defaults the search boundary to the file's own directory;
   pass `defaultsRoot` to enable ancestor traversal
@@ -889,8 +893,8 @@ Hello {{ name }}
 
 1. **One prompt per file** — each `.md` file is a single prompt asset
 2. **Always set `id` and `schema_version: 1`** unless a surrounding tool explicitly generates those fields
-3. **Declare every placeholder** in `context.inputs`; do not rely on defaults or includes to infer variables
-4. **Use `defaults.md` for shared provider, model, metadata, and fallback system instructions**
+3. **Declare every placeholder** in `context.inputs`; use `defaults.md` only for input declarations that apply to every prompt under that folder
+4. **Use `defaults.md` for shared provider, model, provider options, metadata, and fallback system instructions**
 5. **Use includes for reusable system behavior**, not for user-specific prompt bodies
 6. **Prefer `createPromptOpsKit().renderPrompt()` for server-side app code** when prompts live as source files
 7. **Prefer direct adapters for compiled assets or provider-specific integration points**

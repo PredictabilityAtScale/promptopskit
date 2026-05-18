@@ -52,13 +52,19 @@ You can define shared defaults for an entire prompt tree by adding a `defaults.m
 
 Supported default fields:
 
-- `provider` (front matter) — default provider for the folder
-- `model` (front matter) — default model for the folder
-- `cache` (front matter) — default provider-specific caching hints
+- `provider`, `model`, and `fallback_models` (front matter) — default provider and model routing for the folder
+- `reasoning`, `sampling`, and `response` (front matter) — default model behavior
+- `cache`, `provider_options`, and `raw` (front matter) — default provider-specific request options
+- `tools`, `mcp`, `context`, and `includes` (front matter) — default tool bindings, server references, input rules, and shared includes
+- `environments` and `tiers` (front matter) — default override maps that prompt-local maps can extend
 - `metadata` (front matter) — merged with prompt-local metadata
 - `# System instructions` (body section) — used when the prompt has none
 
 This lets you configure app-wide settings like `provider` and `model` in a single place. Individual prompts only need to declare what's unique to them.
+
+Scalars and arrays are replaced by nearer values. Object blocks are shallow-merged, including provider sub-blocks such as `provider_options.llmasaservice` and `cache.openai`, so a local prompt can override one field without restating the whole block.
+
+Inherited `includes` are written relative to the `defaults.md` file that declares them and are normalized for the prompt that inherits them.
 
 Example:
 
@@ -80,6 +86,9 @@ cache:
   openai:
     prompt_cache_key: support-v1
     retention: in_memory
+provider_options:
+  llmasaservice:
+    project_id: 39a5e4a0-681c-463d-ae7b-bca25d4487ae
 metadata:
   owner: platform
   review_required: true
@@ -107,6 +116,7 @@ Use support tone and escalation policy.
 - `provider: openai` (inherited from root defaults)
 - `model: gpt-5.4` (inherited from root defaults)
 - `cache.openai.prompt_cache_key: support-v1` (inherited from root defaults)
+- `provider_options.llmasaservice.project_id` (inherited from root defaults)
 - `metadata.owner: support` (nearest override)
 - `metadata.review_required: true` (inherited from parent defaults)
 - system instructions from `support/defaults.md`

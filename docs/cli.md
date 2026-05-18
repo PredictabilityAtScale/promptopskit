@@ -22,7 +22,7 @@ Creates:
 
 ```
 prompts/
-├── defaults.md         # Folder-level defaults (provider, model, metadata, system instructions)
+├── defaults.md         # Folder-level defaults (provider, model, options, metadata, system instructions)
 ├── hello.md            # Sample prompt with variables
 ├── hello.test.yaml     # Test sidecar with sample inputs
 └── shared/
@@ -53,7 +53,7 @@ Checks:
 - Context regex compilation for `allow_regex` and `deny_regex`
 - YAML quoting problems in context regex fields, such as raw `\s` or `\b` inside double-quoted strings
 - Include resolution — missing files, circular includes
-- Folder defaults inheritance from `defaults.md` (provider, model, metadata, system instructions)
+- Folder defaults inheritance from `defaults.md` (provider, model, options, metadata, system instructions)
 
 Output per file:
 ```

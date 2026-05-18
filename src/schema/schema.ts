@@ -188,6 +188,8 @@ export const ContextBuiltInValidatorSchema = z.union([
 
 export const ContextInputDefinitionObjectSchema = z.object({
   name: z.string(),
+  optional: z.boolean().optional(),
+  warnings: z.boolean().optional(),
   max_size: z.number().int().positive().optional(),
   trim: z.union([z.boolean(), z.enum(['start', 'end', 'both'])]).optional(),
   allow_regex: ContextRegexSchema.optional(),

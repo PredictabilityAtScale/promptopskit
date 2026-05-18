@@ -87,6 +87,20 @@ context:
 
 If `account_summary` is rendered with a value larger than 4096 UTF-8 bytes, `renderPrompt()` returns a `POK030` warning. In source and auto modes, PromptOpsKit also writes the warning to `console.warn` so oversized context is visible during local development.
 
+Object-form inputs can opt out of required-input behavior or input-scoped warnings:
+
+```yaml
+context:
+  inputs:
+    - name: experiment_note
+      optional: true
+    - name: legacy_context
+      warnings: false
+```
+
+- `optional: true` means strict rendering will not throw when the variable is missing, and static validation will not warn that the input is unused or lacks required-input hardening.
+- `warnings: false` suppresses warnings scoped to that input, including `POK012`, `POK014`, `POK040`, `POK041`, and render-time `POK030`. It does not suppress schema errors, invalid regex errors, or validator failures.
+
 If you want to transform oversized values before warnings/rendering (for example, summarize or redact), pass `onContextOverflow` at render time:
 
 ```typescript
@@ -123,6 +137,7 @@ context:
 - Double-quoted YAML regex strings with raw backslashes, such as `"\s+"`, are reported as `POK013` before YAML parsing. Prefer unquoted `/pattern/i` literals for copyable regexes.
 - During static validation, `trim` without `max_size` returns a `POK014` warning.
 - During static validation, risky unbounded inputs and missing hardening are flagged as `POK040` and `POK041`.
+- Set `warnings: false` on an object-form input to suppress warnings for intentional exceptions.
 - During static validation, provider/cache hygiene checks can emit `POK042`–`POK045`.
 - During static validation, inline tool quality checks can emit `POK047`.
 

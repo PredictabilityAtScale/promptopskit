@@ -242,11 +242,16 @@ context:
     - company
     - name: app_context
       max_size: 2000
+    - name: experiment_note
+      optional: true
+      warnings: false
 ```
 
 Each entry can be either a string variable name or an object with:
 
 - `name` — the template variable name
+- `optional` — set `true` when the variable may be omitted; strict rendering will leave the placeholder intact instead of throwing
+- `warnings` — set `false` to suppress static validation warnings and render-time `POK030` size warnings for that input
 - `max_size` — optional UTF-8 byte limit for the injected value
 - `trim` — optional trim-to-budget (`true`/`end` keeps first bytes, `start` keeps trailing bytes) applied when `max_size` is set
 - `allow_regex` — optional allowlist regex; accepts `/pattern/i`, `"pattern"`, or `{ pattern, flags, return_message? }` and throws `POK031` on mismatch unless `return_message` is configured
@@ -257,6 +262,8 @@ Each entry can be either a string variable name or an object with:
 The validator warns about:
 - Variables used in templates but not declared in `context.inputs`
 - Variables declared in `context.inputs` but never used
+
+Use `optional: true` for object-form inputs that are legitimately absent in some renders. Optional inputs are not treated as required by strict interpolation and do not produce unused-input or missing-hardening warnings. Use `warnings: false` only for intentional exceptions; it suppresses warnings scoped to that input but does not suppress schema errors, invalid regex errors, or runtime validation failures.
 
 At render time, PromptOpsKit also emits a non-blocking `POK030` warning when a provided variable exceeds its declared `max_size`. In source and auto modes, the warning is also written to `console.warn` to make local development issues visible early.
 

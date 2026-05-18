@@ -373,6 +373,43 @@ Context: {{ app_context }}
     );
   });
 
+  it('suppresses context size warnings for inputs with warnings false', async () => {
+    const sourceDir = join(tmpDir, 'prompts');
+    await mkdir(sourceDir, { recursive: true });
+
+    await writeFile(join(sourceDir, 'quiet-context.md'), `---
+id: quiet.context
+schema_version: 1
+provider: openai
+model: gpt-5.4
+context:
+  inputs:
+    - name: app_context
+      max_size: 5
+      warnings: false
+---
+
+# Prompt template
+
+Context: {{ app_context }}
+`);
+
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const kit = createPromptOpsKit({ sourceDir, mode: 'source-only', cache: false });
+      const result = await kit.renderPrompt({
+        path: 'quiet-context',
+        provider: 'openai',
+        variables: { app_context: 'admin-dashboard' },
+      });
+
+      expect(result.warnings).toHaveLength(0);
+      expect(warnSpy).not.toHaveBeenCalled();
+    } finally {
+      warnSpy.mockRestore();
+    }
+  });
+
   it('rejects context variables that fail allow_regex validation', async () => {
     const sourceDir = join(tmpDir, 'prompts');
     await mkdir(sourceDir, { recursive: true });

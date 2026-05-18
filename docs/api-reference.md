@@ -73,7 +73,7 @@ const result = await kit.renderPrompt({
 | `tier` | `string` | Tier override name |
 | `history` | `Array<{ role, content }>` | Conversation history. If the prompt declares `context.history.max_items`, overflow history is compacted into one preserved history item before provider rendering. |
 | `toolRegistry` | `Record<string, unknown>` | Tool definitions for resolving string tool references |
-| `strict` | `boolean` | Fail on missing variables (default `false`) |
+| `strict` | `boolean` | Fail on missing variables except object-form inputs marked `optional: true` (default `false`) |
 | `openaiResponses` | `object` | Optional Responses API extras (`previous_response_id`, `conversation`, `instructions`, `parallel_tool_calls`, `max_tool_calls`, `store`, `metadata`, `include`, `background`) |
 
 Either `path` or `source` must be provided.

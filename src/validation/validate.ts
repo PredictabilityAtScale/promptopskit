@@ -3,9 +3,9 @@ import type { PromptAsset } from '../schema/index.js';
 import { extractVariables } from '../renderer/index.js';
 import { resolveIncludes } from '../composition/index.js';
 import {
+  areContextInputWarningsEnabled,
   compileContextRegex,
   getContextInputs,
-  getContextInputNames,
 } from '../context.js';
 import { levenshtein } from './levenshtein.js';
 
@@ -113,7 +113,9 @@ export function validateAsset(
   }
 
   // Variable validation: used but not declared
-  const declaredInputs = new Set(getContextInputNames(asset));
+  const contextInputs = getContextInputs(asset);
+  const declaredInputs = new Set(contextInputs.map((input) => input.name));
+  const declaredInputsByName = new Map(contextInputs.map((input) => [input.name, input]));
   const usedVars = new Set<string>();
 
   if (asset.sections?.system_instructions) {
@@ -139,7 +141,8 @@ export function validateAsset(
 
   // Declared but unused
   for (const v of declaredInputs) {
-    if (!usedVars.has(v)) {
+    const input = declaredInputsByName.get(v);
+    if (!usedVars.has(v) && input?.optional !== true && areContextInputWarningsEnabled(input ?? {})) {
       warnings.push({
         code: 'POK012',
         message: `Variable "${v}" is declared in context.inputs but never used`,
@@ -158,10 +161,15 @@ export function validateAsset(
   }
 
   // Context regex definitions compile successfully
-  for (const input of getContextInputs(asset)) {
+  for (const input of contextInputs) {
     const lowerName = input.name.toLowerCase();
+    const inputWarningsEnabled = areContextInputWarningsEnabled(input);
 
-    if (input.max_size === undefined && RISKY_UNBOUNDED_INPUT_NAMES.some((needle) => lowerName.includes(needle))) {
+    if (
+      inputWarningsEnabled
+      && input.max_size === undefined
+      && RISKY_UNBOUNDED_INPUT_NAMES.some((needle) => lowerName.includes(needle))
+    ) {
       warnings.push({
         code: 'POK040',
         message: `Context input "${input.name}" has no max_size and appears unbounded.`,
@@ -171,7 +179,9 @@ export function validateAsset(
     }
 
     if (
-      input.allow_regex === undefined
+      inputWarningsEnabled
+      && input.optional !== true
+      && input.allow_regex === undefined
       && input.deny_regex === undefined
       && input.non_empty === undefined
       && input.reject_secrets === undefined
@@ -184,7 +194,7 @@ export function validateAsset(
       });
     }
 
-    if (input.trim !== undefined && input.trim !== false && input.max_size === undefined) {
+    if (inputWarningsEnabled && input.trim !== undefined && input.trim !== false && input.max_size === undefined) {
       warnings.push({
         code: 'POK014',
         message: `Context input "${input.name}" sets trim but has no max_size; trim-to-budget will be skipped.`,

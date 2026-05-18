@@ -387,7 +387,7 @@ the fields required by that specific file:
 | `provider_options` | object | no | Provider-specific advanced options (`anthropic`, `gemini`, `openrouter`, `llmasaservice`) |
 | `raw` | object | no | Provider-scoped request-body passthrough for unmodeled vendor fields |
 | `mcp` | object | no | `{ servers: [string | { name, config }] }` |
-| `context.inputs` | `Array<string | { name, max_size?, trim?, allow_regex?, deny_regex?, non_empty?, reject_secrets? }>` | no | Declared variable names used in templates, with optional size budgets and runtime hardening controls |
+| `context.inputs` | `Array<string | { name, optional?, warnings?, max_size?, trim?, allow_regex?, deny_regex?, non_empty?, reject_secrets? }>` | no | Declared variable names used in templates, with optionality, warning controls, size budgets, and runtime hardening controls |
 | `context.history` | object | no | `{ max_items: number }`; caps rendered history by compacting older turns into one preserved message |
 | `includes` | string[] | no | Relative paths to other prompt files to include |
 | `environments` | object | no | Per-environment overrides (see Overrides) |
@@ -421,6 +421,8 @@ Rules:
 - Before finishing a new prompt file, scan the body for every `{{ variable }}` and
   ensure each exact variable name appears in `context.inputs`
 - Use object-form inputs with `max_size` when a variable is likely to grow large and should trigger early warnings
+- Use `optional: true` when a variable may be absent; strict rendering will not throw for that missing variable
+- Use `warnings: false` sparingly for intentional exceptions that should not emit input-scoped validation or size warnings
 - Use `trim` to enforce byte budgets before interpolation when `max_size` is set
 - Use `allow_regex` for allowlist checks and `deny_regex` for blocklist checks on risky inputs
 - Prefer unquoted `/pattern/i` literals for regex validators so backslash escapes such as `\s` and `\b` stay copyable from regex tools
@@ -442,7 +444,7 @@ context:
       max_size: 4096
 ```
 
-If a rendered value exceeds `max_size`, `renderPrompt()` emits a non-blocking `POK030` warning.
+If a rendered value exceeds `max_size`, `renderPrompt()` emits a non-blocking `POK030` warning unless the input sets `warnings: false`.
 At render time, callers can also pass `onContextOverflow` to transform oversized values before warnings/rendering.
 
 If a validator declares `return_message`, `renderPrompt()` returns that message in a structured result and omits the provider request instead of throwing for that validation failure. Invalid regex definitions still fail during `validate` and `compile` as `POK013` prompt-authoring errors.

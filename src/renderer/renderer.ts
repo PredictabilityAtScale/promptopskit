@@ -1,5 +1,6 @@
 import type { ResolvedPromptAsset } from '../schema/index.js';
 import { interpolate, extractVariables } from './interpolate.js';
+import { getContextInputs } from '../context.js';
 
 export interface RenderOptions {
   variables?: Record<string, string>;
@@ -19,6 +20,9 @@ export function renderSections(
   options: RenderOptions = {},
 ): RenderedSections {
   const { variables = {}, strict = false } = options;
+  const optionalVariables = getContextInputs(asset)
+    .filter((input) => input.optional === true)
+    .map((input) => input.name);
 
   const result: RenderedSections = {};
 
@@ -26,7 +30,7 @@ export function renderSections(
     result.system_instructions = interpolate(
       asset.sections.system_instructions,
       variables,
-      { strict },
+      { strict, optionalVariables },
     );
   }
 
@@ -34,7 +38,7 @@ export function renderSections(
     result.prompt_template = interpolate(
       asset.sections.prompt_template,
       variables,
-      { strict },
+      { strict, optionalVariables },
     );
   }
 
@@ -46,6 +50,11 @@ export function renderSections(
  */
 export function getRequiredVariables(asset: ResolvedPromptAsset): string[] {
   const vars = new Set<string>();
+  const optionalVariables = new Set(
+    getContextInputs(asset)
+      .filter((input) => input.optional === true)
+      .map((input) => input.name),
+  );
 
   if (asset.sections.system_instructions) {
     for (const v of extractVariables(asset.sections.system_instructions)) {
@@ -59,5 +68,5 @@ export function getRequiredVariables(asset: ResolvedPromptAsset): string[] {
     }
   }
 
-  return [...vars];
+  return [...vars].filter((variable) => !optionalVariables.has(variable));
 }

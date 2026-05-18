@@ -32,6 +32,15 @@ describe('interpolate', () => {
       .toThrow('Missing required variable: "name"');
   });
 
+  it('allows configured optional variables in strict mode', () => {
+    const result = interpolate('Hello {{ name }} from {{ company }}!', { name: 'World' }, {
+      strict: true,
+      optionalVariables: ['company'],
+    });
+
+    expect(result).toBe('Hello World from {{ company }}!');
+  });
+
   it('handles escaped braces', () => {
     const result = interpolate('Use \\{\\{ to escape', { });
     expect(result).toBe('Use {{ to escape');

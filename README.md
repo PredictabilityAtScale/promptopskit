@@ -632,7 +632,7 @@ Renders a prompt for a specific provider. Returns `{ resolved, request?, returnM
 | `tier` | `string` | Tier override name |
 | `history` | `Array<{ role, content }>` | Conversation history. If the prompt declares `context.history.max_items`, older turns are compacted into one preserved history item before provider rendering. |
 | `toolRegistry` | `Record<string, unknown>` | Tool definitions for resolving string tool references |
-| `strict` | `boolean` | Fail on missing variables |
+| `strict` | `boolean` | Fail on missing variables except object-form inputs marked `optional: true` |
 | `openaiResponses` | `object` | Optional Responses API extras (`previous_response_id`, `conversation`, `instructions`, `parallel_tool_calls`, `max_tool_calls`, `store`, `metadata`, `include`, `background`) |
 
 ### `kit.loadPrompt(path)` / `kit.resolvePrompt(path, options)` / `kit.validatePrompt(path)`
@@ -664,7 +664,7 @@ Prompt files use YAML front matter with these fields:
 | `provider_options` | `object` | Provider-specific non-portable options (`anthropic`, `gemini`, `openrouter`, `llmasaservice`) |
 | `raw` | `object` | Provider-scoped request-body passthrough (`openai`, `openai-responses`, `anthropic`, `gemini`/`google`, `openrouter`, `llmasaservice`) |
 | `mcp` | `object` | MCP server references |
-| `context` | `object` | `{ inputs, history }` — declare expected variables, with optional per-input `max_size`, `trim`, structured or literal `allow_regex`/`deny_regex`, built-in `non_empty` / `reject_secrets` validators, and `history.max_items` compaction |
+| `context` | `object` | `{ inputs, history }` — declare expected variables, with optional per-input `optional`, `warnings`, `max_size`, `trim`, structured or literal `allow_regex`/`deny_regex`, built-in `non_empty` / `reject_secrets` validators, and `history.max_items` compaction |
 | `includes` | `string[]` | Paths to included prompt files |
 | `environments` | `object` | Named environment overrides |
 | `tiers` | `object` | Named tier overrides |

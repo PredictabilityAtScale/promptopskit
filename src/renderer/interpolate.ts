@@ -1,5 +1,6 @@
 export interface InterpolateOptions {
   strict?: boolean;
+  optionalVariables?: Iterable<string>;
 }
 
 const VARIABLE_RE = /\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\}\}/g;
@@ -21,6 +22,7 @@ export function interpolate(
   options: InterpolateOptions = {},
 ): string {
   const { strict = false } = options;
+  const optionalVariables = new Set(options.optionalVariables ?? []);
 
   // Replace escaped sequences with placeholder
   let result = template.replace(ESCAPED_OPEN, ESCAPE_PLACEHOLDER);
@@ -29,7 +31,7 @@ export function interpolate(
     if (name in variables) {
       return variables[name];
     }
-    if (strict) {
+    if (strict && !optionalVariables.has(name)) {
       throw new Error(`Missing required variable: "${name}"`);
     }
     return match; // leave placeholder intact in permissive mode

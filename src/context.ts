@@ -32,6 +32,8 @@ export interface NormalizedContextBuiltInValidator {
 
 export interface NormalizedContextInput {
   name: string;
+  optional?: boolean;
+  warnings?: boolean;
   max_size?: number;
   trim?: boolean | 'start' | 'end' | 'both';
   allow_regex?: NormalizedContextRegex;
@@ -81,6 +83,8 @@ export function normalizeContextInput(input: ContextInputDefinition): Normalized
 
   return {
     name: input.name,
+    optional: input.optional,
+    warnings: input.warnings,
     max_size: input.max_size,
     trim: input.trim,
     allow_regex: normalizeContextRegex(input.allow_regex),
@@ -88,6 +92,10 @@ export function normalizeContextInput(input: ContextInputDefinition): Normalized
     non_empty: normalizeBuiltInValidator(input.non_empty),
     reject_secrets: normalizeBuiltInValidator(input.reject_secrets),
   };
+}
+
+export function areContextInputWarningsEnabled(input: Pick<NormalizedContextInput, 'warnings'>): boolean {
+  return input.warnings !== false;
 }
 
 export function normalizeContextRegex(
@@ -411,6 +419,10 @@ export function collectContextSizeWarnings(
   const warnings: ContextSizeWarning[] = [];
 
   for (const input of getContextInputs(asset)) {
+    if (!areContextInputWarningsEnabled(input)) {
+      continue;
+    }
+
     if (input.max_size === undefined) {
       continue;
     }

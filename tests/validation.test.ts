@@ -192,6 +192,38 @@ describe('validateAsset', () => {
     expect(result.warnings.some((warning) => warning.code === 'POK041')).toBe(true);
   });
 
+  it('accepts optional inputs without required-input hardening or unused warnings', () => {
+    const result = validateAsset({
+      id: 'test',
+      schema_version: 1,
+      context: {
+        inputs: [{ name: 'optional_context', optional: true }],
+      },
+      sections: { prompt_template: 'Hello' },
+    });
+
+    expect(result.valid).toBe(true);
+    expect(result.warnings.some((warning) => warning.code === 'POK012')).toBe(false);
+    expect(result.warnings.some((warning) => warning.code === 'POK041')).toBe(false);
+  });
+
+  it('suppresses input-scoped validation warnings when warnings is false', () => {
+    const result = validateAsset({
+      id: 'test',
+      schema_version: 1,
+      context: {
+        inputs: [{ name: 'user_message', trim: true, warnings: false }],
+      },
+      sections: { prompt_template: 'Hello' },
+    });
+
+    expect(result.valid).toBe(true);
+    expect(result.warnings.some((warning) => warning.code === 'POK012')).toBe(false);
+    expect(result.warnings.some((warning) => warning.code === 'POK014')).toBe(false);
+    expect(result.warnings.some((warning) => warning.code === 'POK040')).toBe(false);
+    expect(result.warnings.some((warning) => warning.code === 'POK041')).toBe(false);
+  });
+
   it('warns when provider cache/model guidance is missing', () => {
     const result = validateAsset({
       id: 'test',

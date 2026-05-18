@@ -9,6 +9,34 @@
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "typesVersions": {
+    "*": {
+      "testing": [
+        "./dist/testing.d.ts"
+      ],
+      "usagetap": [
+        "./dist/usagetap/index.d.ts"
+      ],
+      "openai": [
+        "./dist/providers/openai.d.ts"
+      ],
+      "anthropic": [
+        "./dist/providers/anthropic.d.ts"
+      ],
+      "gemini": [
+        "./dist/providers/gemini.d.ts"
+      ],
+      "openrouter": [
+        "./dist/providers/openrouter.d.ts"
+      ],
+      "llmasaservice": [
+        "./dist/providers/llmasaservice.d.ts"
+      ],
+      "openai-responses": [
+        "./dist/providers/openai-responses.d.ts"
+      ]
+    }
+  },
   "exports": {
     ".": {
       "import": {

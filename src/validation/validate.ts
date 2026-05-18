@@ -28,6 +28,22 @@ const KNOWN_FRONT_MATTER_KEYS = new Set([
   'environments', 'tiers', 'metadata', 'cache', 'provider_options', 'raw',
 ]);
 
+
+
+function collectSchemaKeywords(value: unknown, acc: Set<string>): void {
+  if (!value || typeof value !== 'object') return;
+  if (Array.isArray(value)) {
+    for (const item of value) collectSchemaKeywords(item, acc);
+    return;
+  }
+
+  const record = value as Record<string, unknown>;
+  for (const [key, child] of Object.entries(record)) {
+    acc.add(key);
+    collectSchemaKeywords(child, acc);
+  }
+}
+
 const RISKY_UNBOUNDED_INPUT_NAMES = [
   'message',
   'prompt',
@@ -197,6 +213,35 @@ export function validateAsset(
           code: 'POK013',
           message: reason,
           filePath,
+        });
+      }
+    }
+  }
+
+
+  if (asset.response?.schema && asset.provider) {
+    const keywords = new Set<string>();
+    collectSchemaKeywords(asset.response.schema, keywords);
+
+    const openAIUnsupported = ['patternProperties', 'unevaluatedProperties', '$dynamicRef'];
+    const geminiUnsupported = ['patternProperties', '$dynamicRef', 'dependentSchemas'];
+    const anthropicCaution = ['if', 'then', 'else'];
+
+    const checks: Array<{ provider: string[]; unsupported: string[]; code: string }> = [
+      { provider: ['openai', 'openai-responses', 'openrouter', 'llmasaservice'], unsupported: openAIUnsupported, code: 'POK052' },
+      { provider: ['gemini', 'google'], unsupported: geminiUnsupported, code: 'POK053' },
+      { provider: ['anthropic'], unsupported: anthropicCaution, code: 'POK054' },
+    ];
+
+    for (const check of checks) {
+      if (!check.provider.includes(asset.provider)) continue;
+      const hits = check.unsupported.filter((k) => keywords.has(k));
+      if (hits.length > 0) {
+        warnings.push({
+          code: check.code,
+          message: `response.schema includes provider-sensitive JSON Schema keywords for "${asset.provider}": ${hits.join(', ')}`,
+          filePath,
+          suggestion: 'Validate schema compatibility with your provider docs or simplify the schema dialect.',
         });
       }
     }

@@ -443,3 +443,213 @@ Hello.
     expect(content).toContain('# promptopskit');
   });
 });
+
+describe('response.schema_ref resolution', () => {
+
+  it('inspect shows schema_source metadata for schema_ref prompts', async () => {
+    await mkdir(join(tmpDir, 'prompts', 'schemas'), { recursive: true });
+    await writeFile(join(tmpDir, 'prompts', 'schemas', 'reply.schema.json'), JSON.stringify({ type: 'object' }));
+    await writeFile(join(tmpDir, 'prompts', 'inspect-schema.md'), `---
+id: schema-ref.inspect
+schema_version: 1
+response:
+  format: json
+  schema_ref: ./schemas/reply.schema.json
+---
+
+# Prompt template
+
+Hello.
+`);
+
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    await inspect([join(tmpDir, 'prompts', 'inspect-schema.md')]);
+    const parsed = JSON.parse(String(logSpy.mock.calls[0]?.[0])) as Record<string, unknown>;
+    const response = parsed.response as Record<string, unknown>;
+    const schemaSource = response.schema_source as Record<string, unknown>;
+    expect(schemaSource.mode).toBe('schema_ref_json');
+    expect(schemaSource.ref).toBe('./schemas/reply.schema.json');
+    expect(typeof schemaSource.hash).toBe('string');
+  });
+
+  let tmpDir: string;
+
+  beforeEach(async () => {
+    tmpDir = await mkdtemp(join(tmpdir(), 'pok-schema-ref-'));
+  });
+
+  afterEach(async () => {
+    vi.restoreAllMocks();
+    await rm(tmpDir, { recursive: true, force: true });
+  });
+
+  it('validate resolves response.schema_ref from prompt-relative JSON file', async () => {
+    await mkdir(join(tmpDir, 'prompts', 'schemas'), { recursive: true });
+
+    await writeFile(join(tmpDir, 'prompts', 'schemas', 'reply.schema.json'), JSON.stringify({
+      type: 'object',
+      properties: { answer: { type: 'string' } },
+      required: ['answer'],
+    }, null, 2));
+
+    await writeFile(join(tmpDir, 'prompts', 'reply.md'), `---
+id: schema-ref.validate
+schema_version: 1
+response:
+  format: json
+  schema_ref: ./schemas/reply.schema.json
+---
+
+# Prompt template
+
+Hello.
+`);
+
+    await expect(validate([join(tmpDir, 'prompts')])).resolves.toBeUndefined();
+  });
+
+  it('compile outputs resolved response.schema and removes schema_ref', async () => {
+    await mkdir(join(tmpDir, 'prompts', 'schemas'), { recursive: true });
+    const outDir = join(tmpDir, 'compiled');
+
+    await writeFile(join(tmpDir, 'prompts', 'schemas', 'reply.schema.json'), JSON.stringify({
+      type: 'object',
+      properties: { answer: { type: 'string' } },
+      required: ['answer'],
+    }, null, 2));
+
+    await writeFile(join(tmpDir, 'prompts', 'reply.md'), `---
+id: schema-ref.compile
+schema_version: 1
+response:
+  format: json
+  schema_ref: ./schemas/reply.schema.json
+---
+
+# Prompt template
+
+Hello.
+`);
+
+    await compile([join(tmpDir, 'prompts'), outDir]);
+
+    const compiled = JSON.parse(await readFile(join(outDir, 'reply.json'), 'utf-8')) as Record<string, unknown>;
+    const response = compiled.response as Record<string, unknown>;
+    expect(response.schema).toMatchObject({ type: 'object' });
+    expect(response.schema_ref).toBeUndefined();
+  });
+
+
+  it('compile resolves response.schema_ref from a zod module export', async () => {
+    await mkdir(join(tmpDir, 'prompts', 'schemas'), { recursive: true });
+    const outDir = join(tmpDir, 'compiled-zod');
+
+    await writeFile(join(tmpDir, 'prompts', 'schemas', 'reply.schema.mjs'), `
+import { z } from 'zod';
+
+export default z.object({
+  answer: z.string(),
+  confidence: z.number().min(0).max(1),
+});
+`);
+
+    await writeFile(join(tmpDir, 'prompts', 'reply-zod.md'), `---
+id: schema-ref.compile-zod
+schema_version: 1
+response:
+  format: json
+  schema_ref: ./schemas/reply.schema.mjs
+---
+
+# Prompt template
+
+Hello.
+`);
+
+    await compile([join(tmpDir, 'prompts'), outDir]);
+
+    const compiled = JSON.parse(await readFile(join(outDir, 'reply-zod.json'), 'utf-8')) as Record<string, unknown>;
+    const response = compiled.response as Record<string, unknown>;
+    const schema = response.schema as Record<string, unknown>;
+    expect(schema.type).toBe('object');
+    expect(response.schema_ref).toBeUndefined();
+  });
+
+
+  it('validate fails for invalid JSON schema_ref files', async () => {
+    await mkdir(join(tmpDir, 'prompts', 'schemas'), { recursive: true });
+    await writeFile(join(tmpDir, 'prompts', 'schemas', 'bad.schema.json'), '{ not: json }');
+    await writeFile(join(tmpDir, 'prompts', 'bad-json.md'), `---
+id: schema-ref.bad-json
+schema_version: 1
+response:
+  format: json
+  schema_ref: ./schemas/bad.schema.json
+---
+
+# Prompt template
+
+Hello.
+`);
+
+    await expect(validate([join(tmpDir, 'prompts')])).rejects.toThrow('process.exit unexpectedly called with "1"');
+  });
+
+
+  it('validate fails for missing zod module schema_ref files', async () => {
+    await mkdir(join(tmpDir, 'prompts', 'schemas'), { recursive: true });
+    await writeFile(join(tmpDir, 'prompts', 'missing-zod.md'), `---
+id: schema-ref.missing-zod
+schema_version: 1
+response:
+  format: json
+  schema_ref: ./schemas/does-not-exist.mjs
+---
+
+# Prompt template
+
+Hello.
+`);
+
+    await expect(validate([join(tmpDir, 'prompts')])).rejects.toThrow('process.exit unexpectedly called with "1"');
+  });
+
+  it('validate fails for zod module refs without a schema export', async () => {
+    await mkdir(join(tmpDir, 'prompts', 'schemas'), { recursive: true });
+    await writeFile(join(tmpDir, 'prompts', 'schemas', 'not-a-schema.mjs'), 'export default { nope: true };');
+    await writeFile(join(tmpDir, 'prompts', 'bad-zod-export.md'), `---
+id: schema-ref.bad-zod-export
+schema_version: 1
+response:
+  format: json
+  schema_ref: ./schemas/not-a-schema.mjs
+---
+
+# Prompt template
+
+Hello.
+`);
+
+    await expect(validate([join(tmpDir, 'prompts')])).rejects.toThrow('process.exit unexpectedly called with "1"');
+  });
+
+  it('validate fails for unsupported schema_ref extension', async () => {
+    await mkdir(join(tmpDir, 'prompts', 'schemas'), { recursive: true });
+    await writeFile(join(tmpDir, 'prompts', 'schemas', 'reply.schema.ts'), 'export default {}');
+    await writeFile(join(tmpDir, 'prompts', 'bad-schema-ext.md'), `---
+id: schema-ref.bad-ext
+schema_version: 1
+response:
+  format: json
+  schema_ref: ./schemas/reply.schema.ts
+---
+
+# Prompt template
+
+Hello.
+`);
+
+    await expect(validate([join(tmpDir, 'prompts')])).rejects.toThrow('process.exit unexpectedly called with "1"');
+  });
+
+});

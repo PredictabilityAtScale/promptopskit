@@ -32,4 +32,4 @@ jobs:
       - run: npm test
       - run: npm run build
       - run: npx publint
-      - run: npx -p @arethetypeswrong/cli attw --pack .
+      - run: npm run attw

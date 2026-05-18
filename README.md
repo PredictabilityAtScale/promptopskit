@@ -261,7 +261,7 @@ In browser or client-side code, keep provider credentials on the server. Use the
 
 ### Provider-specific fields and raw passthrough
 
-Use normalized fields first (`sampling`, `response`, `cache`, `tools`) so prompts stay portable. `response.schema` is the neutral JSON Schema path; adapters emit it as OpenAI/OpenRouter/LLMAsAService `response_format`, OpenAI Responses `text.format`, Anthropic `output_config.format`, and Gemini `generationConfig.responseJsonSchema`.
+Use normalized fields first (`sampling`, `response`, `cache`, `tools`) so prompts stay portable. `response.schema` is the neutral JSON Schema path; adapters emit it as OpenAI/OpenRouter/LLMAsAService `response_format`, OpenAI Responses `text.format`, Anthropic `output_config.format`, and Gemini `generationConfig.responseJsonSchema`. You can also provide `response.schema_ref` to load schema from a prompt-relative `.json` file or `.js/.mjs/.cjs` zod module (mutually exclusive with `response.schema`).
 
 Use `provider_options` when PromptOpsKit has a known provider-specific mapping, such as Anthropic `top_k`, Gemini's native `response_schema`, OpenRouter routing fields, or LLMAsAService gateway routing/customer metadata.
 
@@ -658,7 +658,7 @@ Prompt files use YAML front matter with these fields:
 | `fallback_models` | `string[]` | Fallback model list |
 | `reasoning` | `object` | `{ effort, budget_tokens }` |
 | `sampling` | `object` | `{ temperature, top_p, frequency_penalty, presence_penalty, stop, max_output_tokens }` |
-| `response` | `object` | `{ format, stream, schema, schema_name, schema_description, schema_strict }` |
+| `response` | `object` | `{ format, stream, schema, schema_ref, schema_name, schema_description, schema_strict }` |
 | `cache` | `object` | Provider-specific cache controls (`openai`, `anthropic`, `gemini`/`google`) |
 | `tools` | `array` | Tool references (string names or inline definitions) |
 | `provider_options` | `object` | Provider-specific non-portable options (`anthropic`, `gemini`, `openrouter`, `llmasaservice`) |

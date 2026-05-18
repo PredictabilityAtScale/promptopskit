@@ -6,6 +6,7 @@ import type { ParseResult } from './parser.js';
 import { extractSections } from './sections.js';
 import { PromptDefaultsSchema } from '../schema/index.js';
 import type { PromptDefaults } from '../schema/index.js';
+import { resolveResponseSchemaRef } from './response-schema-ref.js';
 
 const DEFAULTS_FILE_NAME = 'defaults.md';
 
@@ -27,7 +28,17 @@ export async function loadPromptFile(filePath: string, options: LoadPromptOption
   // walks above the prompt tree when no explicit root is provided.
   const root = options.defaultsRoot ?? dirname(filePath);
   const defaults = await loadDefaultsForPath(filePath, root);
-  const asset = applyDefaults(parsed.asset, defaults);
+  const withDefaults = applyDefaults(parsed.asset, defaults);
+  const resolved = await resolveResponseSchemaRef(withDefaults, filePath);
+  const asset = (resolved.response?.schema !== undefined && !resolved.response?.schema_source)
+    ? {
+      ...resolved,
+      response: {
+        ...resolved.response,
+        schema_source: { mode: 'inline' as const },
+      },
+    }
+    : resolved;
 
   return {
     ...parsed,

@@ -100,6 +100,7 @@ sampling:
 ## `response`
 
 ```yaml
+# Inline schema
 response:
   format: json    # text | json | markdown
   stream: true
@@ -111,6 +112,16 @@ response:
   schema_name: support_reply
   schema_description: Support reply payload
   schema_strict: true
+
+# External schema reference (mutually exclusive with `schema`)
+response:
+  format: json
+  schema_ref: ./schemas/support-reply.schema.json
+
+# External zod module reference (must export default or named `schema`)
+response:
+  format: json
+  schema_ref: ./schemas/support-reply.schema.mjs
 ```
 
 | Field | Type | Description |
@@ -118,6 +129,7 @@ response:
 | `format` | `'text' \| 'json' \| 'markdown'` | Response format |
 | `stream` | `boolean` | Enable streaming |
 | `schema` | `object` | Portable JSON Schema object for structured output |
+| `schema_ref` | `string` | Relative path to external schema (`.json`) or zod module (`.js/.mjs/.cjs`) |
 | `schema_name` | `string` | Optional schema name (used by OpenAI/OpenAI Responses) |
 | `schema_description` | `string` | Optional schema description (used by OpenAI/OpenAI Responses/OpenRouter/LLMAsAService structured outputs) |
 | `schema_strict` | `boolean` | Strict schema enforcement toggle (OpenAI/OpenAI Responses) |

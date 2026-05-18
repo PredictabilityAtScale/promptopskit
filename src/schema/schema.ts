@@ -48,9 +48,26 @@ export const ResponseSchema = z.object({
   format: z.enum(['text', 'json', 'markdown']).optional(),
   stream: z.boolean().optional(),
   schema: z.record(z.unknown()).optional(),
+  schema_ref: z.string().min(1).optional(),
+  schema_source: z.object({
+    mode: z.enum(['inline', 'schema_ref_json', 'schema_ref_zod_module']).optional(),
+    ref: z.string().optional(),
+    resolved_path: z.string().optional(),
+    hash: z.string().optional(),
+  }).optional(),
   schema_name: z.string().optional(),
   schema_description: z.string().optional(),
   schema_strict: z.boolean().optional(),
+});
+
+export const ResponseSchemaWithValidation = ResponseSchema.superRefine((value, ctx) => {
+  if (value.schema !== undefined && value.schema_ref !== undefined) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'response.schema and response.schema_ref are mutually exclusive',
+      path: ['schema_ref'],
+    });
+  }
 });
 
 
@@ -215,7 +232,7 @@ export const PromptAssetOverridesSchema = z.object({
   fallback_models: z.array(z.string()).optional(),
   reasoning: ReasoningSchema.optional(),
   sampling: SamplingSchema.optional(),
-  response: ResponseSchema.optional(),
+  response: ResponseSchemaWithValidation.optional(),
   cache: CacheSchema.optional(),
   raw: RawProviderBodySchema.optional(),
   tools: z.array(ToolRefSchema).optional(),
@@ -266,7 +283,7 @@ export const PromptAssetSchema = z.object({
 
   reasoning: ReasoningSchema.optional(),
   sampling: SamplingSchema.optional(),
-  response: ResponseSchema.optional(),
+  response: ResponseSchemaWithValidation.optional(),
   cache: CacheSchema.optional(),
   raw: RawProviderBodySchema.optional(),
 

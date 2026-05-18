@@ -266,7 +266,25 @@ describe('validateAsset', () => {
     expect(result.errors.some((error) => error.code === 'POK001')).toBe(true);
   });
 
-  it('does not warn when trim is explicitly false without max_size', () => {
+  
+  it('warns on provider-sensitive schema keywords', () => {
+    const result = validateAsset({
+      id: 'schema.keywords',
+      schema_version: 1,
+      provider: 'openai',
+      response: {
+        format: 'json',
+        schema: {
+          type: 'object',
+          patternProperties: { '^x-': { type: 'string' } },
+        },
+      },
+      sections: { prompt_template: 'Hi' },
+    });
+
+    expect(result.warnings.some((warning) => warning.code === 'POK052')).toBe(true);
+  });
+it('does not warn when trim is explicitly false without max_size', () => {
     const result = validateAsset({
       id: 'test',
       schema_version: 1,
@@ -278,6 +296,22 @@ describe('validateAsset', () => {
 
     expect(result.valid).toBe(true);
     expect(result.warnings.some((warning) => warning.code === 'POK014')).toBe(false);
+  });
+
+
+  it('fails when response.schema and response.schema_ref are both provided', () => {
+    const result = validateAsset({
+      id: 'bad.schema_ref',
+      schema_version: 1,
+      response: {
+        schema: { type: 'object' },
+        schema_ref: './schemas/reply.schema.json',
+      },
+      sections: { prompt_template: 'Hi' },
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((error) => error.message.includes('mutually exclusive'))).toBe(true);
   });
 
 });
@@ -292,7 +326,6 @@ describe('levenshtein', () => {
     expect(levenshtein('mdoel', 'model')).toBeLessThanOrEqual(2);
   });
 });
-
 describe('PromptOpsKit.validatePrompt', () => {
   let tmpDir: string;
 

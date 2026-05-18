@@ -17,6 +17,7 @@ Open-source developer toolkit for managing prompts, system instructions, tools, 
 - [CLI](./cli.md) — Command-line interface: init, validate, compile, render, inspect, skill
 - [API Reference](./api-reference.md) — TypeScript API: `createPromptOpsKit`, `renderPrompt`, standalone functions
 - [Schema](./schema.md) — Full YAML front matter schema reference
+- [Response Schema DX](./schema-dx.md) — Design proposal for sharing one response schema between prompt files and runtime validation code
 - [Vendor Schema Gap Analysis](./vendor-schema-gap-analysis.md) — Snapshot comparison against published OpenAI, Anthropic, Gemini, OpenRouter, and LLMAsAService gateway schema capabilities
 - [Testing](./testing.md) — Test helpers, mock assets, and sidecar test files
 - [Validation](./validation.md) — Schema validation, "did you mean?" suggestions, variable checks, early regex validation, and YAML regex quoting guidance

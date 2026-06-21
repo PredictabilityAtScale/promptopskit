@@ -45,7 +45,9 @@ Behavior:
    - Include `provider` and `model` only if they are requested or not supplied by
      a nearby `defaults.md`.
    - Include `sampling`, `reasoning`, `response`, `tools`, `cache`,
-     `provider_options`, or `raw` only when the prompt behavior requires them.
+      `provider_options`, or `raw` only when the prompt behavior requires them.
+   - Include `compression` only when the prompt or data insertions explicitly need
+     opt-in compression or code compaction.
    - Include `context.inputs` for every `{{ variable }}` in the body.
    - Use object-form inputs with `non_empty: true`, `max_size`, `trim`, and
      validation controls when the input is user-provided or unbounded.
@@ -382,12 +384,13 @@ the fields required by that specific file:
 | `reasoning` | object | no | `{ effort: low|medium|high, budget_tokens: number }` |
 | `sampling` | object | no | `{ temperature, top_p, frequency_penalty, presence_penalty, stop, max_output_tokens }` |
 | `response` | object | no | `{ format: text|json|markdown, stream: boolean, schema?: object, schema_name?: string, schema_description?: string, schema_strict?: boolean }` |
+| `compression` | object | no | Prompt-template compression controls: `thetokencompany`, local `heuristic`, or local `code` compaction |
 | `cache` | object | no | Provider-specific cache controls (`openai`, `anthropic`, `gemini`/`google`) |
 | `tools` | array | no | Tool names (strings) or inline definitions with `{ name, description, input_schema }` |
 | `provider_options` | object | no | Provider-specific advanced options (`anthropic`, `gemini`, `openrouter`, `llmasaservice`) |
 | `raw` | object | no | Provider-scoped request-body passthrough for unmodeled vendor fields |
 | `mcp` | object | no | `{ servers: [string | { name, config }] }` |
-| `context.inputs` | `Array<string | { name, optional?, warnings?, max_size?, trim?, allow_regex?, deny_regex?, non_empty?, reject_secrets? }>` | no | Declared variable names used in templates, with optionality, warning controls, size budgets, and runtime hardening controls |
+| `context.inputs` | `Array<string | { name, optional?, warnings?, max_size?, trim?, allow_regex?, deny_regex?, non_empty?, reject_secrets?, compression? }>` | no | Declared variable names used in templates, with optionality, warning controls, size budgets, runtime hardening controls, and optional per-input compression |
 | `context.history` | object | no | `{ max_items: number }`; caps rendered history by compacting older turns into one preserved message |
 | `includes` | string[] | no | Relative paths to other prompt files to include |
 | `environments` | object | no | Per-environment overrides (see Overrides) |
@@ -433,6 +436,9 @@ Rules:
 - Escape literal braces with `\{{` and `\}}`
 - In strict mode, missing variables throw an error
 - In permissive mode, unresolved placeholders are left intact
+- Compression modifiers are single-token opt-ins: `{{ text | compress }}`,
+  `{{ json_payload | toon }}`, `{{ source_code | compact }}`, or
+  `{{ source_code | code }}`
 
 Example with a size budget:
 
@@ -450,6 +456,140 @@ At render time, callers can also pass `onContextOverflow` to transform oversized
 If a validator declares `return_message`, `renderPrompt()` returns that message in a structured result and omits the provider request instead of throwing for that validation failure. Invalid regex definitions still fail during `validate` and `compile` as `POK013` prompt-authoring errors.
 
 Malformed `allow_regex` and `deny_regex` values fail during `validate` and `compile`, not just at render time. When regex compilation fails, the error includes the prompt id, variable name, field name, and raw configured value. Double-quoted YAML regex strings with raw backslashes fail as `POK013`; use `/pattern/i`, single-quoted `pattern: '...'`, or doubled backslashes.
+
+### Prompt and data compression
+
+Compression is always opt-in. Add it only when a prompt template or a specific
+data insertion is large enough to justify changing the rendered prompt. Do not
+compress system instructions or small inputs by default.
+
+Use `compression.thetokencompany` when the rendered `# Prompt template` should
+be compressed by TheTokenCompany before provider request generation:
+
+```yaml
+compression:
+  thetokencompany:
+    enabled: true
+    model: bear-2
+    aggressiveness: 0.2
+```
+
+Runtime callers must pass `theTokenCompany.apiKey` or provide
+`THETOKENCOMPANY_API_KEY`/`TTC_API_KEY`. TheTokenCompany compression is the only
+compression mode that makes a backend call.
+
+Use local heuristic compression when the prompt template is prose or natural
+language context and no backend call should be made:
+
+```yaml
+compression:
+  heuristic:
+    enabled: true
+    min_tokens: 120
+    max_sentences: 8
+    target_reduction: 0.45
+    query_variable: user_question
+```
+
+The heuristic compressor deduplicates text, ranks sentences against `query`,
+`query_variable`, or system instructions, and keeps the highest-scoring
+sentences inside the token budget. It is heuristic, so use it for context where
+extractive reduction is acceptable, not for code or strict structured payloads.
+
+Use TOON preprocessing for complete JSON object/array inputs:
+
+```yaml
+compression:
+  heuristic:
+    enabled: true
+    json_to_toon: true
+```
+
+For one JSON insertion, prefer the placeholder modifier:
+
+```markdown
+Payload:
+{{ json_payload | toon }}
+```
+
+If `json_to_toon: true` or `{{ value | toon }}` cannot parse a complete JSON
+object or array, PromptOpsKit preserves the original value and returns a
+`POK031` warning instead of sentence-compressing broken JSON.
+
+Use code compaction for code. Do not text-compress code:
+
+```yaml
+compression:
+  code:
+    enabled: true
+    remove_comments: true
+    trim_indentation: true
+    collapse_blank_lines: true
+```
+
+For one code insertion:
+
+```markdown
+Source:
+{{ source_code | compact }}
+```
+
+Code compaction removes comments, common indentation, trailing whitespace, and
+blank lines by default. Set `remove_comments: false` when comments carry
+semantics, such as compiler pragmas, generated-code markers, or `@ts-ignore`.
+When prompt-level `compression.code.enabled: true`, PromptOpsKit skips
+TheTokenCompany compression and returns `POK033` so code is not backend
+text-compressed.
+
+Context inputs can opt in through schema:
+
+```yaml
+context:
+  inputs:
+    - name: account_context
+      compression:
+        heuristic:
+          enabled: true
+          query_variable: user_question
+    - name: payload
+      compression:
+        heuristic:
+          enabled: true
+          json_to_toon: true
+    - name: source_code
+      compression: code
+```
+
+Or at the placeholder call site:
+
+```markdown
+Context: {{ account_context | compress }}
+Payload: {{ payload | toon }}
+Source: {{ source_code | compact }}
+```
+
+Placeholder modifiers are single-token shortcuts. Use
+`context.inputs[].compression` when a placeholder needs options such as
+`query_variable`, `json_to_toon`, or `remove_comments: false`.
+
+Render results may include:
+
+```typescript
+result.compression;        // per-step details
+result.compressionSummary; // operation-level aggregate
+result.warnings;           // includes POK031/POK032/POK033 compression warnings
+```
+
+Treat `compressionSummary.tokensSaved` as an operation-level aggregate across
+all compression and compaction steps, not a guaranteed net request-token delta.
+Use `result.compression` for the per-placeholder or per-provider breakdown.
+
+Credit the source projects when documenting compression: the local
+token-compression approach is based on Jason Kneen's
+[open-thetokenco](https://github.com/jasonkneen/open-thetokenco/tree/main).
+TOON preprocessing uses a local encode-only implementation inspired by the
+MIT-licensed [TOON project](https://github.com/toon-format/toon) by Johann
+Schopplich.
 
 ### Conversation history limits
 
@@ -716,6 +856,14 @@ if (!result.request) {
 }
 
 const { request } = result;
+
+if (result.compressionSummary) {
+  console.log('Compression savings:', result.compressionSummary.tokensSaved);
+}
+
+for (const warning of result.warnings) {
+  console.warn(warning);
+}
 ```
 
 ### Use `adapter.renderPrompt()` when:
@@ -904,3 +1052,5 @@ Hello {{ name }}
 9. **Validate before compile and compile before shipping** when prompts are part of the build
 10. **Variable names** should be `snake_case`
 11. **Prompt file names** should be `kebab-case.md`
+12. **Compression must stay opt-in** through `compression` config or placeholder modifiers
+13. **Use TOON for complete JSON payloads** and code compaction for code; do not text-compress code

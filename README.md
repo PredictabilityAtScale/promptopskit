@@ -39,6 +39,7 @@ Core capabilities:
 - **Reusable composition** — share tone, policy, and safety instructions with `includes`, and apply folder-level standards with `defaults.md`.
 - **Environment and tier overrides** — keep dev/prod and plan-specific behavior in one prompt source with explicit, reviewable overrides.
 - **Sidecar tests** — run deterministic prompt checks in local development and CI without calling a model.
+- **Prompt compression** — optionally compress rendered prompt templates with TheTokenCompany before provider caching and request generation.
 
 ## Install
 
@@ -149,6 +150,7 @@ Supported values for `warnings.contextSize` are `auto`, `off`, `result-only`, `c
 - **Folder defaults** — `defaults.md` inheritance for shared provider, model, options, metadata, and system instructions
 - **Overrides** — Environment and tier-based overrides (base → env → tier → runtime)
 - **6 provider adapters** — OpenAI (Chat), OpenAI (Responses), Anthropic, Gemini, OpenRouter, LLMAsAService
+- **Prompt compression** — optional `compression.thetokencompany` front matter calls TheTokenCompany directly before provider cache fields are applied
 - **Provider-aware input caching controls** — optional `cache` front matter maps to OpenAI prompt cache hints, Anthropic `cache_control`, and Gemini `cachedContent`
 - **Vendor escape hatch** — optional `raw.<provider>` blocks shallow-merge unmodeled request-body fields into the final provider payload
 - **Validation** — Zod schema validation, Levenshtein-based "did you mean?" for typos, variable usage checks
@@ -259,9 +261,38 @@ const request = openaiAdapter.render(prompt, {
 
 In browser or client-side code, keep provider credentials on the server. Use the rendered request body with your own server endpoint, server action, or edge function rather than calling a provider directly from the client.
 
-### Provider-specific fields and raw passthrough
+### Prompt compression, provider-specific fields, and raw passthrough
 
-Use normalized fields first (`sampling`, `response`, `cache`, `tools`) so prompts stay portable. `response.schema` is the neutral JSON Schema path; adapters emit it as OpenAI/OpenRouter/LLMAsAService `response_format`, OpenAI Responses `text.format`, Anthropic `output_config.format`, and Gemini `generationConfig.responseJsonSchema`. You can also provide `response.schema_ref` to load schema from a prompt-relative `.json` file or `.js/.mjs/.cjs` zod module (mutually exclusive with `response.schema`).
+Use normalized fields first (`sampling`, `response`, `compression`, `cache`, `tools`) so prompts stay portable. `response.schema` is the neutral JSON Schema path; adapters emit it as OpenAI/OpenRouter/LLMAsAService `response_format`, OpenAI Responses `text.format`, Anthropic `output_config.format`, and Gemini `generationConfig.responseJsonSchema`. You can also provide `response.schema_ref` to load schema from a prompt-relative `.json` file or `.js/.mjs/.cjs` zod module (mutually exclusive with `response.schema`).
+
+Use `compression.thetokencompany` when a prompt template should be compressed before provider request generation and cache controls:
+
+```yaml
+compression:
+  thetokencompany:
+    enabled: true
+    model: bear-2
+    aggressiveness: 0.2
+cache:
+  openai:
+    prompt_cache_key: support-reply-v1
+    retention: 24h
+```
+
+At render time, pass the caller-owned API key. PromptOpsKit calls `POST https://api.thetokencompany.com/v1/compress` directly with `fetch`; no TheTokenCompany SDK is required.
+
+```typescript
+const result = await kit.renderPrompt({
+  path: 'support/reply',
+  provider: 'openai',
+  variables,
+  theTokenCompany: {
+    apiKey: process.env.THETOKENCOMPANY_API_KEY,
+  },
+});
+```
+
+Compression applies only to the rendered `# Prompt template`. System instructions and history are left unchanged, and provider cache fields are applied to the compressed prompt text.
 
 Use `provider_options` when PromptOpsKit has a known provider-specific mapping, such as Anthropic `top_k`, Gemini's native `response_schema`, OpenRouter routing fields, or LLMAsAService gateway routing/customer metadata.
 
@@ -339,29 +370,6 @@ const request = result;
 If you need a different layout, keep passing `sourceDir` and `compiledDir` explicitly.
 
 `renderPrompt()` and `validatePrompt()` use the same source-versus-compiled resolution rules as `kit.renderPrompt()`. The existing synchronous `render()` and `validate()` methods still work for already-resolved compiled or inline assets.
-
-## How It Compares to GitHub Models
-
-GitHub Models is a good place to prototype prompts, compare models, and run evaluations inside GitHub.
-
-PromptOpsKit is focused on the application runtime layer. Use it when prompt behavior needs to live in your repo with validated inputs, reusable composition, environment and tier overrides, sidecar tests, compiled artifacts, and provider-ready request bodies.
-
-Use GitHub Models when you want:
-
-- A GitHub-hosted prompt playground
-- Side-by-side model comparison
-- Evaluation workflows inside GitHub
-- `.prompt.yml` files for prompt experiments and evals
-
-Use PromptOpsKit when you want:
-
-- Runtime-focused Markdown prompt assets
-- Production input hardening and validation
-- Reusable `includes` and folder-level `defaults.md`
-- Environment-specific model and parameter overrides
-- Deterministic local and CI testing without model calls
-- Provider-specific request bodies for your own runtime code
-- Control over SDKs, auth, retries, routing, observability, and billing
 
 ## Optional UsageTap Tracking
 
@@ -496,14 +504,14 @@ Handle support requests carefully.
 
 Define a `defaults.md` file in `prompts/` (and optional subfolders) to provide inherited defaults for prompts:
 
-- Shared `provider`, `model`, `fallback_models`, `reasoning`, `sampling`, `response`, `cache`, `provider_options`, `raw`, `tools`, `mcp`, `context`, `includes`, `environments`, and `tiers` in front matter
+- Shared `provider`, `model`, `fallback_models`, `reasoning`, `sampling`, `response`, `compression`, `cache`, `provider_options`, `raw`, `tools`, `mcp`, `context`, `includes`, `environments`, and `tiers` in front matter
 - Shared `metadata` defaults in front matter
 - Shared `# System instructions` in body
 - Nearest subfolder `defaults.md` overrides parent defaults
 - Prompt-local values always win over defaults
 - Included files (`includes`) are not affected by folder defaults
 
-Scalars and arrays are replaced by nearer values. Object blocks are shallow-merged, including provider sub-blocks such as `provider_options.llmasaservice` and `cache.openai`.
+Scalars and arrays are replaced by nearer values. Object blocks are shallow-merged, including provider sub-blocks such as `provider_options.llmasaservice`, `compression.thetokencompany`, and `cache.openai`.
 
 > `promptopskit init` scaffolds a starter `defaults.md` in the prompts root.
 
@@ -618,7 +626,7 @@ Creates a `PromptOpsKit` instance.
 
 ### `kit.renderPrompt(options)`
 
-Renders a prompt for a specific provider. Returns `{ resolved, request?, returnMessage?, warnings }`.
+Renders a prompt for a specific provider. Returns `{ resolved, request?, returnMessage?, compression?, warnings }`.
 
 | Option | Type | Description |
 |--------|------|-------------|
@@ -634,6 +642,7 @@ Renders a prompt for a specific provider. Returns `{ resolved, request?, returnM
 | `toolRegistry` | `Record<string, unknown>` | Tool definitions for resolving string tool references |
 | `strict` | `boolean` | Fail on missing variables except object-form inputs marked `optional: true` |
 | `openaiResponses` | `object` | Optional Responses API extras (`previous_response_id`, `conversation`, `instructions`, `parallel_tool_calls`, `max_tool_calls`, `store`, `metadata`, `include`, `background`) |
+| `theTokenCompany` | `object` | Optional compression settings (`apiKey`, `baseURL`, `fetch`) used when `compression.thetokencompany.enabled: true` |
 
 ### `kit.loadPrompt(path)` / `kit.resolvePrompt(path, options)` / `kit.validatePrompt(path)`
 
@@ -659,6 +668,7 @@ Prompt files use YAML front matter with these fields:
 | `reasoning` | `object` | `{ effort, budget_tokens }` |
 | `sampling` | `object` | `{ temperature, top_p, frequency_penalty, presence_penalty, stop, max_output_tokens }` |
 | `response` | `object` | `{ format, stream, schema, schema_ref, schema_name, schema_description, schema_strict }` |
+| `compression` | `object` | Prompt-template compression controls (`thetokencompany`) |
 | `cache` | `object` | Provider-specific cache controls (`openai`, `anthropic`, `gemini`/`google`) |
 | `tools` | `array` | Tool references (string names or inline definitions) |
 | `provider_options` | `object` | Provider-specific non-portable options (`anthropic`, `gemini`, `openrouter`, `llmasaservice`) |

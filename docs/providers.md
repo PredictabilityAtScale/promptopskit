@@ -70,6 +70,22 @@ Adapters emit that neutral JSON Schema through each provider's native request sh
 
 Only drop to provider-specific schema fields for exceptional dialect needs, such as Gemini's native `provider_options.gemini.response_schema` or an Anthropic-native `provider_options.anthropic.output_config`.
 
+Use `compression.thetokencompany` when a prompt template should be compressed before provider request generation and cache controls:
+
+```yaml
+compression:
+  thetokencompany:
+    enabled: true
+    model: bear-2
+    aggressiveness: 0.2
+cache:
+  openai:
+    prompt_cache_key: support-reply-v1
+    retention: 24h
+```
+
+When enabled, PromptOpsKit renders variables into the `# Prompt template`, sends that rendered text directly to TheTokenCompany with `fetch`, and uses the returned `output` as the user prompt. The caller supplies `theTokenCompany.apiKey` at render time or sets `THETOKENCOMPANY_API_KEY`/`TTC_API_KEY`. System instructions and history are left unchanged. Provider cache fields and cache-control markers are applied after compression, so the provider request contains the compressed prompt text.
+
 When a vendor adds a request-body field that PromptOpsKit does not model yet, use the explicit `raw` passthrough:
 
 ```yaml
@@ -88,8 +104,6 @@ raw:
 ```
 
 `raw.<provider>` is shallow-merged into the final request body after normalized fields and `provider_options`, so it can intentionally override generated fields. Treat it as a last-resort escape hatch and document why the raw field is present.
-
-GitHub Models `.prompt.yml` files use a simpler top-level shape (`model`, `modelParameters`, `messages`, plus optional test/evaluator data) and do not currently define an equivalent raw vendor-body block. PromptOpsKit keeps `raw` explicit because these prompt assets are meant to render production request bodies directly.
 
 
 ## Streaming support
@@ -132,6 +146,7 @@ const { request } = result;
 The provider passed to `renderPrompt` determines which adapter shapes the body. The `provider` field in front matter is informational — the render-time provider controls output.
 When a prompt includes multiple cache blocks (for example `cache.openai` + `cache.anthropic`), adapters ignore non-matching blocks so cross-provider settings never leak into the wrong payload.
 When a prompt includes multiple raw blocks, adapters also read only the block for the selected provider (`raw.openai`, `raw.openai-responses`, `raw.anthropic`, `raw.gemini`/`raw.google`, `raw.openrouter`, or `raw.llmasaservice`).
+When a prompt enables compression, async `renderPrompt()` helpers compress the rendered prompt template before the selected provider adapter applies cache settings and shapes the final body.
 
 ## Direct adapter imports
 

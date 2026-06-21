@@ -212,7 +212,7 @@ raw:
     conversationId: conv_123
 ```
 
-Each adapter reads only its own raw block. Raw values are shallow-merged into the generated body after normalized mappings, so they can override generated fields. Prefer normalized fields (`sampling`, `response`, `cache`, `tools`) and `provider_options` first; reserve `raw` for vendor-specific fields that would otherwise be impossible to send.
+Each adapter reads only its own raw block. Raw values are shallow-merged into the generated body after normalized mappings, so they can override generated fields. Prefer normalized fields (`sampling`, `response`, `compression`, `cache`, `tools`) and `provider_options` first; reserve `raw` for vendor-specific fields that would otherwise be impossible to send.
 
 ## Sections
 

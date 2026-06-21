@@ -745,3 +745,97 @@ Generated OpenAI Responses body:
 ```
 
 Result: system instructions map to `instructions`, the user prompt maps to `input`, and the sampling temperature maps directly onto the Responses API body.
+
+## 09 - TheTokenCompany Compression Before Cache
+
+File: `prompts/09-compression-cache.md`
+
+Shows prompt-template compression before provider request generation and OpenAI cache fields.
+
+Prompt:
+
+```text
+---
+id: examples/compression-cache
+schema_version: 1
+description: Compress a long stable prompt template before provider cache controls are applied.
+compression:
+  thetokencompany:
+    enabled: true
+    model: bear-2
+    aggressiveness: 0.2
+cache:
+  openai:
+    prompt_cache_key: examples-compression-v1
+    retention: 24h
+context:
+  inputs:
+    - name: product_brief
+      non_empty: true
+      reject_secrets: true
+      max_size: 10000
+    - name: customer_segment
+      non_empty: true
+      max_size: 120
+      allow_regex: /^[A-Za-z0-9 .,_-]+$/
+---
+
+# System instructions
+
+Write concise product positioning without inventing capabilities.
+
+# Prompt template
+
+Create a launch-note draft for this customer segment:
+{{ customer_segment }}
+
+Product brief:
+{{ product_brief }}
+```
+
+Inputs:
+
+```json
+{
+  "customer_segment": "Enterprise admins",
+  "product_brief": "New audit log filters, export scheduling, and role-based report access."
+}
+```
+
+Render code:
+
+```ts
+const result = await kit.renderPrompt({
+  path: '09-compression-cache',
+  provider: 'openai',
+  variables: {
+    customer_segment: 'Enterprise admins',
+    product_brief: 'New audit log filters, export scheduling, and role-based report access.',
+  },
+  theTokenCompany: {
+    apiKey: process.env.THETOKENCOMPANY_API_KEY,
+  },
+});
+```
+
+Generated OpenAI body shape after compression:
+
+```json
+{
+  "model": "gpt-5.4-mini",
+  "messages": [
+    {
+      "role": "system",
+      "content": "Write concise product positioning without inventing capabilities."
+    },
+    {
+      "role": "user",
+      "content": "<compressed prompt returned by TheTokenCompany>"
+    }
+  ],
+  "prompt_cache_key": "examples-compression-v1",
+  "prompt_cache_retention": "24h"
+}
+```
+
+Result: PromptOpsKit sends the rendered prompt template to TheTokenCompany first, then places the compressed output into the provider request. OpenAI cache hints are applied to that compressed request body.

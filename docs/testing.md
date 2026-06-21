@@ -171,4 +171,4 @@ const result = respond('basic-greeting');
 // { message: 'Hello, World! How can I help you today?' }
 ```
 
-This is intentionally different from GitHub Models: GitHub Models is useful for interactive prompt prototyping, side-by-side model comparison, and evaluations in GitHub. PromptOpsKit sidecars are repo-native fixtures for rendering, unit tests, CI, and deterministic app development without making provider calls.
+PromptOpsKit sidecars are repo-native fixtures for rendering, unit tests, CI, and deterministic app development without making provider calls.

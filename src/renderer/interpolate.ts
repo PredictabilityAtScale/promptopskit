@@ -1,9 +1,17 @@
 export interface InterpolateOptions {
   strict?: boolean;
   optionalVariables?: Iterable<string>;
+  transformVariable?: (context: InterpolateVariableContext) => string;
 }
 
-const VARIABLE_RE = /\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\}\}/g;
+export interface InterpolateVariableContext {
+  name: string;
+  value: string;
+  modifier?: 'compress' | 'toon' | 'compact' | 'code';
+  match: string;
+}
+
+const VARIABLE_RE = /\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)(?:\s*\|\s*(compress|toon|compact|code))?\s*\}\}/g;
 const ESCAPED_OPEN = /\\\{\\\{/g;
 const ESCAPE_PLACEHOLDER = '\x00ESCAPED_OPEN\x00';
 
@@ -27,9 +35,12 @@ export function interpolate(
   // Replace escaped sequences with placeholder
   let result = template.replace(ESCAPED_OPEN, ESCAPE_PLACEHOLDER);
 
-  result = result.replace(VARIABLE_RE, (match, name: string) => {
+  result = result.replace(VARIABLE_RE, (match, name: string, modifier: 'compress' | 'toon' | 'compact' | 'code' | undefined) => {
     if (name in variables) {
-      return variables[name];
+      const value = variables[name];
+      return options.transformVariable
+        ? options.transformVariable({ name, value, modifier, match })
+        : value;
     }
     if (strict && !optionalVariables.has(name)) {
       throw new Error(`Missing required variable: "${name}"`);

@@ -86,6 +86,7 @@
           <a href="#demo">Demo</a>
           <a href="#prompt-file">Prompt file</a>
           <a href="#runtime">Runtime</a>
+          <a href="#compression">Compression</a>
           <a href="#testing">Testing</a>
           <a href="#github-models">Compare</a>
           <a href="#features">Features</a>
@@ -246,6 +247,45 @@ await fetch('https://api.openai.com/v1/chat/completions', {
         </article>
       </section>
 
+      <section id="compression" class="container section" aria-labelledby="compression-title">
+        <h2 id="compression-title">Compress prompt context before it reaches a model</h2>
+        <p class="section-intro">
+          Keep compression opt-in and close to the prompt. Use backend compression,
+          local heuristic compression, JSON-to-TOON preprocessing, or code compaction,
+          then read a lightweight operation-level token-savings summary from the render result.
+        </p>
+        <article class="card">
+          <pre><code>compression:
+  heuristic:
+    enabled: true
+    query_variable: user_question
+    json_to_toon: true
+  code:
+    enabled: false
+context:
+  inputs:
+    - name: account_context
+      compression:
+        heuristic:
+          enabled: true
+    - name: source_code
+      compression: code
+
+# Prompt template
+
+Context: {{ account_context | compress }}
+Payload: {{ json_payload | toon }}
+Source: {{ source_code | compact }}</code></pre>
+        </article>
+        <p class="section-intro">
+          The local token-compression approach credits Jason Kneen's
+          <a href="https://github.com/jasonkneen/open-thetokenco/tree/main">open-thetokenco</a>.
+          TOON preprocessing is inspired by the MIT-licensed
+          <a href="https://github.com/toon-format/toon">TOON project</a> by Johann Schopplich.
+          Invalid TOON inputs are preserved with a warning, and code compaction skips backend text compression.
+        </p>
+      </section>
+
       <section id="testing" class="container section section-testing" aria-labelledby="testing-title">
         <p class="eyebrow">Testing for developers and teams</p>
         <h2 id="testing-title">Test prompt behavior without calling a model</h2>
@@ -389,6 +429,10 @@ tests/
           <article class="card">
             <h3>Input hardening</h3>
             <p>Define required values, size limits, and content checks close to prompt text.</p>
+          </article>
+          <article class="card">
+            <h3>Prompt compression and compaction</h3>
+            <p>Opt into TheTokenCompany, local heuristic compression, TOON preprocessing, or code compaction with token-savings summaries.</p>
           </article>
           <article class="card">
             <h3>Provider adapters</h3>

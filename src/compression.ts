@@ -1,9 +1,20 @@
 import type { ResolvedPromptAsset } from './schema/index.js';
 import { renderSections } from './renderer/index.js';
 import type { RuntimeRenderOptions } from './providers/types.js';
+import { getContextInputs } from './context.js';
+import {
+  compressHeuristicText,
+  type HeuristicCompressionOptions,
+} from './token-compression.js';
+import {
+  compactCode,
+  type CodeCompactionOptions,
+} from './code-compaction.js';
 
 export const THETOKENCOMPANY_DEFAULT_MODEL = 'bear-2';
 export const THETOKENCOMPANY_DEFAULT_BASE_URL = 'https://api.thetokencompany.com';
+export const HEURISTIC_COMPRESSION_MODEL = 'local-heuristic-v1';
+export const CODE_COMPACTION_MODEL = 'local-code-compactor-v1';
 
 export interface TheTokenCompanyRuntimeOptions {
   apiKey?: string;
@@ -12,18 +23,30 @@ export interface TheTokenCompanyRuntimeOptions {
 }
 
 export interface PromptCompressionResult {
-  provider: 'thetokencompany';
+  provider: 'thetokencompany' | 'heuristic' | 'code';
   model: string;
   inputTokens: number;
   outputTokens: number;
   tokensSaved: number;
   compressionRatio: number;
+  scope?: 'prompt_template' | 'placeholder';
+  variable?: string;
+  outputFormat?: 'toon' | 'code';
+}
+
+export interface PromptCompressionSummary {
+  steps: number;
+  inputTokens: number;
+  outputTokens: number;
+  tokensSaved: number;
+  reductionRatio: number;
 }
 
 export interface PromptCompressionRenderResult {
   asset: ResolvedPromptAsset;
   runtime: RuntimeRenderOptions;
   compression: PromptCompressionResult[];
+  warnings: string[];
 }
 
 interface TheTokenCompanyCompressResponse {
@@ -34,33 +57,168 @@ interface TheTokenCompanyCompressResponse {
   compression_ratio: number;
 }
 
+export function summarizePromptCompression(
+  compression: PromptCompressionResult[] = [],
+): PromptCompressionSummary {
+  const totals = compression.reduce(
+    (accumulator, result) => {
+      accumulator.inputTokens += result.inputTokens;
+      accumulator.outputTokens += result.outputTokens;
+      accumulator.tokensSaved += result.tokensSaved;
+      return accumulator;
+    },
+    {
+      inputTokens: 0,
+      outputTokens: 0,
+      tokensSaved: 0,
+    },
+  );
+
+  return {
+    steps: compression.length,
+    inputTokens: totals.inputTokens,
+    outputTokens: totals.outputTokens,
+    tokensSaved: totals.tokensSaved,
+    reductionRatio: totals.inputTokens === 0 ? 0 : totals.tokensSaved / totals.inputTokens,
+  };
+}
+
 export async function applyPromptCompressionForRender(
   asset: ResolvedPromptAsset,
   runtime: RuntimeRenderOptions,
 ): Promise<PromptCompressionRenderResult> {
-  const config = asset.compression?.thetokencompany;
+  const theTokenCompanyConfig = asset.compression?.thetokencompany;
+  const heuristicConfig = asset.compression?.heuristic;
+  const codeConfig = asset.compression?.code;
+  const hasTheTokenCompanyCompression = theTokenCompanyConfig?.enabled === true && Boolean(asset.sections.prompt_template);
+  const hasHeuristicPromptCompression = heuristicConfig?.enabled === true && Boolean(asset.sections.prompt_template);
+  const hasCodePromptCompaction = codeConfig?.enabled === true && Boolean(asset.sections.prompt_template);
+  const hasPlaceholderCompression = usesPlaceholderCompression(asset);
 
-  if (config?.enabled !== true || !asset.sections.prompt_template) {
-    return { asset, runtime, compression: [] };
+  if (
+    !hasTheTokenCompanyCompression
+    && !hasHeuristicPromptCompression
+    && !hasCodePromptCompaction
+    && !hasPlaceholderCompression
+  ) {
+    return { asset, runtime, compression: [], warnings: [] };
   }
 
+  const compression: PromptCompressionResult[] = [];
+  const warnings: string[] = [];
   const sections = renderSections(asset, {
     variables: runtime.variables,
     strict: runtime.strict,
+    compression: {
+      onHeuristicCompression: (event) => {
+        compression.push({
+          provider: 'heuristic',
+          model: HEURISTIC_COMPRESSION_MODEL,
+          inputTokens: event.inputTokens,
+          outputTokens: event.outputTokens,
+          tokensSaved: event.tokensSaved,
+          compressionRatio: event.compressionRatio,
+          scope: event.scope,
+          variable: event.variable,
+          outputFormat: event.outputFormat,
+        });
+      },
+      onCodeCompaction: (event) => {
+        compression.push({
+          provider: 'code',
+          model: CODE_COMPACTION_MODEL,
+          inputTokens: event.inputTokens,
+          outputTokens: event.outputTokens,
+          tokensSaved: event.tokensSaved,
+          compressionRatio: event.compressionRatio,
+          scope: event.scope,
+          variable: event.variable,
+          outputFormat: 'code',
+        });
+      },
+      onCompressionWarning: (warning) => {
+        warnings.push(warning);
+      },
+    },
   });
 
-  if (!sections.prompt_template) {
-    return { asset, runtime, compression: [] };
+  let promptTemplate = sections.prompt_template;
+
+  if (hasCodePromptCompaction && promptTemplate) {
+    if (hasHeuristicPromptCompression) {
+      warnings.push(
+        'POK032: Local heuristic prompt compression skipped because compression.code is enabled for the prompt template.',
+      );
+    }
+
+    const result = compactCode(promptTemplate, toCodeCompactionOptions(codeConfig));
+
+    promptTemplate = result.output;
+
+    if (result.tokensSaved > 0 || result.output !== sections.prompt_template) {
+      compression.push({
+        provider: 'code',
+        model: CODE_COMPACTION_MODEL,
+        inputTokens: result.inputTokens,
+        outputTokens: result.outputTokens,
+        tokensSaved: result.tokensSaved,
+        compressionRatio: result.compressionRatio,
+        scope: 'prompt_template',
+        outputFormat: 'code',
+      });
+    }
+  } else if (hasHeuristicPromptCompression && promptTemplate) {
+    const result = compressHeuristicText(promptTemplate, {
+      min_tokens: heuristicConfig?.min_tokens,
+      max_sentences: heuristicConfig?.max_sentences,
+      target_reduction: heuristicConfig?.target_reduction,
+      query: resolveHeuristicPromptQuery(heuristicConfig, runtime.variables, sections.system_instructions),
+      json_to_toon: heuristicConfig?.json_to_toon,
+    });
+
+    promptTemplate = result.output;
+
+    reportHeuristicCompressionWarnings(warnings, result.warnings, 'prompt template');
+
+    if (result.tokensSaved > 0 || result.output !== sections.prompt_template) {
+      compression.push({
+        provider: 'heuristic',
+        model: HEURISTIC_COMPRESSION_MODEL,
+        inputTokens: result.inputTokens,
+        outputTokens: result.outputTokens,
+        tokensSaved: result.tokensSaved,
+        compressionRatio: result.compressionRatio,
+        scope: 'prompt_template',
+        outputFormat: result.outputFormat,
+      });
+    }
   }
 
-  const model = config.model ?? THETOKENCOMPANY_DEFAULT_MODEL;
-  const result = await compressWithTheTokenCompany(sections.prompt_template, {
-    apiKey: runtime.theTokenCompany?.apiKey,
-    baseURL: runtime.theTokenCompany?.baseURL,
-    fetch: runtime.theTokenCompany?.fetch,
-    model,
-    aggressiveness: config.aggressiveness,
-  });
+  if (hasTheTokenCompanyCompression && hasCodePromptCompaction && promptTemplate) {
+    warnings.push(
+      'POK033: TheTokenCompany compression skipped because compression.code is enabled; code is compacted locally and not text-compressed.',
+    );
+  } else if (hasTheTokenCompanyCompression && promptTemplate) {
+    const model = theTokenCompanyConfig?.model ?? THETOKENCOMPANY_DEFAULT_MODEL;
+    const result = await compressWithTheTokenCompany(promptTemplate, {
+      apiKey: runtime.theTokenCompany?.apiKey,
+      baseURL: runtime.theTokenCompany?.baseURL,
+      fetch: runtime.theTokenCompany?.fetch,
+      model,
+      aggressiveness: theTokenCompanyConfig?.aggressiveness,
+    });
+
+    promptTemplate = result.output;
+
+    compression.push({
+      provider: 'thetokencompany',
+      model,
+      inputTokens: result.input_tokens,
+      outputTokens: result.output_tokens,
+      tokensSaved: result.tokens_saved,
+      compressionRatio: result.compression_ratio,
+    });
+  }
 
   return {
     asset: {
@@ -68,7 +226,7 @@ export async function applyPromptCompressionForRender(
       sections: {
         ...asset.sections,
         ...sections,
-        prompt_template: result.output,
+        ...(promptTemplate !== undefined ? { prompt_template: promptTemplate } : {}),
       },
     },
     runtime: {
@@ -76,15 +234,62 @@ export async function applyPromptCompressionForRender(
       variables: {},
       strict: false,
     },
-    compression: [{
-      provider: 'thetokencompany',
-      model,
-      inputTokens: result.input_tokens,
-      outputTokens: result.output_tokens,
-      tokensSaved: result.tokens_saved,
-      compressionRatio: result.compression_ratio,
-    }],
+    compression,
+    warnings,
   };
+}
+
+function usesPlaceholderCompression(asset: ResolvedPromptAsset): boolean {
+  const hasContextInputCompression = getContextInputs(asset).some((input) =>
+    input.compression?.heuristic?.enabled === true || input.compression?.code?.enabled === true
+  );
+
+  if (hasContextInputCompression) {
+    return true;
+  }
+
+  return Boolean(
+    (asset.sections.system_instructions && hasCompressionModifier(asset.sections.system_instructions))
+    || (asset.sections.prompt_template && hasCompressionModifier(asset.sections.prompt_template)),
+  );
+}
+
+function hasCompressionModifier(template: string): boolean {
+  return /\{\{\s*[a-zA-Z_][a-zA-Z0-9_]*\s*\|\s*(?:compress|toon|compact|code)\s*\}\}/.test(template);
+}
+
+function resolveHeuristicPromptQuery(
+  options: (HeuristicCompressionOptions & { query_variable?: string }) | undefined,
+  variables: Record<string, string> | undefined,
+  systemInstructions: string | undefined,
+): string | undefined {
+  if (options?.query !== undefined) {
+    return options.query;
+  }
+
+  if (options?.query_variable && variables?.[options.query_variable] !== undefined) {
+    return variables[options.query_variable];
+  }
+
+  return systemInstructions;
+}
+
+function toCodeCompactionOptions(options: CodeCompactionOptions | undefined): CodeCompactionOptions {
+  return {
+    remove_comments: options?.remove_comments,
+    trim_indentation: options?.trim_indentation,
+    collapse_blank_lines: options?.collapse_blank_lines,
+  };
+}
+
+function reportHeuristicCompressionWarnings(
+  warnings: string[],
+  compressionWarnings: string[] | undefined,
+  scope: string,
+): void {
+  for (const warning of compressionWarnings ?? []) {
+    warnings.push(`POK031: ${warning} Scope: ${scope}.`);
+  }
 }
 
 async function compressWithTheTokenCompany(

@@ -152,6 +152,7 @@ Pre-compiles `.md` files to JSON (or ESM) artifacts so deployments skip parsing 
 ## Next steps
 
 - [Prompt Format](./prompt-format.md) — Full Markdown structure and variable syntax
+- [Compression and Compaction](./compression.md) — Compress long context, convert JSON to TOON, compact code, and report token savings
 - [Providers](./providers.md) — How each provider adapter shapes the request body
 - [Overrides](./overrides.md) — Target dev vs. prod or free vs. pro without duplication
 - [Composition](./composition.md) — Share instructions across prompts with `includes`

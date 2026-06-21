@@ -79,6 +79,14 @@ Summarize this account for {{ name }}.`,
       compressionRatio: 3,
     }]);
     expect(result.request!.compression).toEqual(result.compression);
+    expect(result.compressionSummary).toEqual({
+      steps: 1,
+      inputTokens: 12,
+      outputTokens: 4,
+      tokensSaved: 8,
+      reductionRatio: 8 / 12,
+    });
+    expect(result.request!.compressionSummary).toEqual(result.compressionSummary);
   });
 
   it('applies provider cache settings to the compressed prompt text', async () => {
@@ -273,5 +281,491 @@ Rewrite {{ text }}.`,
     const messages = result.body!.messages as Array<{ role: string; content: string }>;
     expect(messages).toEqual([{ role: 'user', content: 'Compressed prompt.' }]);
     expect(result.compression?.[0]?.tokensSaved).toBe(8);
+    expect(result.compressionSummary).toEqual({
+      steps: 1,
+      inputTokens: 12,
+      outputTokens: 4,
+      tokensSaved: 8,
+      reductionRatio: 8 / 12,
+    });
+  });
+});
+
+describe('heuristic compression', () => {
+  it('compresses the rendered prompt template without backend credentials', async () => {
+    const kit = createPromptOpsKit({ sourceDir: '.', cache: false });
+
+    const result = await kit.renderPrompt({
+      provider: 'openai',
+      source: `---
+id: heuristic-prompt
+schema_version: 1
+provider: openai
+model: gpt-5.4
+compression:
+  heuristic:
+    enabled: true
+    min_tokens: 10
+    max_sentences: 1
+    target_reduction: 0.45
+    query: pricing
+---
+
+# Prompt template
+
+Pricing includes annual discounts for enterprise buyers. Security controls include SSO and audit logs. This document is confidential and intended for internal planning only.`,
+    });
+
+    const messages = result.request!.body.messages as Array<{ role: string; content: string }>;
+    expect(messages).toEqual([
+      { role: 'user', content: 'Pricing includes annual discounts for enterprise buyers.' },
+    ]);
+    expect(result.compression).toEqual([
+      expect.objectContaining({
+        provider: 'heuristic',
+        model: 'local-heuristic-v1',
+        scope: 'prompt_template',
+      }),
+    ]);
+    expect(result.compression?.[0]?.tokensSaved).toBeGreaterThan(0);
+  });
+
+  it('compresses configured context inputs before placeholder insertion', async () => {
+    const kit = createPromptOpsKit({ sourceDir: '.', cache: false });
+
+    const result = await kit.renderPrompt({
+      provider: 'openai',
+      source: `---
+id: heuristic-context-input
+schema_version: 1
+provider: openai
+model: gpt-5.4
+context:
+  inputs:
+    - name: account_context
+      compression:
+        heuristic:
+          enabled: true
+          min_tokens: 20
+          max_sentences: 1
+          target_reduction: 0.45
+          query: support
+---
+
+# Prompt template
+
+Context: {{ account_context }}`,
+      variables: {
+        account_context: [
+          'Pricing includes annual discounts for enterprise buyers.',
+          'Support SLA is 99.9 percent uptime with P1 response in 15 minutes.',
+          'This document is confidential and intended for internal planning only.',
+        ].join(' '),
+      },
+    });
+
+    const messages = result.request!.body.messages as Array<{ role: string; content: string }>;
+    expect(messages).toEqual([
+      { role: 'user', content: 'Context: Support SLA is 99.9 percent uptime with P1 response in 15 minutes.' },
+    ]);
+    expect(result.compression).toEqual([
+      expect.objectContaining({
+        provider: 'heuristic',
+        scope: 'placeholder',
+        variable: 'account_context',
+      }),
+    ]);
+  });
+
+  it('supports opt-in placeholder compression with a tag', async () => {
+    const repeatedContext = Array.from({ length: 20 }, (_, index) =>
+      index === 6
+        ? 'Pricing terms include annual discounts for enterprise buyers and renewal approval timing.'
+        : `General planning note ${index} repeats background details for rollout sequencing and coordination.`
+    ).join(' ');
+    const kit = createPromptOpsKit({ sourceDir: '.', cache: false });
+
+    const result = await kit.renderPrompt({
+      provider: 'openai',
+      source: `---
+id: heuristic-placeholder-tag
+schema_version: 1
+provider: openai
+model: gpt-5.4
+context:
+  inputs:
+    - account_context
+---
+
+# Prompt template
+
+Question: pricing
+Context: {{ account_context | compress }}`,
+      variables: {
+        account_context: repeatedContext,
+      },
+    });
+
+    const messages = result.request!.body.messages as Array<{ role: string; content: string }>;
+    expect(messages[0].content).toContain('Question: pricing');
+    expect(messages[0].content).toContain('Pricing terms include annual discounts');
+    expect(messages[0].content.length).toBeLessThan(`Question: pricing\nContext: ${repeatedContext}`.length);
+    expect(result.compression?.[0]).toEqual(expect.objectContaining({
+      provider: 'heuristic',
+      scope: 'placeholder',
+      variable: 'account_context',
+    }));
+  });
+
+  it('preprocesses whole JSON prompt templates to TOON when enabled', async () => {
+    const kit = createPromptOpsKit({ sourceDir: '.', cache: false });
+
+    const result = await kit.renderPrompt({
+      provider: 'openai',
+      source: `---
+id: heuristic-json-toon
+schema_version: 1
+provider: openai
+model: gpt-5.4
+compression:
+  heuristic:
+    enabled: true
+    json_to_toon: true
+---
+
+# Prompt template
+
+{"users":[{"id":1,"name":"Alice","role":"admin"},{"id":2,"name":"Bob","role":"user"}],"active":true}`,
+    });
+
+    const messages = result.request!.body.messages as Array<{ role: string; content: string }>;
+    expect(messages).toEqual([{
+      role: 'user',
+      content: [
+        'users[2]{id,name,role}:',
+        '  1,Alice,admin',
+        '  2,Bob,user',
+        'active: true',
+      ].join('\n'),
+    }]);
+    expect(result.compression?.[0]).toEqual(expect.objectContaining({
+      provider: 'heuristic',
+      scope: 'prompt_template',
+      outputFormat: 'toon',
+    }));
+  });
+
+  it('preprocesses configured JSON context inputs to TOON before insertion', async () => {
+    const kit = createPromptOpsKit({ sourceDir: '.', cache: false });
+
+    const result = await kit.renderPrompt({
+      provider: 'openai',
+      source: `---
+id: heuristic-context-json-toon
+schema_version: 1
+provider: openai
+model: gpt-5.4
+context:
+  inputs:
+    - name: payload
+      compression:
+        heuristic:
+          enabled: true
+          json_to_toon: true
+---
+
+# Prompt template
+
+Payload:
+{{ payload }}`,
+      variables: {
+        payload: '{"users":[{"id":1,"name":"Alice"},{"id":2,"name":"Bob"}]}',
+      },
+    });
+
+    const messages = result.request!.body.messages as Array<{ role: string; content: string }>;
+    expect(messages).toEqual([{
+      role: 'user',
+      content: [
+        'Payload:',
+        'users[2]{id,name}:',
+        '  1,Alice',
+        '  2,Bob',
+      ].join('\n'),
+    }]);
+    expect(result.compression?.[0]).toEqual(expect.objectContaining({
+      provider: 'heuristic',
+      scope: 'placeholder',
+      variable: 'payload',
+      outputFormat: 'toon',
+    }));
+  });
+
+  it('supports opt-in JSON to TOON conversion with a placeholder tag', async () => {
+    const kit = createPromptOpsKit({ sourceDir: '.', cache: false });
+
+    const result = await kit.renderPrompt({
+      provider: 'openai',
+      source: `---
+id: heuristic-placeholder-toon-tag
+schema_version: 1
+provider: openai
+model: gpt-5.4
+context:
+  inputs:
+    - payload
+---
+
+# Prompt template
+
+Payload:
+{{ payload | toon }}`,
+      variables: {
+        payload: '{"orders":[{"id":101,"total":25.5},{"id":102,"total":31}]}',
+      },
+    });
+
+    const messages = result.request!.body.messages as Array<{ role: string; content: string }>;
+    expect(messages).toEqual([{
+      role: 'user',
+      content: [
+        'Payload:',
+        'orders[2]{id,total}:',
+        '  101,25.5',
+        '  102,31',
+      ].join('\n'),
+    }]);
+    expect(result.compression?.[0]).toEqual(expect.objectContaining({
+      provider: 'heuristic',
+      scope: 'placeholder',
+      variable: 'payload',
+      outputFormat: 'toon',
+    }));
+  });
+
+  it('warns and preserves placeholder input when TOON tag receives invalid JSON', async () => {
+    const kit = createPromptOpsKit({ sourceDir: '.', cache: false });
+
+    const result = await kit.renderPrompt({
+      provider: 'openai',
+      source: `---
+id: heuristic-placeholder-toon-invalid
+schema_version: 1
+provider: openai
+model: gpt-5.4
+context:
+  inputs:
+    - payload
+---
+
+# Prompt template
+
+Payload: {{ payload | toon }}`,
+      variables: {
+        payload: '{"orders":[{"id":101}',
+      },
+    });
+
+    const messages = result.request!.body.messages as Array<{ role: string; content: string }>;
+    expect(messages).toEqual([{ role: 'user', content: 'Payload: {"orders":[{"id":101}' }]);
+    expect(result.compression).toBeUndefined();
+    expect(result.warnings).toContain(
+      'POK031: JSON-to-TOON skipped for placeholder "payload" because the value is not a complete valid JSON object or array.',
+    );
+  });
+
+  it('does not sentence-compress invalid JSON when json_to_toon is enabled', async () => {
+    const kit = createPromptOpsKit({ sourceDir: '.', cache: false });
+    const invalidJson = '{"records":[{"id":1,"body":"Alpha sentence. Beta sentence. Gamma sentence."}';
+
+    const result = await kit.renderPrompt({
+      provider: 'openai',
+      source: `---
+id: heuristic-json-toon-invalid
+schema_version: 1
+provider: openai
+model: gpt-5.4
+compression:
+  heuristic:
+    enabled: true
+    json_to_toon: true
+    min_tokens: 1
+    max_sentences: 1
+---
+
+# Prompt template
+
+${invalidJson}`,
+    });
+
+    const messages = result.request!.body.messages as Array<{ role: string; content: string }>;
+    expect(messages).toEqual([{ role: 'user', content: invalidJson }]);
+    expect(result.compression).toBeUndefined();
+    expect(result.warnings).toContain(
+      'POK031: JSON-to-TOON skipped because the input is not a complete valid JSON object or array. Scope: prompt template.',
+    );
+  });
+});
+
+describe('code compaction', () => {
+  const sourceCode = [
+    'function add(a, b) {',
+    '  // explain the next line',
+    '  const sum = a + b; /* inline detail */',
+    '',
+    '  return sum;',
+    '}',
+  ].join('\n');
+
+  const compactedCode = [
+    'function add(a, b) {',
+    '  const sum = a + b;',
+    '  return sum;',
+    '}',
+  ].join('\n');
+
+  it('compacts a whole prompt template as code without heuristic sentence selection', async () => {
+    const kit = createPromptOpsKit({ sourceDir: '.', cache: false });
+
+    const result = await kit.renderPrompt({
+      provider: 'openai',
+      source: `---
+id: code-prompt-compaction
+schema_version: 1
+provider: openai
+model: gpt-5.4
+compression:
+  code:
+    enabled: true
+  heuristic:
+    enabled: true
+    min_tokens: 1
+    max_sentences: 1
+---
+
+# Prompt template
+
+${sourceCode}`,
+    });
+
+    const messages = result.request!.body.messages as Array<{ role: string; content: string }>;
+    expect(messages).toEqual([{ role: 'user', content: compactedCode }]);
+    expect(result.compression).toEqual([
+      expect.objectContaining({
+        provider: 'code',
+        scope: 'prompt_template',
+        outputFormat: 'code',
+      }),
+    ]);
+  });
+
+  it('compacts configured code context inputs before insertion', async () => {
+    const kit = createPromptOpsKit({ sourceDir: '.', cache: false });
+
+    const result = await kit.renderPrompt({
+      provider: 'openai',
+      source: `---
+id: code-context-compaction
+schema_version: 1
+provider: openai
+model: gpt-5.4
+context:
+  inputs:
+    - name: source
+      compression:
+        code:
+          enabled: true
+---
+
+# Prompt template
+
+Code:
+{{ source }}`,
+      variables: { source: sourceCode },
+    });
+
+    const messages = result.request!.body.messages as Array<{ role: string; content: string }>;
+    expect(messages).toEqual([{ role: 'user', content: `Code:\n${compactedCode}` }]);
+    expect(result.compression).toEqual([
+      expect.objectContaining({
+        provider: 'code',
+        scope: 'placeholder',
+        variable: 'source',
+        outputFormat: 'code',
+      }),
+    ]);
+  });
+
+  it('supports opt-in code compaction with a placeholder tag', async () => {
+    const kit = createPromptOpsKit({ sourceDir: '.', cache: false });
+
+    const result = await kit.renderPrompt({
+      provider: 'openai',
+      source: `---
+id: code-placeholder-tag
+schema_version: 1
+provider: openai
+model: gpt-5.4
+context:
+  inputs:
+    - source
+---
+
+# Prompt template
+
+Code:
+{{ source | compact }}`,
+      variables: { source: sourceCode },
+    });
+
+    const messages = result.request!.body.messages as Array<{ role: string; content: string }>;
+    expect(messages).toEqual([{ role: 'user', content: `Code:\n${compactedCode}` }]);
+    expect(result.compression?.[0]).toEqual(expect.objectContaining({
+      provider: 'code',
+      scope: 'placeholder',
+      variable: 'source',
+      outputFormat: 'code',
+    }));
+  });
+
+  it('skips backend text compression when prompt-level code compaction is enabled', async () => {
+    const calls: Array<{ url: string; init: RequestInit }> = [];
+    const kit = createPromptOpsKit({ sourceDir: '.', cache: false });
+
+    const result = await kit.renderPrompt({
+      provider: 'openai',
+      source: `---
+id: code-no-backend-compression
+schema_version: 1
+provider: openai
+model: gpt-5.4
+compression:
+  code:
+    enabled: true
+  thetokencompany:
+    enabled: true
+---
+
+# Prompt template
+
+${sourceCode}`,
+      theTokenCompany: {
+        fetch: createCompressionFetch(calls),
+      },
+    });
+
+    const messages = result.request!.body.messages as Array<{ role: string; content: string }>;
+    expect(calls).toHaveLength(0);
+    expect(messages).toEqual([{ role: 'user', content: compactedCode }]);
+    expect(result.compression).toEqual([
+      expect.objectContaining({
+        provider: 'code',
+        scope: 'prompt_template',
+        outputFormat: 'code',
+      }),
+    ]);
+    expect(result.warnings).toContain(
+      'POK033: TheTokenCompany compression skipped because compression.code is enabled; code is compacted locally and not text-compressed.',
+    );
   });
 });

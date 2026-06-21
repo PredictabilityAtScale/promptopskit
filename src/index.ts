@@ -10,7 +10,7 @@ import { validateAsset, validateAssetWithIncludes } from './validation/index.js'
 import { PromptCache } from './cache.js';
 import { collectContextSizeWarnings, sanitizeContextVariables } from './context.js';
 import { compactHistoryForPrompt } from './history.js';
-import { applyPromptCompressionForRender } from './compression.js';
+import { applyPromptCompressionForRender, summarizePromptCompression } from './compression.js';
 import {
   DEFAULT_PROMPTS_DIR,
   loadPromptAsset,
@@ -20,7 +20,11 @@ import {
 } from './prompt-resolution.js';
 import type { PromptAsset, PromptAssetOverrides, ResolvedPromptAsset } from './schema/index.js';
 import type { ProviderRequest, RuntimeRenderOptions } from './providers/types.js';
-import type { PromptCompressionResult, TheTokenCompanyRuntimeOptions } from './compression.js';
+import type {
+  PromptCompressionResult,
+  PromptCompressionSummary,
+  TheTokenCompanyRuntimeOptions,
+} from './compression.js';
 import type { PromptValidationResult } from './validation/index.js';
 
 // --- Re-exports ---
@@ -41,6 +45,7 @@ export type {
 } from './providers/types.js';
 export type {
   PromptCompressionResult,
+  PromptCompressionSummary,
   TheTokenCompanyRuntimeOptions,
 } from './compression.js';
 export type { PromptValidationResult, ValidationError } from './validation/index.js';
@@ -88,6 +93,7 @@ export {
 } from './providers/llmasaservice.js';
 export { PromptAssetSchema, PromptAssetOverridesSchema } from './schema/index.js';
 export {
+  summarizePromptCompression,
   THETOKENCOMPANY_DEFAULT_BASE_URL,
   THETOKENCOMPANY_DEFAULT_MODEL,
 } from './compression.js';
@@ -160,6 +166,7 @@ export interface RenderResult {
   request?: ProviderRequest;
   returnMessage?: string;
   compression?: PromptCompressionResult[];
+  compressionSummary?: PromptCompressionSummary;
   warnings: string[];
 }
 
@@ -304,16 +311,24 @@ export class PromptOpsKit {
       theTokenCompany: options.theTokenCompany,
     });
     const request = adapter.render(prepared.asset, prepared.runtime);
+    const compressionSummary = prepared.compression.length > 0
+      ? summarizePromptCompression(prepared.compression)
+      : undefined;
 
     return {
       resolved,
-      request: prepared.compression.length > 0
-        ? { ...request, compression: prepared.compression }
+      request: prepared.compression.length > 0 || prepared.warnings.length > 0
+        ? {
+          ...request,
+          ...(prepared.compression.length > 0 ? { compression: prepared.compression, compressionSummary } : {}),
+          ...(prepared.warnings.length > 0 ? { warnings: prepared.warnings } : {}),
+        }
         : request,
       ...(prepared.compression.length > 0 ? { compression: prepared.compression } : {}),
+      ...(compressionSummary ? { compressionSummary } : {}),
       warnings: shouldIncludeContextWarningsInResult(contextWarningPolicy)
-        ? [...validation.warnings, ...contextSizeWarnings]
-        : validation.warnings,
+        ? [...validation.warnings, ...contextSizeWarnings, ...prepared.warnings]
+        : [...validation.warnings, ...prepared.warnings],
     };
   }
 

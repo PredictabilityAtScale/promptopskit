@@ -22,6 +22,21 @@ describe('interpolate', () => {
     expect(result).toBe('Context: Billing screen');
   });
 
+  it('supports compress modifier placeholders as normal variables without a transform', () => {
+    const result = interpolate('Context: {{ app_context | compress }}', { app_context: 'Billing screen' });
+    expect(result).toBe('Context: Billing screen');
+  });
+
+  it('supports toon modifier placeholders as normal variables without a transform', () => {
+    const result = interpolate('Context: {{ app_context | toon }}', { app_context: '{"ok":true}' });
+    expect(result).toBe('Context: {"ok":true}');
+  });
+
+  it('supports compact modifier placeholders as normal variables without a transform', () => {
+    const result = interpolate('Code: {{ source | compact }}', { source: 'const value = 1;' });
+    expect(result).toBe('Code: const value = 1;');
+  });
+
   it('leaves missing variables as-is in permissive mode', () => {
     const result = interpolate('Hello {{ name }}!', {});
     expect(result).toBe('Hello {{ name }}!');
@@ -61,6 +76,21 @@ describe('extractVariables', () => {
   it('extracts runtime context variables by key name', () => {
     const vars = extractVariables('Use {{ app_context }} for {{ user_goal }}.');
     expect(vars).toEqual(['app_context', 'user_goal']);
+  });
+
+  it('extracts variables from compress modifier placeholders', () => {
+    const vars = extractVariables('Use {{ app_context | compress }} for {{ user_goal }}.');
+    expect(vars).toEqual(['app_context', 'user_goal']);
+  });
+
+  it('extracts variables from toon modifier placeholders', () => {
+    const vars = extractVariables('Use {{ payload | toon }} for {{ user_goal }}.');
+    expect(vars).toEqual(['payload', 'user_goal']);
+  });
+
+  it('extracts variables from compact modifier placeholders', () => {
+    const vars = extractVariables('Use {{ source | compact }} for {{ user_goal }}.');
+    expect(vars).toEqual(['source', 'user_goal']);
   });
 
   it('deduplicates', () => {

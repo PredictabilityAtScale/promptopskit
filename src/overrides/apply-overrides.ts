@@ -63,6 +63,14 @@ function mergeOverride(
         result.compression?.thetokencompany,
         override.compression.thetokencompany,
       ),
+      heuristic: mergeRecordBlock(
+        result.compression?.heuristic,
+        override.compression.heuristic,
+      ),
+      code: mergeRecordBlock(
+        result.compression?.code,
+        override.compression.code,
+      ),
     };
   }
   if (override.cache !== undefined) {

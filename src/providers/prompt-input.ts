@@ -2,7 +2,7 @@ import { resolveInlinePromptSource, resolvePromptAsset } from '../prompt-resolut
 import type { ResolvedPromptAsset } from '../schema/index.js';
 import { sanitizeContextVariables } from '../context.js';
 import { compactHistoryForPrompt } from '../history.js';
-import { applyPromptCompressionForRender } from '../compression.js';
+import { applyPromptCompressionForRender, summarizePromptCompression } from '../compression.js';
 import { resolveAssetForProvider } from './resolve-asset.js';
 import type {
   ProviderAdapter,
@@ -68,8 +68,17 @@ export function withPromptInputSupport(adapter: SyncProviderAdapter): ProviderAd
     });
     const request = adapter.render(prepared.asset, prepared.runtime);
 
-    return prepared.compression.length > 0
-      ? { ...request, compression: prepared.compression }
+    return prepared.compression.length > 0 || prepared.warnings.length > 0
+      ? {
+        ...request,
+        ...(prepared.compression.length > 0
+          ? {
+            compression: prepared.compression,
+            compressionSummary: summarizePromptCompression(prepared.compression),
+          }
+          : {}),
+        ...(prepared.warnings.length > 0 ? { warnings: prepared.warnings } : {}),
+      }
       : request;
   };
 

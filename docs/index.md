@@ -6,6 +6,7 @@ Open-source developer toolkit for managing prompts, system instructions, tools, 
 
 - [Getting Started](./getting-started.md) — Install, scaffold, and render your first prompt
 - [Prompt Format](./prompt-format.md) — Markdown structure, YAML front matter, H1 sections, variables, compression/cache controls, context hardening, and `defaults.md` inheritance
+- [Compression and Compaction](./compression.md) — TheTokenCompany, local heuristic compression, JSON-to-TOON preprocessing, code compaction, and token-savings reporting
 - [Composition](./composition.md) — Share system instructions across prompts with `includes`
 - [Overrides](./overrides.md) — Environment and tier-based overrides for dev/prod/free/pro
 - [Providers](./providers.md) — Provider adapters, request shaping, compression, caching, and raw passthrough for OpenAI, Anthropic, Gemini, OpenRouter, and LLMAsAService

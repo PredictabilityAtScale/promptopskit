@@ -150,6 +150,61 @@ const result = await kit.renderPrompt({
 
 You can set `compression.thetokencompany.enabled: false` on a prompt, environment, tier, or runtime override to disable inherited compression, or override `aggressiveness` per template/tier.
 
+Use `compression.heuristic` for lightweight local compression with no backend call:
+
+```yaml
+compression:
+  heuristic:
+    enabled: true
+    min_tokens: 120
+    max_sentences: 8
+    target_reduction: 0.45
+    query_variable: user_question
+    json_to_toon: true
+```
+
+The heuristic compressor deduplicates text, ranks sentences against `query`, `query_variable`, or system instructions, and keeps the highest-scoring sentences inside the token budget. It uses local token estimates and does not require credentials. When `json_to_toon: true` is set and the input is a complete JSON object or array, PromptOpsKit first converts that JSON to TOON and preserves the structured TOON output instead of sentence-selecting through it. Invalid JSON is left unchanged and reported with `POK031`.
+
+Credit: the local heuristic approach is based on Jason Kneen's [open-thetokenco](https://github.com/jasonkneen/open-thetokenco/tree/main).
+TOON preprocessing uses a local encode-only implementation inspired by the MIT-licensed [TOON project](https://github.com/toon-format/toon) by Johann Schopplich, without adding `@toon-format/toon` as a runtime dependency.
+
+Use `compression.code` when the rendered prompt template is code and should be compacted instead of text-compressed:
+
+```yaml
+compression:
+  code:
+    enabled: true
+    remove_comments: true
+    trim_indentation: true
+    collapse_blank_lines: true
+```
+
+Code compaction preserves code order and tokens while removing comments, common indentation, trailing whitespace, and blank-line overhead. It does not perform AST minification. Set `remove_comments: false` for code where comments carry semantics, such as compiler pragmas or generated-code markers. Prompt-level `compression.code.enabled: true` skips TheTokenCompany compression with `POK033` so code is not backend text-compressed.
+
+To compress a single inserted context value, either configure the input:
+
+```yaml
+context:
+  inputs:
+    - name: account_context
+      compression:
+        heuristic:
+          enabled: true
+          query_variable: user_question
+    - name: source_code
+      compression: code
+```
+
+or opt in at the placeholder call site:
+
+```markdown
+Context: {{ account_context | compress }}
+Payload: {{ json_payload | toon }}
+Source: {{ source_code | compact }}
+```
+
+Placeholder modifiers are single-token shortcuts. Use `context.inputs[].compression` when a placeholder needs options.
+
 ## Caching configuration
 
 Use the optional `cache` front matter block to pass vendor-specific caching hints:

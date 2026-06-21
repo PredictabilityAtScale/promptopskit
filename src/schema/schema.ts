@@ -145,12 +145,33 @@ export const TheTokenCompanyCompressionSchema = z.object({
   aggressiveness: z.number().min(0).max(1).optional(),
 });
 
+export const HeuristicCompressionSchema = z.object({
+  enabled: z.boolean().optional(),
+  min_tokens: z.number().int().positive().optional(),
+  max_sentences: z.number().int().positive().optional(),
+  target_reduction: z.number().min(0).max(1).optional(),
+  query: z.string().optional(),
+  query_variable: z.string().min(1).optional(),
+  json_to_toon: z.boolean().optional(),
+});
+
+export const CodeCompactionSchema = z.object({
+  enabled: z.boolean().optional(),
+  remove_comments: z.boolean().optional(),
+  trim_indentation: z.boolean().optional(),
+  collapse_blank_lines: z.boolean().optional(),
+});
+
 export const CompressionSchema = z.object({
   thetokencompany: TheTokenCompanyCompressionSchema.optional(),
+  heuristic: HeuristicCompressionSchema.optional(),
+  code: CodeCompactionSchema.optional(),
 });
 
 export type Compression = z.infer<typeof CompressionSchema>;
 export type TheTokenCompanyCompression = z.infer<typeof TheTokenCompanyCompressionSchema>;
+export type HeuristicCompression = z.infer<typeof HeuristicCompressionSchema>;
+export type CodeCompaction = z.infer<typeof CodeCompactionSchema>;
 
 // --- Cache controls ---
 
@@ -201,12 +222,22 @@ export const ContextBuiltInValidatorSchema = z.union([
   }),
 ]);
 
+export const ContextInputCompressionSchema = z.union([
+  z.literal('heuristic'),
+  z.literal('code'),
+  z.object({
+    heuristic: HeuristicCompressionSchema.optional(),
+    code: CodeCompactionSchema.optional(),
+  }),
+]);
+
 export const ContextInputDefinitionObjectSchema = z.object({
   name: z.string(),
   optional: z.boolean().optional(),
   warnings: z.boolean().optional(),
   max_size: z.number().int().positive().optional(),
   trim: z.union([z.boolean(), z.enum(['start', 'end', 'both'])]).optional(),
+  compression: ContextInputCompressionSchema.optional(),
   allow_regex: ContextRegexSchema.optional(),
   deny_regex: ContextRegexSchema.optional(),
   non_empty: ContextBuiltInValidatorSchema.optional(),
@@ -219,6 +250,7 @@ export const ContextInputDefinitionSchema = z.union([
 ]);
 
 export type ContextInputDefinition = z.infer<typeof ContextInputDefinitionSchema>;
+export type ContextInputCompression = z.infer<typeof ContextInputCompressionSchema>;
 export type ContextRegexDefinition = z.infer<typeof ContextRegexSchema>;
 export type ContextBuiltInValidatorDefinition = z.infer<typeof ContextBuiltInValidatorSchema>;
 

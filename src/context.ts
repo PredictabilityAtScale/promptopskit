@@ -1,10 +1,14 @@
 import type {
+  CodeCompaction,
   PromptAsset,
   ResolvedPromptAsset,
   ContextBuiltInValidatorDefinition,
+  ContextInputCompression,
   ContextInputDefinition,
   ContextRegexDefinition,
 } from './schema/index.js';
+import type { HeuristicCompressionOptions } from './token-compression.js';
+import type { CodeCompactionOptions } from './code-compaction.js';
 
 export interface ContextValidationShortCircuit {
   returnMessage: string;
@@ -36,10 +40,19 @@ export interface NormalizedContextInput {
   warnings?: boolean;
   max_size?: number;
   trim?: boolean | 'start' | 'end' | 'both';
+  compression?: NormalizedContextInputCompression;
   allow_regex?: NormalizedContextRegex;
   deny_regex?: NormalizedContextRegex;
   non_empty?: NormalizedContextBuiltInValidator;
   reject_secrets?: NormalizedContextBuiltInValidator;
+}
+
+export interface NormalizedContextInputCompression {
+  heuristic?: HeuristicCompressionOptions & {
+    enabled?: boolean;
+    query_variable?: string;
+  };
+  code?: CodeCompactionOptions;
 }
 
 export interface ContextSizeWarning {
@@ -87,10 +100,65 @@ export function normalizeContextInput(input: ContextInputDefinition): Normalized
     warnings: input.warnings,
     max_size: input.max_size,
     trim: input.trim,
+    compression: normalizeContextInputCompression(input.compression),
     allow_regex: normalizeContextRegex(input.allow_regex),
     deny_regex: normalizeContextRegex(input.deny_regex),
     non_empty: normalizeBuiltInValidator(input.non_empty),
     reject_secrets: normalizeBuiltInValidator(input.reject_secrets),
+  };
+}
+
+export function normalizeContextInputCompression(
+  value: ContextInputCompression | undefined,
+): NormalizedContextInputCompression | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (value === 'heuristic') {
+    return { heuristic: { enabled: true } };
+  }
+
+  if (value === 'code') {
+    return { code: { enabled: true } };
+  }
+
+  if (value.heuristic === undefined) {
+    return normalizeCodeCompression(value.code);
+  }
+
+  const normalized: NormalizedContextInputCompression = {
+    heuristic: {
+      enabled: value.heuristic.enabled ?? true,
+      min_tokens: value.heuristic.min_tokens,
+      max_sentences: value.heuristic.max_sentences,
+      target_reduction: value.heuristic.target_reduction,
+      query: value.heuristic.query,
+      query_variable: value.heuristic.query_variable,
+      json_to_toon: value.heuristic.json_to_toon,
+    },
+  };
+
+  const code = normalizeCodeCompression(value.code);
+  if (code?.code) {
+    normalized.code = code.code;
+  }
+
+  return normalized;
+}
+
+function normalizeCodeCompression(value: CodeCompaction | undefined): NormalizedContextInputCompression | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  return {
+    code: {
+      enabled: value.enabled ?? true,
+      remove_comments: value.remove_comments,
+      trim_indentation: value.trim_indentation,
+      collapse_blank_lines: value.collapse_blank_lines,
+    },
   };
 }
 

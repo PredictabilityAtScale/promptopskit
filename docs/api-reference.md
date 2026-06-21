@@ -42,7 +42,7 @@ const kit = createPromptOpsKit({
 
 ## `kit.renderPrompt(options)`
 
-Renders a prompt for a specific provider. Returns `{ resolved, request?, returnMessage?, compression?, warnings }`.
+Renders a prompt for a specific provider. Returns `{ resolved, request?, returnMessage?, compression?, compressionSummary?, warnings }`.
 
 ```typescript
 const result = await kit.renderPrompt({
@@ -84,9 +84,10 @@ Either `path` or `source` must be provided.
 ```typescript
 interface RenderResult {
   resolved: ResolvedPromptAsset;  // Fully resolved asset
-  request?: ProviderRequest;      // { body, provider, model, baseURL?, headers?, compression? } when rendering continues
+  request?: ProviderRequest;      // { body, provider, model, baseURL?, headers?, warnings?, compression?, compressionSummary? } when rendering continues
   returnMessage?: string;         // Short-circuit message from context validation when configured
   compression?: PromptCompressionResult[];
+  compressionSummary?: PromptCompressionSummary;
   warnings: string[];             // Non-fatal provider and render-time warnings
 }
 ```
@@ -94,6 +95,15 @@ interface RenderResult {
 `warnings` may include provider adapter warnings and render-time `POK030` context size warnings when configured to be included in results.
 
 When a prompt enables `compression.thetokencompany`, pass the caller-owned API key through `theTokenCompany.apiKey` or set `THETOKENCOMPANY_API_KEY`/`TTC_API_KEY`. PromptOpsKit calls TheTokenCompany directly with `fetch`, compresses only the rendered `# Prompt template`, applies provider cache settings to the compressed prompt text, and returns token-savings metadata in `compression`.
+
+When a prompt enables `compression.heuristic` or a context placeholder opts in with `{{ value | compress }}` / `context.inputs[].compression`, PromptOpsKit performs local heuristic compression without backend calls or credentials. Set `json_to_toon: true` to convert complete JSON object/array inputs to TOON, or use `{{ json_payload | toon }}` for a single placeholder. Invalid JSON is preserved unchanged and reported with `POK031` instead of being sentence-compressed. These runs also return token-savings metadata in `compression`; TOON conversions set `outputFormat: 'toon'`.
+
+When a prompt enables `compression.code` or a context placeholder opts in with `{{ source_code | compact }}` / `context.inputs[].compression: code`, PromptOpsKit compacts code locally instead of text-compressing it. Code compaction removes comments, common indentation, trailing whitespace, and blank lines by default; these runs set `provider: 'code'` and `outputFormat: 'code'` in `compression`. Prompt-level code compaction also skips TheTokenCompany compression with `POK033`.
+
+Use `compressionSummary.tokensSaved` for a lightweight operation-level aggregate across all compression/compaction steps. The detailed `compression` array remains available for per-placeholder or per-provider breakdowns.
+
+Credit: the local heuristic approach is based on Jason Kneen's [open-thetokenco](https://github.com/jasonkneen/open-thetokenco/tree/main).
+TOON preprocessing uses a local encode-only implementation inspired by the MIT-licensed [TOON project](https://github.com/toon-format/toon) by Johann Schopplich, without adding `@toon-format/toon` as a runtime dependency.
 
 If a context validator fails and that validator declares `return_message`, `renderPrompt()` returns `returnMessage` and omits `request` instead of throwing.
 

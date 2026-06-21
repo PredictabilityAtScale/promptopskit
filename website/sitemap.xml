@@ -17,6 +17,7 @@
   </url>
   <url><loc>https://promptopskit.com/docs/getting-started.md</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
   <url><loc>https://promptopskit.com/docs/prompt-format.md</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://promptopskit.com/docs/compression.md</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
   <url><loc>https://promptopskit.com/docs/composition.md</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
   <url><loc>https://promptopskit.com/docs/overrides.md</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
   <url><loc>https://promptopskit.com/docs/providers.md</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>

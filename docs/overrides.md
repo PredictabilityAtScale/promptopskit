@@ -52,7 +52,7 @@ Only these fields can be overridden in `environments` and `tiers`:
 | `reasoning` | `object` | `{ effort, budget_tokens }` |
 | `sampling` | `object` | `{ temperature, top_p, frequency_penalty, presence_penalty, stop, max_output_tokens }` |
 | `response` | `object` | `{ format, stream, schema, schema_ref, schema_name, schema_description, schema_strict }` |
-| `compression` | `object` | Prompt-template compression controls (`thetokencompany`) |
+| `compression` | `object` | Prompt-template compression controls (`thetokencompany`, `heuristic`, `code`) |
 | `cache` | `object` | Provider-specific cache controls (`openai`, `anthropic`, `gemini`/`google`) |
 | `raw` | `object` | Provider-specific request-body passthrough blocks |
 | `tools` | `array` | Tool references |

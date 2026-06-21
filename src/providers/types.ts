@@ -1,6 +1,10 @@
 import type { ResolvedPromptAsset, PromptAssetOverrides } from '../schema/index.js';
 import type { PromptResolutionMode } from '../prompt-resolution.js';
-import type { PromptCompressionResult, TheTokenCompanyRuntimeOptions } from '../compression.js';
+import type {
+  PromptCompressionResult,
+  PromptCompressionSummary,
+  TheTokenCompanyRuntimeOptions,
+} from '../compression.js';
 
 /**
  * Provider-shaped request body output.
@@ -12,6 +16,8 @@ export interface ProviderRequest {
   baseURL?: string;
   headers?: Record<string, string>;
   compression?: PromptCompressionResult[];
+  compressionSummary?: PromptCompressionSummary;
+  warnings?: string[];
 }
 
 export interface ProviderPromptReturnMessageResult {

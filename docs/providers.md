@@ -86,6 +86,10 @@ cache:
 
 When enabled, PromptOpsKit renders variables into the `# Prompt template`, sends that rendered text directly to TheTokenCompany with `fetch`, and uses the returned `output` as the user prompt. The caller supplies `theTokenCompany.apiKey` at render time or sets `THETOKENCOMPANY_API_KEY`/`TTC_API_KEY`. System instructions and history are left unchanged. Provider cache fields and cache-control markers are applied after compression, so the provider request contains the compressed prompt text.
 
+Use `compression.heuristic` for local no-backend compression. Set `json_to_toon: true` to convert complete JSON object/array inputs to TOON, or use `{{ json_payload | toon }}` on a context placeholder for one-off JSON-to-TOON insertion. Invalid JSON is preserved and returned with `POK031` instead of being sentence-compressed.
+
+Use `compression.code` or `{{ source_code | compact }}` for code. Code compaction is local and does not sentence-select; it removes comments and formatting overhead by default. Prompt-level code compaction skips TheTokenCompany compression with `POK033`.
+
 When a vendor adds a request-body field that PromptOpsKit does not model yet, use the explicit `raw` passthrough:
 
 ```yaml
@@ -146,7 +150,7 @@ const { request } = result;
 The provider passed to `renderPrompt` determines which adapter shapes the body. The `provider` field in front matter is informational — the render-time provider controls output.
 When a prompt includes multiple cache blocks (for example `cache.openai` + `cache.anthropic`), adapters ignore non-matching blocks so cross-provider settings never leak into the wrong payload.
 When a prompt includes multiple raw blocks, adapters also read only the block for the selected provider (`raw.openai`, `raw.openai-responses`, `raw.anthropic`, `raw.gemini`/`raw.google`, `raw.openrouter`, or `raw.llmasaservice`).
-When a prompt enables compression, async `renderPrompt()` helpers compress the rendered prompt template before the selected provider adapter applies cache settings and shapes the final body.
+When a prompt enables compression or compaction, async `renderPrompt()` helpers transform the rendered prompt template before the selected provider adapter applies cache settings and shapes the final body.
 
 ## Direct adapter imports
 

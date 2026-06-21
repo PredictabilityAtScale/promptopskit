@@ -274,6 +274,8 @@ function mergeCompression(
     ...(base ?? {}),
     ...(local ?? {}),
     thetokencompany: mergeRecordBlock(base?.thetokencompany, local?.thetokencompany),
+    heuristic: mergeRecordBlock(base?.heuristic, local?.heuristic),
+    code: mergeRecordBlock(base?.code, local?.code),
   };
 
   removeEmptyProviderBlocks(merged);

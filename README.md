@@ -39,7 +39,7 @@ Core capabilities:
 - **Reusable composition** — share tone, policy, and safety instructions with `includes`, and apply folder-level standards with `defaults.md`.
 - **Environment and tier overrides** — keep dev/prod and plan-specific behavior in one prompt source with explicit, reviewable overrides.
 - **Sidecar tests** — run deterministic prompt checks in local development and CI without calling a model.
-- **Prompt compression** — optionally compress rendered prompt templates with TheTokenCompany before provider caching and request generation.
+- **Prompt compression** — optionally compress or compact rendered prompt templates before provider caching and request generation.
 
 ## Install
 
@@ -150,7 +150,7 @@ Supported values for `warnings.contextSize` are `auto`, `off`, `result-only`, `c
 - **Folder defaults** — `defaults.md` inheritance for shared provider, model, options, metadata, and system instructions
 - **Overrides** — Environment and tier-based overrides (base → env → tier → runtime)
 - **6 provider adapters** — OpenAI (Chat), OpenAI (Responses), Anthropic, Gemini, OpenRouter, LLMAsAService
-- **Prompt compression** — optional `compression.thetokencompany` front matter calls TheTokenCompany directly before provider cache fields are applied
+- **Prompt compression** — optional `compression.thetokencompany` calls TheTokenCompany, while `compression.heuristic` and `compression.code` run local no-backend compression/compaction before provider cache fields are applied
 - **Provider-aware input caching controls** — optional `cache` front matter maps to OpenAI prompt cache hints, Anthropic `cache_control`, and Gemini `cachedContent`
 - **Vendor escape hatch** — optional `raw.<provider>` blocks shallow-merge unmodeled request-body fields into the final provider payload
 - **Validation** — Zod schema validation, Levenshtein-based "did you mean?" for typos, variable usage checks
@@ -293,6 +293,39 @@ const result = await kit.renderPrompt({
 ```
 
 Compression applies only to the rendered `# Prompt template`. System instructions and history are left unchanged, and provider cache fields are applied to the compressed prompt text.
+
+For no-backend compression, use the local heuristic compressor:
+
+```yaml
+compression:
+  heuristic:
+    enabled: true
+    query_variable: user_question
+    json_to_toon: true
+```
+
+For code, use compaction instead of text compression:
+
+```yaml
+compression:
+  code:
+    enabled: true
+```
+
+Individual context insertions can opt in with schema (`context.inputs[].compression`) or at the placeholder call site:
+
+```markdown
+Context: {{ account_context | compress }}
+Payload: {{ json_payload | toon }}
+Source: {{ source_code | compact }}
+```
+
+If `json_to_toon: true` or `{{ value | toon }}` cannot parse a complete JSON object or array, PromptOpsKit preserves the original value and returns a `POK031` warning. When `compression.code.enabled: true`, PromptOpsKit skips TheTokenCompany prompt-template compression and returns `POK033` so code is not text-compressed by a backend.
+
+Credit: the local heuristic approach is based on Jason Kneen's [open-thetokenco](https://github.com/jasonkneen/open-thetokenco/tree/main).
+TOON preprocessing uses a local encode-only implementation inspired by the MIT-licensed [TOON project](https://github.com/toon-format/toon) by Johann Schopplich, without adding `@toon-format/toon` as a runtime dependency.
+
+See [Compression and Compaction](./docs/compression.md) for complete examples and token-savings reporting.
 
 Use `provider_options` when PromptOpsKit has a known provider-specific mapping, such as Anthropic `top_k`, Gemini's native `response_schema`, OpenRouter routing fields, or LLMAsAService gateway routing/customer metadata.
 
@@ -626,7 +659,7 @@ Creates a `PromptOpsKit` instance.
 
 ### `kit.renderPrompt(options)`
 
-Renders a prompt for a specific provider. Returns `{ resolved, request?, returnMessage?, compression?, warnings }`.
+Renders a prompt for a specific provider. Returns `{ resolved, request?, returnMessage?, compression?, compressionSummary?, warnings }`.
 
 | Option | Type | Description |
 |--------|------|-------------|
@@ -643,6 +676,8 @@ Renders a prompt for a specific provider. Returns `{ resolved, request?, returnM
 | `strict` | `boolean` | Fail on missing variables except object-form inputs marked `optional: true` |
 | `openaiResponses` | `object` | Optional Responses API extras (`previous_response_id`, `conversation`, `instructions`, `parallel_tool_calls`, `max_tool_calls`, `store`, `metadata`, `include`, `background`) |
 | `theTokenCompany` | `object` | Optional compression settings (`apiKey`, `baseURL`, `fetch`) used when `compression.thetokencompany.enabled: true` |
+
+Use `compressionSummary.tokensSaved` for a lightweight operation-level aggregate across compression and compaction steps. Use `compression` for the detailed per-step breakdown.
 
 ### `kit.loadPrompt(path)` / `kit.resolvePrompt(path, options)` / `kit.validatePrompt(path)`
 
@@ -668,7 +703,7 @@ Prompt files use YAML front matter with these fields:
 | `reasoning` | `object` | `{ effort, budget_tokens }` |
 | `sampling` | `object` | `{ temperature, top_p, frequency_penalty, presence_penalty, stop, max_output_tokens }` |
 | `response` | `object` | `{ format, stream, schema, schema_ref, schema_name, schema_description, schema_strict }` |
-| `compression` | `object` | Prompt-template compression controls (`thetokencompany`) |
+| `compression` | `object` | Prompt-template compression controls (`thetokencompany`, `heuristic`, `code`) |
 | `cache` | `object` | Provider-specific cache controls (`openai`, `anthropic`, `gemini`/`google`) |
 | `tools` | `array` | Tool references (string names or inline definitions) |
 | `provider_options` | `object` | Provider-specific non-portable options (`anthropic`, `gemini`, `openrouter`, `llmasaservice`) |

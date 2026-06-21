@@ -3,6 +3,7 @@
 - **Guides**
   - [Getting Started](getting-started.md)
   - [Prompt Format](prompt-format.md)
+  - [Compression and Compaction](compression.md)
   - [Composition](composition.md)
   - [Overrides](overrides.md)
   - [Providers](providers.md)

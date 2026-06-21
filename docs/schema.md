@@ -283,6 +283,17 @@ compression:
 | `thetokencompany.enabled` | `boolean` | Set `true` to call TheTokenCompany compression; set `false` in a prompt, environment, tier, or runtime override to disable inherited compression |
 | `thetokencompany.model` | `string` | Compression model; defaults to `bear-2` |
 | `thetokencompany.aggressiveness` | `number` | Compression aggressiveness from `0` to `1`; omitted when not configured |
+| `heuristic.enabled` | `boolean` | Set `true` to run local heuristic compression with no backend call |
+| `heuristic.min_tokens` | `number` | Minimum estimated token budget to preserve; defaults to `80` |
+| `heuristic.max_sentences` | `number` | Maximum selected sentences; defaults to `10` |
+| `heuristic.target_reduction` | `number` | Target reduction ratio from `0` to `1`; defaults to `0.45` |
+| `heuristic.query` | `string` | Optional relevance query used for sentence scoring |
+| `heuristic.query_variable` | `string` | Runtime variable whose value is used as the relevance query |
+| `heuristic.json_to_toon` | `boolean` | When `true`, complete JSON object/array inputs are converted to TOON; invalid JSON is preserved with `POK031` |
+| `code.enabled` | `boolean` | Set `true` to compact code instead of text-compressing it |
+| `code.remove_comments` | `boolean` | Remove line and block comments; defaults to `true` |
+| `code.trim_indentation` | `boolean` | Remove common leading indentation; defaults to `true` |
+| `code.collapse_blank_lines` | `boolean` | Remove blank lines; defaults to `true` |
 
 Compression requires the caller's TheTokenCompany API key. Pass it at render time:
 
@@ -299,6 +310,13 @@ const result = await kit.renderPrompt({
 If `theTokenCompany.apiKey` is omitted, PromptOpsKit also checks `THETOKENCOMPANY_API_KEY` and `TTC_API_KEY`. The request is sent directly to `POST https://api.thetokencompany.com/v1/compress` with no vendor SDK dependency. Compression applies only to the current rendered prompt template; system instructions and conversation history are left unchanged.
 
 Compression happens before provider request generation, so provider cache fields and cache-control markers are applied to the compressed prompt text.
+
+For per-placeholder compression, add `compression: heuristic`, `compression.heuristic`, `compression: code`, or `compression.code` to a `context.inputs` object. Use `{{ context_value | compress }}` for heuristic text compression, `{{ json_payload | toon }}` to convert one JSON placeholder value to TOON, or `{{ source_code | compact }}` to compact code without sentence extraction. Placeholder modifiers are single-token shortcuts; use `context.inputs[].compression` for options.
+
+When prompt-level `compression.code.enabled: true`, PromptOpsKit skips TheTokenCompany compression with `POK033` so code is not backend text-compressed.
+
+Credit: the local heuristic approach is based on Jason Kneen's [open-thetokenco](https://github.com/jasonkneen/open-thetokenco/tree/main).
+TOON preprocessing uses a local encode-only implementation inspired by the MIT-licensed [TOON project](https://github.com/toon-format/toon) by Johann Schopplich, without adding `@toon-format/toon` as a runtime dependency.
 
 ## `cache`
 

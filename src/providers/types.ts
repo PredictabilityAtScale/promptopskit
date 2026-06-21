@@ -1,5 +1,6 @@
 import type { ResolvedPromptAsset, PromptAssetOverrides } from '../schema/index.js';
 import type { PromptResolutionMode } from '../prompt-resolution.js';
+import type { PromptCompressionResult, TheTokenCompanyRuntimeOptions } from '../compression.js';
 
 /**
  * Provider-shaped request body output.
@@ -10,6 +11,7 @@ export interface ProviderRequest {
   model: string;
   baseURL?: string;
   headers?: Record<string, string>;
+  compression?: PromptCompressionResult[];
 }
 
 export interface ProviderPromptReturnMessageResult {
@@ -78,6 +80,7 @@ export interface RuntimeRenderOptions {
   toolRegistry?: Record<string, unknown>;
   strict?: boolean;
   openaiResponses?: OpenAIResponsesRuntimeOptions;
+  theTokenCompany?: TheTokenCompanyRuntimeOptions;
 }
 
 export interface ProviderPromptLookup {

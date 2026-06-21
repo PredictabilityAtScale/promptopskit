@@ -2,6 +2,8 @@ import { resolveInlinePromptSource, resolvePromptAsset } from '../prompt-resolut
 import type { ResolvedPromptAsset } from '../schema/index.js';
 import { sanitizeContextVariables } from '../context.js';
 import { compactHistoryForPrompt } from '../history.js';
+import { applyPromptCompressionForRender } from '../compression.js';
+import { resolveAssetForProvider } from './resolve-asset.js';
 import type {
   ProviderAdapter,
   ProviderPromptInput,
@@ -43,23 +45,32 @@ export function withPromptInputSupport(adapter: SyncProviderAdapter): ProviderAd
 
   const renderPrompt: RenderPromptMethod = async (input, runtime) => {
     const resolved = await resolveProviderPromptInput(input, runtime);
-    const sanitization = sanitizeContextVariables(resolved, runtime.variables, {
+    const resolvedForRender = resolveAssetForProvider(resolved, runtime);
+    const sanitization = sanitizeContextVariables(resolvedForRender, runtime.variables, {
       onContextOverflow: runtime.onContextOverflow,
     });
 
     if (sanitization.shortCircuit) {
       return {
         provider: adapter.name,
-        model: resolved.model ?? '',
+        model: resolvedForRender.model ?? '',
         returnMessage: sanitization.shortCircuit.returnMessage,
       };
     }
 
-    return adapter.render(resolved, {
+    const prepared = await applyPromptCompressionForRender(resolvedForRender, {
       ...runtime,
+      environment: undefined,
+      tier: undefined,
+      runtime: undefined,
       variables: sanitization.variables,
-      history: compactHistoryForPrompt(resolved, runtime),
+      history: compactHistoryForPrompt(resolvedForRender, runtime),
     });
+    const request = adapter.render(prepared.asset, prepared.runtime);
+
+    return prepared.compression.length > 0
+      ? { ...request, compression: prepared.compression }
+      : request;
   };
 
   return {

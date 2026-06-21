@@ -54,7 +54,7 @@ Supported default fields:
 
 - `provider`, `model`, and `fallback_models` (front matter) — default provider and model routing for the folder
 - `reasoning`, `sampling`, and `response` (front matter) — default model behavior
-- `cache`, `provider_options`, and `raw` (front matter) — default provider-specific request options
+- `compression`, `cache`, `provider_options`, and `raw` (front matter) — default provider-specific request options
 - `tools`, `mcp`, `context`, and `includes` (front matter) — default tool bindings, server references, input rules, and shared includes
 - `environments` and `tiers` (front matter) — default override maps that prompt-local maps can extend
 - `metadata` (front matter) — merged with prompt-local metadata
@@ -62,7 +62,7 @@ Supported default fields:
 
 This lets you configure app-wide settings like `provider` and `model` in a single place. Individual prompts only need to declare what's unique to them.
 
-Scalars and arrays are replaced by nearer values. Object blocks are shallow-merged, including provider sub-blocks such as `provider_options.llmasaservice` and `cache.openai`, so a local prompt can override one field without restating the whole block.
+Scalars and arrays are replaced by nearer values. Object blocks are shallow-merged, including provider sub-blocks such as `provider_options.llmasaservice`, `compression.thetokencompany`, and `cache.openai`, so a local prompt can override one field without restating the whole block.
 
 Inherited `includes` are written relative to the `defaults.md` file that declares them and are normalized for the prompt that inherits them.
 
@@ -120,6 +120,35 @@ Use support tone and escalation policy.
 - `metadata.owner: support` (nearest override)
 - `metadata.review_required: true` (inherited from parent defaults)
 - system instructions from `support/defaults.md`
+
+## Prompt template compression
+
+Use `compression.thetokencompany` when a prompt should call TheTokenCompany before generating the provider request:
+
+```yaml
+compression:
+  thetokencompany:
+    enabled: true
+    model: bear-2
+    aggressiveness: 0.2
+```
+
+When enabled, PromptOpsKit interpolates the `# Prompt template`, sends that rendered text directly to `POST https://api.thetokencompany.com/v1/compress`, and uses the returned `output` as the user prompt before provider cache settings are applied. System instructions and conversation history are not compressed.
+
+Callers must supply their own TheTokenCompany API key:
+
+```typescript
+const result = await kit.renderPrompt({
+  path: 'support/reply',
+  provider: 'openai',
+  variables,
+  theTokenCompany: {
+    apiKey: process.env.THETOKENCOMPANY_API_KEY,
+  },
+});
+```
+
+You can set `compression.thetokencompany.enabled: false` on a prompt, environment, tier, or runtime override to disable inherited compression, or override `aggressiveness` per template/tier.
 
 ## Caching configuration
 
@@ -378,6 +407,14 @@ context:
     max_items: 8
 tools:
   - get_account_status
+compression:
+  thetokencompany:
+    enabled: true
+    aggressiveness: 0.2
+cache:
+  openai:
+    prompt_cache_key: support-reply-v1
+    retention: in_memory
 includes:
   - ../shared/tone.md
 environments:

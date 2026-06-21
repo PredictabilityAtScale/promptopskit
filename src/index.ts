@@ -10,6 +10,7 @@ import { validateAsset, validateAssetWithIncludes } from './validation/index.js'
 import { PromptCache } from './cache.js';
 import { collectContextSizeWarnings, sanitizeContextVariables } from './context.js';
 import { compactHistoryForPrompt } from './history.js';
+import { applyPromptCompressionForRender } from './compression.js';
 import {
   DEFAULT_PROMPTS_DIR,
   loadPromptAsset,
@@ -19,6 +20,7 @@ import {
 } from './prompt-resolution.js';
 import type { PromptAsset, PromptAssetOverrides, ResolvedPromptAsset } from './schema/index.js';
 import type { ProviderRequest, RuntimeRenderOptions } from './providers/types.js';
+import type { PromptCompressionResult, TheTokenCompanyRuntimeOptions } from './compression.js';
 import type { PromptValidationResult } from './validation/index.js';
 
 // --- Re-exports ---
@@ -30,12 +32,17 @@ export type {
   RuntimeHistoryCompactionInfo,
   RuntimeHistoryCompactionResult,
   RuntimeHistoryMessage,
+  OpenAIResponsesRuntimeOptions,
   ProviderAdapter,
   ProviderInlinePromptSource,
   ProviderPromptInput,
   ProviderPromptLookup,
   ValidationResult,
 } from './providers/types.js';
+export type {
+  PromptCompressionResult,
+  TheTokenCompanyRuntimeOptions,
+} from './compression.js';
 export type { PromptValidationResult, ValidationError } from './validation/index.js';
 export type { RenderedSections, RenderOptions } from './renderer/index.js';
 export type { ParseResult } from './parser/index.js';
@@ -80,6 +87,10 @@ export {
   llmasaserviceAdapter,
 } from './providers/llmasaservice.js';
 export { PromptAssetSchema, PromptAssetOverridesSchema } from './schema/index.js';
+export {
+  THETOKENCOMPANY_DEFAULT_BASE_URL,
+  THETOKENCOMPANY_DEFAULT_MODEL,
+} from './compression.js';
 export {
   applyUsageTapEntitlements,
   beginUsageTapCall,
@@ -138,6 +149,8 @@ export interface RenderPromptOptions {
   strict?: boolean;
   /** OpenAI Responses API-specific request options */
   openaiResponses?: RuntimeRenderOptions['openaiResponses'];
+  /** TheTokenCompany compression credentials and transport options */
+  theTokenCompany?: RuntimeRenderOptions['theTokenCompany'];
 }
 
 // --- Result ---
@@ -146,6 +159,7 @@ export interface RenderResult {
   resolved: ResolvedPromptAsset;
   request?: ProviderRequest;
   returnMessage?: string;
+  compression?: PromptCompressionResult[];
   warnings: string[];
 }
 
@@ -277,7 +291,7 @@ export class PromptOpsKit {
       }
     }
 
-    const request = adapter.render(resolved, {
+    const prepared = await applyPromptCompressionForRender(resolved, {
       variables: sanitization.variables,
       history: compactHistoryForPrompt(resolved, {
         history: options.history,
@@ -287,11 +301,16 @@ export class PromptOpsKit {
       toolRegistry: options.toolRegistry,
       strict: options.strict,
       openaiResponses: options.openaiResponses,
+      theTokenCompany: options.theTokenCompany,
     });
+    const request = adapter.render(prepared.asset, prepared.runtime);
 
     return {
       resolved,
-      request,
+      request: prepared.compression.length > 0
+        ? { ...request, compression: prepared.compression }
+        : request,
+      ...(prepared.compression.length > 0 ? { compression: prepared.compression } : {}),
       warnings: shouldIncludeContextWarningsInResult(contextWarningPolicy)
         ? [...validation.warnings, ...contextSizeWarnings]
         : validation.warnings,

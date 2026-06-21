@@ -102,6 +102,7 @@ function mergeDefaults(base: PromptDefaults, local: PromptDefaults): PromptDefau
     reasoning: mergeRecordBlock(base.reasoning, local.reasoning),
     sampling: mergeRecordBlock(base.sampling, local.sampling),
     response: mergeRecordBlock(base.response, local.response),
+    compression: mergeCompression(base.compression, local.compression),
     cache: mergeCache(base.cache, local.cache),
     raw: mergeRaw(base.raw, local.raw),
     tools: local.tools ?? base.tools,
@@ -123,6 +124,7 @@ function mergeDefaults(base: PromptDefaults, local: PromptDefaults): PromptDefau
 }
 
 function applyDefaults(asset: ParseResult['asset'], defaults: PromptDefaults): ParseResult['asset'] {
+  const compression = mergeCompression(defaults.compression, asset.compression);
   const cache = mergeCache(defaults.cache, asset.cache);
   const raw = mergeRaw(defaults.raw, asset.raw);
   const providerOptions = mergeProviderOptions(defaults.provider_options, asset.provider_options);
@@ -140,7 +142,8 @@ function applyDefaults(asset: ParseResult['asset'], defaults: PromptDefaults): P
     || defaults.fallback_models !== undefined
     || defaults.tools !== undefined
     || defaults.includes !== undefined;
-  const hasDefaultObjects = cache !== undefined
+  const hasDefaultObjects = compression !== undefined
+    || cache !== undefined
     || raw !== undefined
     || providerOptions !== undefined
     || reasoning !== undefined
@@ -178,6 +181,7 @@ function applyDefaults(asset: ParseResult['asset'], defaults: PromptDefaults): P
     reasoning,
     sampling,
     response,
+    compression,
     cache,
     raw,
     tools: asset.tools ?? defaults.tools,
@@ -262,6 +266,20 @@ function mergeCache(base: PromptDefaults['cache'], local: PromptDefaults['cache'
   return Object.keys(merged).length > 0 ? merged : undefined;
 }
 
+function mergeCompression(
+  base: PromptDefaults['compression'],
+  local: PromptDefaults['compression'],
+): PromptDefaults['compression'] {
+  const merged: NonNullable<PromptDefaults['compression']> = {
+    ...(base ?? {}),
+    ...(local ?? {}),
+    thetokencompany: mergeRecordBlock(base?.thetokencompany, local?.thetokencompany),
+  };
+
+  removeEmptyProviderBlocks(merged);
+  return Object.keys(merged).length > 0 ? merged : undefined;
+}
+
 function mergeRaw(base: PromptDefaults['raw'], local: PromptDefaults['raw']): PromptDefaults['raw'] {
   const merged: NonNullable<PromptDefaults['raw']> = {
     ...(base ?? {}),
@@ -322,6 +340,7 @@ function mergeOverrideConfig(
   const reasoning = mergeRecordBlock(base?.reasoning, local.reasoning);
   const sampling = mergeRecordBlock(base?.sampling, local.sampling);
   const response = mergeRecordBlock(base?.response, local.response);
+  const compression = mergeCompression(base?.compression, local.compression);
   const cache = mergeCache(base?.cache, local.cache);
   const raw = mergeRaw(base?.raw, local.raw);
   const providerOptions = mergeProviderOptions(base?.provider_options, local.provider_options);
@@ -329,6 +348,7 @@ function mergeOverrideConfig(
   if (reasoning !== undefined) merged.reasoning = reasoning;
   if (sampling !== undefined) merged.sampling = sampling;
   if (response !== undefined) merged.response = response;
+  if (compression !== undefined) merged.compression = compression;
   if (cache !== undefined) merged.cache = cache;
   if (raw !== undefined) merged.raw = raw;
   if (providerOptions !== undefined) merged.provider_options = providerOptions;

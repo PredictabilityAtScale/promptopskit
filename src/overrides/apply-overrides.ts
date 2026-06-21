@@ -55,6 +55,16 @@ function mergeOverride(
   if (override.response !== undefined) {
     result.response = { ...result.response, ...override.response };
   }
+  if (override.compression !== undefined) {
+    result.compression = {
+      ...result.compression,
+      ...override.compression,
+      thetokencompany: mergeRecordBlock(
+        result.compression?.thetokencompany,
+        override.compression.thetokencompany,
+      ),
+    };
+  }
   if (override.cache !== undefined) {
     result.cache = {
       ...result.cache,

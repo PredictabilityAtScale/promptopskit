@@ -52,12 +52,13 @@ Only these fields can be overridden in `environments` and `tiers`:
 | `reasoning` | `object` | `{ effort, budget_tokens }` |
 | `sampling` | `object` | `{ temperature, top_p, frequency_penalty, presence_penalty, stop, max_output_tokens }` |
 | `response` | `object` | `{ format, stream, schema, schema_ref, schema_name, schema_description, schema_strict }` |
+| `compression` | `object` | Prompt-template compression controls (`thetokencompany`) |
 | `cache` | `object` | Provider-specific cache controls (`openai`, `anthropic`, `gemini`/`google`) |
 | `raw` | `object` | Provider-specific request-body passthrough blocks |
 | `tools` | `array` | Tool references |
 | `provider_options` | `object` | Provider-specific advanced options (`anthropic`, `gemini`, `openrouter`, `llmasaservice`) |
 
-Object fields (`reasoning`, `sampling`, `response`, `cache`, `raw`, `provider_options`) are shallow-merged — individual sub-fields are replaced, but you don't need to repeat every sub-field.
+Object fields (`reasoning`, `sampling`, `response`, `compression`, `cache`, `raw`, `provider_options`) are shallow-merged — individual sub-fields are replaced, but you don't need to repeat every sub-field.
 
 ## Applying overrides
 

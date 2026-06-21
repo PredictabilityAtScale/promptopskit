@@ -42,7 +42,7 @@ const kit = createPromptOpsKit({
 
 ## `kit.renderPrompt(options)`
 
-Renders a prompt for a specific provider. Returns `{ resolved, request?, returnMessage?, warnings }`.
+Renders a prompt for a specific provider. Returns `{ resolved, request?, returnMessage?, compression?, warnings }`.
 
 ```typescript
 const result = await kit.renderPrompt({
@@ -75,6 +75,7 @@ const result = await kit.renderPrompt({
 | `toolRegistry` | `Record<string, unknown>` | Tool definitions for resolving string tool references |
 | `strict` | `boolean` | Fail on missing variables except object-form inputs marked `optional: true` (default `false`) |
 | `openaiResponses` | `object` | Optional Responses API extras (`previous_response_id`, `conversation`, `instructions`, `parallel_tool_calls`, `max_tool_calls`, `store`, `metadata`, `include`, `background`) |
+| `theTokenCompany` | `object` | Optional TheTokenCompany compression settings (`apiKey`, `baseURL`, `fetch`) used when `compression.thetokencompany.enabled: true` |
 
 Either `path` or `source` must be provided.
 
@@ -83,13 +84,16 @@ Either `path` or `source` must be provided.
 ```typescript
 interface RenderResult {
   resolved: ResolvedPromptAsset;  // Fully resolved asset
-  request?: ProviderRequest;      // { body, provider, model, baseURL?, headers? } when rendering continues
+  request?: ProviderRequest;      // { body, provider, model, baseURL?, headers?, compression? } when rendering continues
   returnMessage?: string;         // Short-circuit message from context validation when configured
+  compression?: PromptCompressionResult[];
   warnings: string[];             // Non-fatal provider and render-time warnings
 }
 ```
 
 `warnings` may include provider adapter warnings and render-time `POK030` context size warnings when configured to be included in results.
+
+When a prompt enables `compression.thetokencompany`, pass the caller-owned API key through `theTokenCompany.apiKey` or set `THETOKENCOMPANY_API_KEY`/`TTC_API_KEY`. PromptOpsKit calls TheTokenCompany directly with `fetch`, compresses only the rendered `# Prompt template`, applies provider cache settings to the compressed prompt text, and returns token-savings metadata in `compression`.
 
 If a context validator fails and that validator declares `return_message`, `renderPrompt()` returns `returnMessage` and omits `request` instead of throwing.
 

@@ -15,6 +15,7 @@ Prompt files use YAML front matter. This page documents every supported field.
 | `reasoning` | `object` | No | Reasoning/thinking configuration |
 | `sampling` | `object` | No | Sampling parameters |
 | `response` | `object` | No | Response format and streaming |
+| `compression` | `object` | No | Prompt-template compression options |
 | `cache` | `object` | No | Provider-specific prompt/context caching options |
 | `tools` | `array` | No | Tool references (strings or inline definitions) |
 | `provider_options` | `object` | No | Provider-specific advanced options (`anthropic`, `gemini`, `openrouter`, `llmasaservice`) |
@@ -38,6 +39,7 @@ Prompt files use YAML front matter. This page documents every supported field.
 | `reasoning` | `object` | Same as prompt-level `reasoning` block |
 | `sampling` | `object` | Same as prompt-level `sampling` block |
 | `response` | `object` | Same as prompt-level `response` block |
+| `compression` | `object` | Same as prompt-level `compression` block |
 | `cache` | `object` | Same as prompt-level `cache` block |
 | `provider_options` | `object` | Same as prompt-level `provider_options` block |
 | `raw` | `object` | Same as prompt-level `raw` block |
@@ -264,6 +266,40 @@ Inline tool definition fields:
 | `description` | `string` | No | Tool description |
 | `input_schema` | `object` | No | JSON Schema for tool input |
 
+## `compression`
+
+Use `compression.thetokencompany` to compress the rendered `# Prompt template` before provider messages are generated:
+
+```yaml
+compression:
+  thetokencompany:
+    enabled: true
+    model: bear-2
+    aggressiveness: 0.2
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `thetokencompany.enabled` | `boolean` | Set `true` to call TheTokenCompany compression; set `false` in a prompt, environment, tier, or runtime override to disable inherited compression |
+| `thetokencompany.model` | `string` | Compression model; defaults to `bear-2` |
+| `thetokencompany.aggressiveness` | `number` | Compression aggressiveness from `0` to `1`; omitted when not configured |
+
+Compression requires the caller's TheTokenCompany API key. Pass it at render time:
+
+```typescript
+const result = await kit.renderPrompt({
+  path: 'support/reply',
+  provider: 'openai',
+  theTokenCompany: {
+    apiKey: process.env.THETOKENCOMPANY_API_KEY,
+  },
+});
+```
+
+If `theTokenCompany.apiKey` is omitted, PromptOpsKit also checks `THETOKENCOMPANY_API_KEY` and `TTC_API_KEY`. The request is sent directly to `POST https://api.thetokencompany.com/v1/compress` with no vendor SDK dependency. Compression applies only to the current rendered prompt template; system instructions and conversation history are left unchanged.
+
+Compression happens before provider request generation, so provider cache fields and cache-control markers are applied to the compressed prompt text.
+
 ## `cache`
 
 ```yaml
@@ -375,7 +411,7 @@ tiers:
     model: gpt-5.4
 ```
 
-Each environment/tier key maps to an overrides object. Overridable fields: `model`, `fallback_models`, `reasoning`, `sampling`, `response`, `cache`, `raw`, `tools`, `provider_options`. See [Overrides](./overrides.md).
+Each environment/tier key maps to an overrides object. Overridable fields: `model`, `fallback_models`, `reasoning`, `sampling`, `response`, `compression`, `cache`, `raw`, `tools`, `provider_options`. See [Overrides](./overrides.md).
 
 ## `metadata`
 

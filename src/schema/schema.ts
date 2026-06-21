@@ -137,6 +137,21 @@ export const RawProviderBodySchema = z.object({
 
 export type RawProviderBody = z.infer<typeof RawProviderBodySchema>;
 
+// --- Prompt compression ---
+
+export const TheTokenCompanyCompressionSchema = z.object({
+  enabled: z.boolean().optional(),
+  model: z.string().min(1).optional(),
+  aggressiveness: z.number().min(0).max(1).optional(),
+});
+
+export const CompressionSchema = z.object({
+  thetokencompany: TheTokenCompanyCompressionSchema.optional(),
+});
+
+export type Compression = z.infer<typeof CompressionSchema>;
+export type TheTokenCompanyCompression = z.infer<typeof TheTokenCompanyCompressionSchema>;
+
 // --- Cache controls ---
 
 export const OpenAICacheSchema = z.object({
@@ -235,6 +250,7 @@ export const PromptAssetOverridesSchema = z.object({
   reasoning: ReasoningSchema.optional(),
   sampling: SamplingSchema.optional(),
   response: ResponseSchemaWithValidation.optional(),
+  compression: CompressionSchema.optional(),
   cache: CacheSchema.optional(),
   raw: RawProviderBodySchema.optional(),
   tools: z.array(ToolRefSchema).optional(),
@@ -267,6 +283,7 @@ export const PromptDefaultsSchema = z.object({
   reasoning: ReasoningSchema.optional(),
   sampling: SamplingSchema.optional(),
   response: ResponseSchema.optional(),
+  compression: CompressionSchema.optional(),
   cache: CacheSchema.optional(),
   raw: RawProviderBodySchema.optional(),
   tools: z.array(ToolRefSchema).optional(),
@@ -298,6 +315,7 @@ export const PromptAssetSchema = z.object({
   reasoning: ReasoningSchema.optional(),
   sampling: SamplingSchema.optional(),
   response: ResponseSchemaWithValidation.optional(),
+  compression: CompressionSchema.optional(),
   cache: CacheSchema.optional(),
   raw: RawProviderBodySchema.optional(),
 

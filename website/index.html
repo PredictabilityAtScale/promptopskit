@@ -3,14 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>PromptOpsKit | Repo-Native Prompt Ops for Production AI Apps</title>
+    <title>PromptOpsKit | Prompts as Production Code</title>
     <meta
       name="description"
-      content="Turn hardcoded AI prompts into versioned, tested application assets. PromptOpsKit lets developers keep prompts, model settings, tools, input rules, environment overrides, and tests in Markdown files that live in Git and ship with the app."
+      content="Prompts are becoming production code. PromptOpsKit is an open-source, repo-native toolkit for turning scattered prompt strings, model settings, tools, input rules, environment overrides, and tests into versioned assets that live in Git."
     />
     <meta
       name="keywords"
-      content="PromptOpsKit, prompt management, prompts as code, OpenAI prompts, Anthropic prompts, Gemini prompts, OpenRouter, LLMAsAService, developer toolkit, prompt engineering"
+      content="PromptOpsKit, prompt management, prompts as code, prompt ops, AI production assets, OpenAI prompts, Anthropic prompts, Gemini prompts, OpenRouter, LLMAsAService, developer toolkit, prompt engineering"
     />
     <meta name="robots" content="index,follow,max-image-preview:large" />
     <meta name="author" content="Predictability at Scale, Inc." />
@@ -19,11 +19,11 @@
     <meta property="og:type" content="website" />
     <meta
       property="og:title"
-      content="PromptOpsKit | Repo-Native Prompt Ops for Production AI Apps"
+      content="PromptOpsKit | Prompts as Production Code"
     />
     <meta
       property="og:description"
-      content="Turn hardcoded AI prompts into versioned, tested application assets. PromptOpsKit lets developers keep prompts, model settings, tools, input rules, environment overrides, and tests in Markdown files that live in Git and ship with the app."
+      content="Open-source, repo-native prompt infrastructure for teams shipping AI features: version prompts, model settings, tools, input rules, environment overrides, and tests in Git."
     />
     <meta property="og:url" content="https://promptopskit.com/" />
     <meta property="og:site_name" content="PromptOpsKit" />
@@ -31,11 +31,11 @@
     <meta name="twitter:card" content="summary" />
     <meta
       name="twitter:title"
-      content="PromptOpsKit | Repo-Native Prompt Ops for Production AI Apps"
+      content="PromptOpsKit | Prompts as Production Code"
     />
     <meta
       name="twitter:description"
-      content="Turn hardcoded AI prompts into versioned, tested application assets. PromptOpsKit lets developers keep prompts, model settings, tools, input rules, environment overrides, and tests in Markdown files that live in Git and ship with the app."
+      content="Prompts are becoming production code. Manage them in Git with open-source PromptOpsKit."
     />
 
     <script>
@@ -54,7 +54,7 @@
         "license": "https://opensource.org/license/mit",
         "codeRepository": "https://github.com/PredictabilityAtScale/promptopskit",
         "url": "https://promptopskit.com/",
-        "description": "Open-source developer toolkit that centralizes prompts, system instructions, tools, and model settings into reusable, environment-aware assets.",
+        "description": "Open-source developer toolkit that turns scattered AI prompt strings, model settings, tools, input rules, environment overrides, and tests into versioned assets that live in Git.",
         "offers": {
           "@type": "Offer",
           "price": "0",
@@ -88,7 +88,7 @@
           <a href="#runtime">Runtime</a>
           <a href="#compression">Compression</a>
           <a href="#testing">Testing</a>
-          <a href="#github-models">Compare</a>
+          <a href="#stack">Stack</a>
           <a href="#features">Features</a>
           <a href="#faq">FAQ</a>
           <a href="/docs/index.html">Docs</a>
@@ -104,22 +104,23 @@
     <main id="top">
       <section class="hero container">
         <p class="eyebrow">Open-source prompt infrastructure</p>
-        <h1>Turn hardcoded AI prompts into versioned, tested application assets</h1>
+        <h1>Prompts are becoming production code. Manage them that way.</h1>
         <p class="lead">
-          Keep prompts, model settings, tools, input validation, shared
-          instructions, environment overrides, and tests together in Markdown
-          files that live in Git and ship with your app. Render provider-ready
-          request bodies without giving up your SDK, gateway, auth, retries, or
-          observability.
+          AI features start with a few prompt strings. Then model settings, tools,
+          provider quirks, context limits, environment overrides, tests, and
+          customer-specific behavior start spreading across the codebase.
+          PromptOpsKit turns that prompt glue into versioned assets that live in
+          Git and ship with your app.
         </p>
         <div class="hero-actions">
           <a class="button button-primary" href="https://www.npmjs.com/package/promptopskit"
             >Install from npm</a
           >
-          <a class="button" href="#prompt-file">See prompt file</a>
+          <a class="button" href="https://github.com/PredictabilityAtScale/promptopskit">Star on GitHub</a>
         </div>
         <p class="hero-supporting-line">
-          Your prompts are already in Git. PromptOpsKit makes them manageable.
+          No hosted dashboard. No gateway required. No vendor lock-in. Keep your
+          SDK, auth, routing, observability, and billing.
         </p>
         <pre><code>npm install promptopskit
 npx promptopskit init
@@ -128,6 +129,11 @@ npx promptopskit skill</code></pre>
 
       <section id="why" class="container section section-orientation" aria-labelledby="orientation-title">
         <h2 id="orientation-title">From scattered prompt glue to one reviewable asset</h2>
+        <p class="section-intro">
+          PromptOpsKit is for developers and tech leads shipping AI features in
+          real applications: SaaS products, copilots, internal tools, support
+          workflows, developer tools, and agentic product experiences.
+        </p>
         <div class="grid two comparison-grid">
           <article class="card comparison-card comparison-card-before">
             <p class="comparison-label">Before</p>
@@ -367,15 +373,44 @@ tests/
         <p class="section-intro">
           Render OpenAI Chat, OpenAI Responses, Anthropic, Gemini, OpenRouter, and
           LLMAsAService request bodies while keeping your app's auth, retries,
-          observability, and routing.
+          observability, billing, and routing.
         </p>
         <article class="card">
           <h3>Not a prompt dashboard. Not an LLM gateway. Not another runtime service.</h3>
           <p>
             PromptOpsKit is the repo-native layer between prompt strings and
-            production AI calls.
+            production AI calls. Use it when you have outgrown hardcoded prompts
+            but do not want a hosted prompt-management platform in your path.
           </p>
         </article>
+      </section>
+
+      <section id="stack" class="container section" aria-labelledby="stack-title">
+        <p class="eyebrow">When AI features get serious</p>
+        <h2 id="stack-title">Prompt assets are the first layer of AI production operations</h2>
+        <p class="section-intro">
+          PromptOpsKit handles the open-source prompt asset layer. As usage grows,
+          teams often need adjacent controls for provider cost, routing, customer
+          attribution, entitlements, and billing.
+        </p>
+        <div class="grid two">
+          <article class="card">
+            <h3>Provider operations</h3>
+            <p>
+              When you need routing, caching, cost controls, customer attribution,
+              and gateway-level reliability, pair PromptOpsKit with
+              <a href="https://llmasaservice.io/">LLMAsAService</a>.
+            </p>
+          </article>
+          <article class="card">
+            <h3>Customer usage and billing</h3>
+            <p>
+              When AI features need metering, entitlements, limits, alerts, or
+              usage-based billing, pair PromptOpsKit with
+              <a href="https://usagetap.com/">UsageTap</a>.
+            </p>
+          </article>
+        </div>
       </section>
 
       <section id="github-models" class="container section section-github-models" aria-labelledby="github-models-title">
@@ -472,6 +507,14 @@ tests/
             </p>
           </article>
           <article class="card">
+            <h3>Where does UsageTap or LLMAsAService fit?</h3>
+            <p>
+              PromptOpsKit manages prompt assets. Use LLMAsAService for provider routing,
+              caching, and cost controls. Use UsageTap for customer usage, entitlements,
+              limits, and usage-based billing.
+            </p>
+          </article>
+          <article class="card">
             <h3>Where should I start for full examples?</h3>
             <p>
               Start with <a href="/docs/index.html#/getting-started">Getting Started</a>,
@@ -498,6 +541,8 @@ tests/
         <p>PromptOpsKit • MIT License</p>
         <p>
           <a href="https://github.com/PredictabilityAtScale/promptopskit">GitHub</a>
+          <a href="https://llmasaservice.io/">LLMAsAService</a>
+          <a href="https://usagetap.com/">UsageTap</a>
         </p>
       </div>
     </footer>

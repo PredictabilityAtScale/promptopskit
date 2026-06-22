@@ -56,6 +56,8 @@ const RISKY_UNBOUNDED_INPUT_NAMES = [
   'context',
 ];
 
+const COMPRESS_MODIFIER_RE = /\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\|\s*compress\s*\}\}/g;
+
 /**
  * Validate a parsed prompt asset, returning all errors and warnings.
  */
@@ -157,6 +159,28 @@ export function validateAsset(
       message: `Template uses ${usedVars.size === 1 ? 'a variable' : 'variables'} but context.inputs is not declared.`,
       filePath,
       suggestion: 'Declare context.inputs to enable input policy validation.',
+    });
+  }
+
+  if (asset.compression?.heuristic?.enabled === true && asset.compression.heuristic.json_to_toon !== true) {
+    warnings.push({
+      code: 'POK055',
+      message: 'Prompt-level heuristic compression is enabled for the full prompt template.',
+      filePath,
+      suggestion: 'Prefer per-placeholder compression for bulky context values so instructions, output constraints, and safety conditions are not sentence-selected away.',
+    });
+  }
+
+  const systemHeuristicCompressionVariables = findSystemHeuristicCompressionVariables(
+    asset.sections?.system_instructions,
+    declaredInputsByName,
+  );
+  if (systemHeuristicCompressionVariables.length > 0) {
+    warnings.push({
+      code: 'POK056',
+      message: `System instructions use heuristic compression for ${formatQuotedList(systemHeuristicCompressionVariables)}.`,
+      filePath,
+      suggestion: 'Avoid compressing values inside system instructions; move lossy compression to prompt-template context placeholders when possible.',
     });
   }
 
@@ -407,6 +431,35 @@ function findClosestMatch(input: string, candidates: Set<string>): string | unde
   }
 
   return best;
+}
+
+function findSystemHeuristicCompressionVariables(
+  systemInstructions: string | undefined,
+  declaredInputsByName: Map<string, ReturnType<typeof getContextInputs>[number]>,
+): string[] {
+  if (!systemInstructions) {
+    return [];
+  }
+
+  const variables = new Set<string>();
+
+  for (const match of systemInstructions.matchAll(COMPRESS_MODIFIER_RE)) {
+    variables.add(match[1]);
+  }
+
+  for (const variable of extractVariables(systemInstructions)) {
+    const input = declaredInputsByName.get(variable);
+    const heuristic = input?.compression?.heuristic;
+    if (heuristic?.enabled === true && heuristic.json_to_toon !== true) {
+      variables.add(variable);
+    }
+  }
+
+  return [...variables].sort();
+}
+
+function formatQuotedList(values: string[]): string {
+  return values.map((value) => `"${value}"`).join(', ');
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

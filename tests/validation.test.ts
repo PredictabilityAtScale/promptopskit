@@ -224,6 +224,75 @@ describe('validateAsset', () => {
     expect(result.warnings.some((warning) => warning.code === 'POK041')).toBe(false);
   });
 
+  it('warns when prompt-level heuristic compression can sentence-select the full prompt template', () => {
+    const result = validateAsset({
+      id: 'test',
+      schema_version: 1,
+      compression: {
+        heuristic: { enabled: true },
+      },
+      sections: { prompt_template: 'Long context goes here.' },
+    });
+
+    const warning = result.warnings.find((item) => item.code === 'POK055');
+    expect(warning).toBeDefined();
+    expect(warning?.suggestion).toContain('per-placeholder compression');
+  });
+
+  it('does not warn on prompt-level heuristic compression when it is JSON-to-TOON only', () => {
+    const result = validateAsset({
+      id: 'test',
+      schema_version: 1,
+      compression: {
+        heuristic: { enabled: true, json_to_toon: true },
+      },
+      sections: { prompt_template: '{"items":[{"id":1}]}' },
+    });
+
+    expect(result.warnings.some((warning) => warning.code === 'POK055')).toBe(false);
+  });
+
+  it('warns when system instructions use the compress placeholder modifier', () => {
+    const result = validateAsset({
+      id: 'test',
+      schema_version: 1,
+      context: {
+        inputs: ['policy_context'],
+      },
+      sections: {
+        system_instructions: 'Apply this policy context: {{ policy_context | compress }}',
+        prompt_template: 'Answer the user.',
+      },
+    });
+
+    const warning = result.warnings.find((item) => item.code === 'POK056');
+    expect(warning).toBeDefined();
+    expect(warning?.message).toContain('"policy_context"');
+  });
+
+  it('warns when system instructions use a context input with heuristic compression configured', () => {
+    const result = validateAsset({
+      id: 'test',
+      schema_version: 1,
+      context: {
+        inputs: [
+          {
+            name: 'policy_context',
+            compression: 'heuristic',
+          },
+        ],
+      },
+      sections: {
+        system_instructions: 'Apply this policy context: {{ policy_context }}',
+        prompt_template: 'Answer the user.',
+      },
+    });
+
+    const warning = result.warnings.find((item) => item.code === 'POK056');
+    expect(warning).toBeDefined();
+    expect(warning?.suggestion).toContain('system instructions');
+  });
+
   it('warns when provider cache/model guidance is missing', () => {
     const result = validateAsset({
       id: 'test',

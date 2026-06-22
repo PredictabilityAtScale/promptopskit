@@ -41,6 +41,8 @@ compression:
 
 The local compressor deduplicates text, scores sentences against `query`, `query_variable`, or system instructions, and keeps the highest-scoring sentences within the configured budget.
 
+Because heuristic compression is lossy, static validation warns when it is enabled for the full prompt template (`POK055`) or used inside system instructions (`POK056`). Prefer per-placeholder compression for large context values so task instructions, output constraints, and safety conditions remain intact.
+
 ## JSON to TOON
 
 When the input is a complete JSON object or array, enable TOON preprocessing:

@@ -44,6 +44,8 @@ const result = await kit.validatePrompt('support/reply');
 | `POK045` | Warning | Environment/tier cache override may be missing while base cache is defined |
 | `POK046` | Warning | Template uses variables but `context.inputs` is not declared |
 | `POK047` | Warning | Inline tool definition missing `description` or `input_schema` |
+| `POK055` | Warning | Prompt-level heuristic compression can sentence-select the full prompt template |
+| `POK056` | Warning | System instructions use heuristic compression for one or more placeholders |
 | `POK033` | Runtime error | `non_empty` validation failed |
 | `POK034` | Runtime error | `reject_secrets` validation matched |
 | `POK020` | Error | Include resolution failed (missing file) |
@@ -140,6 +142,7 @@ context:
 - Set `warnings: false` on an object-form input to suppress warnings for intentional exceptions.
 - During static validation, provider/cache hygiene checks can emit `POK042`–`POK045`.
 - During static validation, inline tool quality checks can emit `POK047`.
+- During static validation, lossy heuristic compression checks can emit `POK055` for prompt-level compression and `POK056` for heuristic compression inside system instructions.
 
 Regex compilation errors include the prompt id, variable name, field name, and raw configured value to make bad prompt definitions easy to locate. YAML quoting errors include the file and line when available.
 

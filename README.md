@@ -300,6 +300,7 @@ For no-backend compression, use the local heuristic compressor:
 compression:
   heuristic:
     enabled: true
+    mode: conservative
     query_variable: user_question
     json_to_toon: true
 ```
@@ -320,7 +321,7 @@ Payload: {{ json_payload | toon }}
 Source: {{ source_code | compact }}
 ```
 
-If `json_to_toon: true` or `{{ value | toon }}` cannot parse a complete JSON object or array, PromptOpsKit preserves the original value and returns a `POK031` warning. When `compression.code.enabled: true`, PromptOpsKit skips TheTokenCompany prompt-template compression and returns `POK033` so code is not text-compressed by a backend.
+The local heuristic compressor is extractive. In its default conservative mode it preserves whole source sentences, skips low-confidence matches, includes nearby context when configured capacity allows, and leaves structured blocks unchanged. If `json_to_toon: true` or `{{ value | toon }}` cannot parse a complete JSON object or array, PromptOpsKit preserves the original value and returns a `POK031` warning. When `compression.code.enabled: true`, PromptOpsKit skips TheTokenCompany prompt-template compression and returns `POK033` so code is not text-compressed by a backend.
 
 Credit: the local heuristic approach is based on Jason Kneen's [open-thetokenco](https://github.com/jasonkneen/open-thetokenco/tree/main).
 TOON preprocessing uses a local encode-only implementation inspired by the MIT-licensed [TOON project](https://github.com/toon-format/toon) by Johann Schopplich, without adding `@toon-format/toon` as a runtime dependency.

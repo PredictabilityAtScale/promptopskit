@@ -136,6 +136,9 @@ export function normalizeContextInputCompression(
       query: value.heuristic.query,
       query_variable: value.heuristic.query_variable,
       json_to_toon: value.heuristic.json_to_toon,
+      mode: value.heuristic.mode,
+      preserve_neighbors: value.heuristic.preserve_neighbors,
+      fail_on_low_confidence: value.heuristic.fail_on_low_confidence,
     },
   };
 

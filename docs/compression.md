@@ -33,13 +33,18 @@ Use the local heuristic compressor when you want no backend calls:
 compression:
   heuristic:
     enabled: true
+    mode: conservative
     min_tokens: 120
     max_sentences: 8
     target_reduction: 0.45
     query_variable: user_question
+    preserve_neighbors: true
+    fail_on_low_confidence: true
 ```
 
-The local compressor deduplicates text, scores sentences against `query`, `query_variable`, or system instructions, and keeps the highest-scoring sentences within the configured budget.
+The local compressor deduplicates adjacent repeated sentences, scores sentences against `query`, `query_variable`, or system instructions, and keeps exact source sentences within the configured budget.
+
+The default `mode: conservative` favors meaning retention over maximum savings. It skips compression when there are no usable query terms or no sentence matches the query, preserves neighboring sentences when `max_sentences` allows, avoids token-level truncation of selected prose, and leaves structured blocks such as Markdown tables, lists, and fenced code unchanged. Set `mode: balanced` or `fail_on_low_confidence: false` only when best-effort extraction is acceptable.
 
 Because heuristic compression is lossy, static validation warns when it is enabled for the full prompt template (`POK055`) or used inside system instructions (`POK056`). Prefer per-placeholder compression for large context values so task instructions, output constraints, and safety conditions remain intact.
 
@@ -98,6 +103,7 @@ context:
       compression:
         heuristic:
           enabled: true
+          mode: conservative
           query_variable: user_question
     - name: source_code
       compression: code
@@ -111,7 +117,7 @@ Payload: {{ json_payload | toon }}
 Source: {{ source_code | compact }}
 ```
 
-Placeholder modifiers are single-token shortcuts. Use `context.inputs[].compression` when a placeholder needs options such as `query_variable` or `remove_comments: false`.
+Placeholder modifiers are single-token shortcuts. Use `context.inputs[].compression` when a placeholder needs options such as `query_variable`, `mode`, `preserve_neighbors`, `fail_on_low_confidence`, or `remove_comments: false`.
 
 ## Reporting Savings
 

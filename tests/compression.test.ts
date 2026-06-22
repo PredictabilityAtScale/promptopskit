@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createPromptOpsKit } from '../src/index.js';
 import { openaiAdapter } from '../src/providers/openai.js';
+import { compressHeuristicText } from '../src/token-compression.js';
 
 function createCompressionFetch(calls: Array<{ url: string; init: RequestInit }>): typeof fetch {
   return async (url, init) => {
@@ -292,6 +293,147 @@ Rewrite {{ text }}.`,
 });
 
 describe('heuristic compression', () => {
+  it('skips conservative compression when no sentence matches the query', () => {
+    const input = [
+      'Pricing includes annual discounts for enterprise buyers.',
+      'Security controls include SSO and audit logs.',
+      'Renewal notices are sent thirty days before expiration.',
+    ].join(' ');
+
+    const result = compressHeuristicText(input, {
+      min_tokens: 1,
+      max_sentences: 1,
+      target_reduction: 0.8,
+      query: 'refund policy',
+    });
+
+    expect(result.output).toBe(input);
+    expect(result.tokensSaved).toBe(0);
+    expect(result.warnings).toContain(
+      'Heuristic compression skipped because no sentence matched the relevance query.',
+    );
+  });
+
+  it('allows balanced best-effort compression when low-confidence extraction is acceptable', () => {
+    const input = [
+      'Pricing includes annual discounts for enterprise buyers.',
+      'Security controls include SSO and audit logs.',
+      'Renewal notices are sent thirty days before expiration.',
+    ].join(' ');
+
+    const result = compressHeuristicText(input, {
+      mode: 'balanced',
+      min_tokens: 1,
+      max_sentences: 1,
+      target_reduction: 0.8,
+      query: 'refund policy',
+    });
+
+    expect(result.output).not.toBe(input);
+    expect(result.warnings).toBeUndefined();
+  });
+
+  it('keeps whole sentences instead of truncating selected output to a token budget', () => {
+    const input = [
+      'Pricing includes annual discounts for enterprise buyers and renewal approval timing that must remain intact.',
+      'Security controls include SSO and audit logs.',
+    ].join(' ');
+
+    const result = compressHeuristicText(input, {
+      min_tokens: 1,
+      max_sentences: 1,
+      target_reduction: 0.9,
+      query: 'pricing',
+      preserve_neighbors: false,
+    });
+
+    expect(result.output).toBe(
+      'Pricing includes annual discounts for enterprise buyers and renewal approval timing that must remain intact.',
+    );
+  });
+
+  it('includes neighboring context for conservative query matches when capacity allows', () => {
+    const input = [
+      'Enterprise policy defines the premium support tier.',
+      'It requires P1 response within 15 minutes.',
+      'General release notes describe unrelated rollout sequencing.',
+    ].join(' ');
+
+    const result = compressHeuristicText(input, {
+      min_tokens: 1,
+      max_sentences: 3,
+      target_reduction: 0.7,
+      query: 'P1 response',
+    });
+
+    expect(result.output).toContain('Enterprise policy defines the premium support tier.');
+    expect(result.output).toContain('It requires P1 response within 15 minutes.');
+  });
+
+  it('preserves structured blocks in conservative mode', () => {
+    const input = [
+      '| field | value |',
+      '| --- | --- |',
+      '| SLA | P1 response in 15 minutes |',
+      '',
+      'Narrative context mentions support.',
+    ].join('\n');
+
+    const result = compressHeuristicText(input, {
+      min_tokens: 1,
+      max_sentences: 1,
+      target_reduction: 0.8,
+      query: 'SLA',
+    });
+
+    expect(result.output).toBe(input);
+    expect(result.warnings).toContain(
+      'Heuristic compression skipped because the input appears to contain structured blocks; use TOON or code compaction for structured content.',
+    );
+  });
+
+  it('threads conservative placeholder options through schema and rendering', async () => {
+    const kit = createPromptOpsKit({ sourceDir: '.', cache: false });
+
+    const result = await kit.renderPrompt({
+      provider: 'openai',
+      source: `---
+id: heuristic-context-neighbors
+schema_version: 1
+provider: openai
+model: gpt-5.4
+context:
+  inputs:
+    - name: account_context
+      compression:
+        heuristic:
+          enabled: true
+          mode: conservative
+          preserve_neighbors: true
+          fail_on_low_confidence: true
+          min_tokens: 1
+          max_sentences: 3
+          target_reduction: 0.7
+          query: P1 response
+---
+
+# Prompt template
+
+Context: {{ account_context }}`,
+      variables: {
+        account_context: [
+          'Enterprise policy defines the premium support tier.',
+          'It requires P1 response within 15 minutes.',
+          'General release notes describe unrelated rollout sequencing.',
+        ].join(' '),
+      },
+    });
+
+    const messages = result.request!.body.messages as Array<{ role: string; content: string }>;
+    expect(messages[0].content).toContain('Enterprise policy defines the premium support tier.');
+    expect(messages[0].content).toContain('It requires P1 response within 15 minutes.');
+  });
+
   it('compresses the rendered prompt template without backend credentials', async () => {
     const kit = createPromptOpsKit({ sourceDir: '.', cache: false });
 

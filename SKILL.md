@@ -485,15 +485,19 @@ language context and no backend call should be made:
 compression:
   heuristic:
     enabled: true
+    mode: conservative
     min_tokens: 120
     max_sentences: 8
     target_reduction: 0.45
     query_variable: user_question
 ```
 
-The heuristic compressor deduplicates text, ranks sentences against `query`,
-`query_variable`, or system instructions, and keeps the highest-scoring
-sentences inside the token budget. It is heuristic, so use it for context where
+The heuristic compressor deduplicates adjacent repeated sentences, ranks exact
+source sentences against `query`, `query_variable`, or system instructions, and
+keeps the highest-scoring sentences inside the token budget. The default
+`mode: conservative` skips low-confidence compression, preserves adjacent
+context when `max_sentences` allows, avoids token-level truncation, and leaves
+structured blocks unchanged. It is heuristic, so use it for context where
 extractive reduction is acceptable, not for code or strict structured payloads.
 
 Use TOON preprocessing for complete JSON object/array inputs:
@@ -550,6 +554,7 @@ context:
       compression:
         heuristic:
           enabled: true
+          mode: conservative
           query_variable: user_question
     - name: payload
       compression:
@@ -570,7 +575,8 @@ Source: {{ source_code | compact }}
 
 Placeholder modifiers are single-token shortcuts. Use
 `context.inputs[].compression` when a placeholder needs options such as
-`query_variable`, `json_to_toon`, or `remove_comments: false`.
+`query_variable`, `mode`, `preserve_neighbors`, `fail_on_low_confidence`,
+`json_to_toon`, or `remove_comments: false`.
 
 Render results may include:
 

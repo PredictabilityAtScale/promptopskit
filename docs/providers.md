@@ -86,7 +86,7 @@ cache:
 
 When enabled, PromptOpsKit renders variables into the `# Prompt template`, sends that rendered text directly to TheTokenCompany with `fetch`, and uses the returned `output` as the user prompt. The caller supplies `theTokenCompany.apiKey` at render time or sets `THETOKENCOMPANY_API_KEY`/`TTC_API_KEY`. System instructions and history are left unchanged. Provider cache fields and cache-control markers are applied after compression, so the provider request contains the compressed prompt text.
 
-Use `compression.heuristic` for local no-backend compression. Set `json_to_toon: true` to convert complete JSON object/array inputs to TOON, or use `{{ json_payload | toon }}` on a context placeholder for one-off JSON-to-TOON insertion. Invalid JSON is preserved and returned with `POK031` instead of being sentence-compressed.
+Use `compression.heuristic` for local no-backend extractive compression. The default `mode: conservative` preserves whole source sentences, skips low-confidence matches, includes neighboring context when configured capacity allows, and leaves structured blocks unchanged. Set `json_to_toon: true` to convert complete JSON object/array inputs to TOON, or use `{{ json_payload | toon }}` on a context placeholder for one-off JSON-to-TOON insertion. Invalid JSON is preserved and returned with `POK031` instead of being sentence-compressed.
 
 Use `compression.code` or `{{ source_code | compact }}` for code. Code compaction is local and does not sentence-select; it removes comments and formatting overhead by default. Prompt-level code compaction skips TheTokenCompany compression with `POK033`.
 

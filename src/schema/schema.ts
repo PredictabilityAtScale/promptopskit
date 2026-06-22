@@ -153,6 +153,9 @@ export const HeuristicCompressionSchema = z.object({
   query: z.string().optional(),
   query_variable: z.string().min(1).optional(),
   json_to_toon: z.boolean().optional(),
+  mode: z.enum(['conservative', 'balanced']).optional(),
+  preserve_neighbors: z.boolean().optional(),
+  fail_on_low_confidence: z.boolean().optional(),
 });
 
 export const CodeCompactionSchema = z.object({

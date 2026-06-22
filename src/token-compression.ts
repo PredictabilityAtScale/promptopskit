@@ -3,7 +3,10 @@ import { tryJsonToToon } from './toon-encoding.js';
 const TOKEN_REGEX = /[\p{L}\p{N}]+|[^\s]/gu;
 const TOKEN_NORMALIZE_REGEX = /[^\p{L}\p{N}]/gu;
 const DEDUPE_NORMALIZE_REGEX = /[^\p{L}\p{N}\s]/gu;
-const BOILERPLATE_REGEX = /copyright|all rights reserved|disclaimer|confidential/i;
+const BOILERPLATE_REGEX = /copyright|all rights reserved|disclaimer/i;
+const STRUCTURED_BLOCK_REGEX = /(^|\n)\s*```|(^|\n)\s*\|.+\|\s*(\n|$)/;
+const PROTECTED_SIGNAL_REGEX = /\b(?:must|shall|should|required|requires|requirement|never|do not|don't|only|except|unless|however|but|constraint|constraints|safety|security|deadline|sla)\b|output\s+format/i;
+const EVIDENCE_SIGNAL_REGEX = /https?:\/\/|\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b|[$€£]\s?\d|\b\d+(?:[.,:/-]\d+)*%?\b|\b[A-Z]{2,}[-_A-Z0-9]*\b|\b[A-Z]\d\b/i;
 const MAX_SEGMENT_TOKENS = 120;
 
 const STOP_WORDS = new Set([
@@ -17,6 +20,9 @@ export interface HeuristicCompressionOptions {
   target_reduction?: number;
   query?: string;
   json_to_toon?: boolean;
+  mode?: 'conservative' | 'balanced';
+  preserve_neighbors?: boolean;
+  fail_on_low_confidence?: boolean;
 }
 
 export interface HeuristicCompressionOutput {
@@ -35,6 +41,8 @@ interface SentenceCandidate {
   tokenCount: number;
   uniqueTerms: Set<string>;
   isBoilerplate: boolean;
+  isProtected: boolean;
+  hasEvidence: boolean;
 }
 
 interface ScoredSentenceCandidate {
@@ -44,12 +52,15 @@ interface ScoredSentenceCandidate {
   overlapCount: number;
   overlapTerms: string[];
   tokens: number;
+  isProtected: boolean;
+  hasEvidence: boolean;
 }
 
 const DEFAULT_OPTIONS = {
   min_tokens: 80,
   max_sentences: 10,
   target_reduction: 0.45,
+  mode: 'conservative' as const,
 };
 
 export function tokenizeForHeuristicCompression(text: string | undefined): string[] {
@@ -94,16 +105,27 @@ export function compressHeuristicText(
     };
   }
 
-  const analysis = preprocessContext(inputText);
-
   if (inputTokens === 0) {
     return toCompressionOutput(inputText, inputTokens);
   }
+
+  const mode = options.mode ?? DEFAULT_OPTIONS.mode;
+  const isConservative = mode === 'conservative';
+  const failOnLowConfidence = options.fail_on_low_confidence ?? isConservative;
+  const preserveNeighbors = options.preserve_neighbors ?? isConservative;
 
   const minTokens = options.min_tokens ?? DEFAULT_OPTIONS.min_tokens;
   if (inputTokens <= minTokens) {
     return toCompressionOutput(inputText, inputTokens);
   }
+
+  if (isConservative && looksStructured(inputText)) {
+    return toCompressionOutput(inputText, inputTokens, [
+      'Heuristic compression skipped because the input appears to contain structured blocks; use TOON or code compaction for structured content.',
+    ]);
+  }
+
+  const analysis = preprocessContext(inputText);
 
   const targetReduction = options.target_reduction ?? DEFAULT_OPTIONS.target_reduction;
   const targetTokens = Math.max(1, Math.max(minTokens, Math.floor(inputTokens * (1 - targetReduction))));
@@ -111,12 +133,30 @@ export function compressHeuristicText(
   const query = options.query ?? '';
   const terms = queryTerms(query);
 
+  if (failOnLowConfidence && terms.size === 0) {
+    return toCompressionOutput(inputText, inputTokens, [
+      'Heuristic compression skipped because no usable relevance query terms were available.',
+    ]);
+  }
+
   const scoredSentences = analysis.candidates.map((candidate) => ({
     sentence: candidate.sentence,
     index: candidate.index,
     ...scoreSentenceCandidate(candidate, terms),
     tokens: candidate.tokenCount,
+    isProtected: candidate.isProtected,
+    hasEvidence: candidate.hasEvidence,
   }));
+
+  if (
+    failOnLowConfidence
+    && terms.size > 0
+    && !scoredSentences.some((candidate) => candidate.overlapCount > 0)
+  ) {
+    return toCompressionOutput(inputText, inputTokens, [
+      'Heuristic compression skipped because no sentence matched the relevance query.',
+    ]);
+  }
 
   const selected: ScoredSentenceCandidate[] = [];
   const selectedIndices = new Set<number>();
@@ -175,23 +215,26 @@ export function compressHeuristicText(
     }
   }
 
-  selected.sort((left, right) => left.index - right.index);
+  const finalSelection = preserveNeighbors
+    ? expandSelectionWithNeighbors(selected, scoredSentences, maxSentences)
+    : selected;
 
-  let output = selected.map((item) => item.sentence).join(' ');
+  finalSelection.sort((left, right) => left.index - right.index);
+
+  let output = finalSelection.map((item) => item.sentence).join(' ');
 
   if (!output) {
-    output = tokenizeForHeuristicCompression(inputText).slice(0, targetTokens).join(' ');
-  } else {
-    const outputTokens = tokenizeForHeuristicCompression(output);
-    if (outputTokens.length > targetTokens) {
-      output = outputTokens.slice(0, targetTokens).join(' ');
-    }
+    output = takeWholeCandidatesWithinBudget(analysis.candidates, targetTokens) || inputText;
   }
 
   return toCompressionOutput(output, inputTokens);
 }
 
-function toCompressionOutput(output: string, inputTokens: number): HeuristicCompressionOutput {
+function toCompressionOutput(
+  output: string,
+  inputTokens: number,
+  warnings: string[] = [],
+): HeuristicCompressionOutput {
   const outputTokens = estimateHeuristicTokens(output);
   const tokensSaved = Math.max(0, inputTokens - outputTokens);
 
@@ -201,6 +244,7 @@ function toCompressionOutput(output: string, inputTokens: number): HeuristicComp
     outputTokens,
     tokensSaved,
     compressionRatio: outputTokens === 0 ? 0 : inputTokens / outputTokens,
+    ...(warnings.length > 0 ? { warnings } : {}),
   };
 }
 
@@ -232,14 +276,6 @@ function splitIntoSentences(text: string): string[] {
     .filter(Boolean);
 }
 
-function chunkTokens(tokens: string[], chunkSize: number): string[][] {
-  const chunks: string[][] = [];
-  for (let index = 0; index < tokens.length; index += chunkSize) {
-    chunks.push(tokens.slice(index, index + chunkSize));
-  }
-  return chunks;
-}
-
 function splitOversizedSentence(sentence: string, maxTokens = MAX_SEGMENT_TOKENS): string[] {
   const rawTokens = tokenizeForHeuristicCompression(sentence);
   if (rawTokens.length <= maxTokens) {
@@ -256,11 +292,11 @@ function splitOversizedSentence(sentence: string, maxTokens = MAX_SEGMENT_TOKENS
       if (estimateHeuristicTokens(segment) <= maxTokens) {
         return [segment];
       }
-      return chunkTokens(tokenizeForHeuristicCompression(segment), maxTokens).map((chunk) => chunk.join(' '));
+      return [segment];
     });
   }
 
-  return chunkTokens(rawTokens, maxTokens).map((chunk) => chunk.join(' '));
+  return [sentence];
 }
 
 function normalizeToken(token: string): string {
@@ -274,22 +310,27 @@ function tokenizeNormalized(text: string): string[] {
 }
 
 function queryTerms(query: string): Set<string> {
-  return new Set(tokenizeNormalized(query).filter((term) => term.length >= 3 && !STOP_WORDS.has(term)));
+  return new Set(tokenizeNormalized(query).filter((term) => {
+    if (STOP_WORDS.has(term)) {
+      return false;
+    }
+    return term.length >= 3 || /^(?:[a-z]\d|\d+[a-z]?|[a-z]{2})$/i.test(term);
+  }));
 }
 
 function preprocessContext(context: string): { originalTokens: number; candidates: SentenceCandidate[] } {
   const originalTokens = estimateHeuristicTokens(context);
-  const dedupeSet = new Set<string>();
   const candidates: SentenceCandidate[] = [];
+  let previousNormalized = '';
 
   for (const sentence of splitIntoSentences(context)) {
     for (const segment of splitOversizedSentence(sentence)) {
       const normalized = normalizeForDeduping(segment);
-      if (!normalized || dedupeSet.has(normalized)) {
+      if (!normalized || normalized === previousNormalized) {
         continue;
       }
 
-      dedupeSet.add(normalized);
+      previousNormalized = normalized;
 
       const rawTokens = tokenizeForHeuristicCompression(segment);
       const normalizedTerms = rawTokens
@@ -303,6 +344,8 @@ function preprocessContext(context: string): { originalTokens: number; candidate
         tokenCount: rawTokens.length,
         uniqueTerms: new Set(normalizedTerms),
         isBoilerplate: BOILERPLATE_REGEX.test(lowered),
+        isProtected: PROTECTED_SIGNAL_REGEX.test(segment),
+        hasEvidence: EVIDENCE_SIGNAL_REGEX.test(segment),
       });
     }
   }
@@ -336,10 +379,78 @@ function scoreSentenceCandidate(
   const densityScore = terms.size > 0 ? overlap / terms.size : 0;
   const lengthScore = Math.min(candidate.tokenCount, 40) / 40;
   const boilerplatePenalty = candidate.isBoilerplate ? 0.5 : 0;
+  const protectedScore = candidate.isProtected ? 0.9 : 0;
+  const evidenceScore = candidate.hasEvidence ? 0.4 : 0;
 
   return {
-    score: overlapScore + densityScore + lengthScore - boilerplatePenalty,
+    score: overlapScore + densityScore + lengthScore + protectedScore + evidenceScore - boilerplatePenalty,
     overlapCount: overlap,
     overlapTerms,
   };
+}
+
+function looksStructured(text: string): boolean {
+  if (STRUCTURED_BLOCK_REGEX.test(text)) {
+    return true;
+  }
+
+  const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  if (lines.length < 3) {
+    return false;
+  }
+
+  const listLikeLines = lines.filter((line) => /^[-*+] |\d+[.)] /.test(line)).length;
+  return listLikeLines >= 3 && listLikeLines / lines.length >= 0.6;
+}
+
+function expandSelectionWithNeighbors(
+  selected: ScoredSentenceCandidate[],
+  scoredSentences: ScoredSentenceCandidate[],
+  maxSentences: number,
+): ScoredSentenceCandidate[] {
+  if (selected.length === 0 || selected.length >= maxSentences) {
+    return selected;
+  }
+
+  const byIndex = new Map(scoredSentences.map((candidate) => [candidate.index, candidate]));
+  const expanded = new Map(selected.map((candidate) => [candidate.index, candidate]));
+
+  for (const candidate of selected) {
+    if (expanded.size >= maxSentences) {
+      break;
+    }
+
+    if (candidate.overlapCount === 0 && !candidate.isProtected && !candidate.hasEvidence) {
+      continue;
+    }
+
+    for (const neighborIndex of [candidate.index - 1, candidate.index + 1]) {
+      if (expanded.size >= maxSentences) {
+        break;
+      }
+
+      const neighbor = byIndex.get(neighborIndex);
+      if (neighbor && !expanded.has(neighbor.index)) {
+        expanded.set(neighbor.index, neighbor);
+      }
+    }
+  }
+
+  return [...expanded.values()];
+}
+
+function takeWholeCandidatesWithinBudget(candidates: SentenceCandidate[], targetTokens: number): string {
+  const selected: string[] = [];
+  let tokens = 0;
+
+  for (const candidate of candidates) {
+    if (tokens + candidate.tokenCount > targetTokens) {
+      break;
+    }
+
+    selected.push(candidate.sentence);
+    tokens += candidate.tokenCount;
+  }
+
+  return selected.join(' ');
 }

@@ -290,6 +290,9 @@ compression:
 | `heuristic.query` | `string` | Optional relevance query used for sentence scoring |
 | `heuristic.query_variable` | `string` | Runtime variable whose value is used as the relevance query |
 | `heuristic.json_to_toon` | `boolean` | When `true`, complete JSON object/array inputs are converted to TOON; invalid JSON is preserved with `POK031` |
+| `heuristic.mode` | `"conservative" \| "balanced"` | Compression behavior; defaults to `conservative` for lower risk of meaning loss |
+| `heuristic.preserve_neighbors` | `boolean` | Include adjacent sentences around selected matches when `max_sentences` allows; defaults to `true` in conservative mode |
+| `heuristic.fail_on_low_confidence` | `boolean` | Preserve the original value when query terms are missing or unmatched; defaults to `true` in conservative mode |
 | `code.enabled` | `boolean` | Set `true` to compact code instead of text-compressing it |
 | `code.remove_comments` | `boolean` | Remove line and block comments; defaults to `true` |
 | `code.trim_indentation` | `boolean` | Remove common leading indentation; defaults to `true` |
@@ -309,7 +312,7 @@ const result = await kit.renderPrompt({
 
 If `theTokenCompany.apiKey` is omitted, PromptOpsKit also checks `THETOKENCOMPANY_API_KEY` and `TTC_API_KEY`. The request is sent directly to `POST https://api.thetokencompany.com/v1/compress` with no vendor SDK dependency. Compression applies only to the current rendered prompt template; system instructions and conversation history are left unchanged.
 
-Compression happens before provider request generation, so provider cache fields and cache-control markers are applied to the compressed prompt text.
+Compression happens before provider request generation, so provider cache fields and cache-control markers are applied to the compressed prompt text. Local heuristic compression is extractive: conservative mode preserves whole source sentences, skips structured blocks, and returns `POK031` warnings when compression is skipped for low confidence.
 
 For per-placeholder compression, add `compression: heuristic`, `compression.heuristic`, `compression: code`, or `compression.code` to a `context.inputs` object. Use `{{ context_value | compress }}` for heuristic text compression, `{{ json_payload | toon }}` to convert one JSON placeholder value to TOON, or `{{ source_code | compact }}` to compact code without sentence extraction. Placeholder modifiers are single-token shortcuts; use `context.inputs[].compression` for options.
 

@@ -156,6 +156,7 @@ Use `compression.heuristic` for lightweight local compression with no backend ca
 compression:
   heuristic:
     enabled: true
+    mode: conservative
     min_tokens: 120
     max_sentences: 8
     target_reduction: 0.45
@@ -163,7 +164,7 @@ compression:
     json_to_toon: true
 ```
 
-The heuristic compressor deduplicates text, ranks sentences against `query`, `query_variable`, or system instructions, and keeps the highest-scoring sentences inside the token budget. It uses local token estimates and does not require credentials. When `json_to_toon: true` is set and the input is a complete JSON object or array, PromptOpsKit first converts that JSON to TOON and preserves the structured TOON output instead of sentence-selecting through it. Invalid JSON is left unchanged and reported with `POK031`.
+The heuristic compressor deduplicates adjacent repeated sentences, ranks exact source sentences against `query`, `query_variable`, or system instructions, and keeps the highest-scoring sentences inside the token budget. It uses local token estimates and does not require credentials. The default `mode: conservative` skips low-confidence compression, preserves adjacent context when `max_sentences` allows, avoids token-level truncation, and leaves structured blocks unchanged. When `json_to_toon: true` is set and the input is a complete JSON object or array, PromptOpsKit first converts that JSON to TOON and preserves the structured TOON output instead of sentence-selecting through it. Invalid JSON is left unchanged and reported with `POK031`.
 
 Credit: the local heuristic approach is based on Jason Kneen's [open-thetokenco](https://github.com/jasonkneen/open-thetokenco/tree/main).
 TOON preprocessing uses a local encode-only implementation inspired by the MIT-licensed [TOON project](https://github.com/toon-format/toon) by Johann Schopplich, without adding `@toon-format/toon` as a runtime dependency.
@@ -190,6 +191,7 @@ context:
       compression:
         heuristic:
           enabled: true
+          mode: conservative
           query_variable: user_question
     - name: source_code
       compression: code
@@ -203,7 +205,7 @@ Payload: {{ json_payload | toon }}
 Source: {{ source_code | compact }}
 ```
 
-Placeholder modifiers are single-token shortcuts. Use `context.inputs[].compression` when a placeholder needs options.
+Placeholder modifiers are single-token shortcuts. Use `context.inputs[].compression` when a placeholder needs options such as `query_variable`, `mode`, `preserve_neighbors`, `fail_on_low_confidence`, or `remove_comments: false`.
 
 ## Caching configuration
 

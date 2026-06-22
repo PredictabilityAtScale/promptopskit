@@ -251,13 +251,14 @@ await fetch('https://api.openai.com/v1/chat/completions', {
         <h2 id="compression-title">Compress prompt context before it reaches a model</h2>
         <p class="section-intro">
           Keep compression opt-in and close to the prompt. Use backend compression,
-          local heuristic compression, JSON-to-TOON preprocessing, or code compaction,
+          conservative local extraction, JSON-to-TOON preprocessing, or code compaction,
           then read a lightweight operation-level token-savings summary from the render result.
         </p>
         <article class="card">
           <pre><code>compression:
   heuristic:
     enabled: true
+    mode: conservative
     query_variable: user_question
     json_to_toon: true
   code:
@@ -268,6 +269,7 @@ context:
       compression:
         heuristic:
           enabled: true
+          mode: conservative
     - name: source_code
       compression: code
 
@@ -432,7 +434,7 @@ tests/
           </article>
           <article class="card">
             <h3>Prompt compression and compaction</h3>
-            <p>Opt into TheTokenCompany, local heuristic compression, TOON preprocessing, or code compaction with token-savings summaries.</p>
+            <p>Opt into TheTokenCompany, conservative local extraction, TOON preprocessing, or code compaction with token-savings summaries.</p>
           </article>
           <article class="card">
             <h3>Provider adapters</h3>

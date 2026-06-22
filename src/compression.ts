@@ -174,6 +174,9 @@ export async function applyPromptCompressionForRender(
       target_reduction: heuristicConfig?.target_reduction,
       query: resolveHeuristicPromptQuery(heuristicConfig, runtime.variables, sections.system_instructions),
       json_to_toon: heuristicConfig?.json_to_toon,
+      mode: heuristicConfig?.mode,
+      preserve_neighbors: heuristicConfig?.preserve_neighbors,
+      fail_on_low_confidence: heuristicConfig?.fail_on_low_confidence,
     });
 
     promptTemplate = result.output;

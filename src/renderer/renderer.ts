@@ -114,6 +114,9 @@ export function renderSections(
         target_reduction: configuredHeuristic?.target_reduction,
         query,
         json_to_toon: configuredHeuristic?.json_to_toon,
+        mode: configuredHeuristic?.mode,
+        preserve_neighbors: configuredHeuristic?.preserve_neighbors,
+        fail_on_low_confidence: configuredHeuristic?.fail_on_low_confidence,
       };
       const cacheKey = JSON.stringify([name, value, compressionOptions]);
       const cached = compressionCache.get(cacheKey);

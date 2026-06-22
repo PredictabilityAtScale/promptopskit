@@ -98,6 +98,29 @@ nav a:hover,
   font-weight: 600;
 }
 
+.architecture-section {
+  padding-top: 1.5rem;
+}
+
+.architecture-copy {
+  margin-bottom: 1.25rem;
+}
+
+.architecture-figure {
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+}
+
+.architecture-figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
 .best-for-strip {
   margin-top: 1.5rem;
   padding: 1rem 1.1rem;

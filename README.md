@@ -5,17 +5,30 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](https://nodejs.org)
 
-**Turn hardcoded AI prompts into versioned, tested application assets.**
+**Prompts are becoming production code. Manage them that way.**
 
-Your prompts are already in Git. PromptOpsKit makes them manageable.
+AI features often start with a few prompt strings. Then model settings, tools, provider quirks, context limits, environment overrides, tests, and customer-specific behavior start spreading across the codebase.
 
-Keep prompts, model settings, tools, input validation, shared instructions, environment overrides, and tests together in Markdown files that live in Git and ship with your app. Render provider-ready request bodies without giving up your SDK, gateway, auth, retries, routing, observability, or billing.
+PromptOpsKit is an open-source toolkit for turning hardcoded AI prompts into versioned, tested application assets. Keep prompts, model settings, tools, input validation, shared instructions, environment overrides, and tests together in Markdown files that live in Git and ship with your app.
+
+No hosted dashboard. No gateway required. No vendor lock-in. Render provider-ready request bodies while keeping your SDK, auth, routing, retries, observability, and billing.
 
 PromptOpsKit is not a prompt dashboard, LLM gateway, or hosted runtime service. It is the repo-native layer between scattered prompt strings and production AI calls.
 
+## Where this fits in the AI production stack
+
+PromptOpsKit handles the open-source prompt asset layer: prompts, model settings, tools, input rules, overrides, and tests in Git.
+
+As AI features grow, adjacent production concerns usually appear:
+
+- **Provider operations** — routing, caching, cost controls, customer attribution, and gateway reliability. See LLMAsAService.
+- **Customer usage and billing** — usage metering, entitlements, limits, alerts, and usage-based billing. See UsageTap.
+
+PromptOpsKit does not require either service. It keeps the prompt layer repo-native and transport-light so teams can adopt the rest of their AI production stack when they need it.
+
 ## Why PromptOpsKit?
 
-From scattered prompt glue:
+When prototypes become real product features, prompt glue is hard to review and easy to drift:
 
 - Prompt strings live inline in code
 - Model config and tools drift in separate files
@@ -23,7 +36,7 @@ From scattered prompt glue:
 - Environment logic hides in if/else branches
 - Testing is ad hoc and hard to review
 
-To one reviewable asset:
+PromptOpsKit turns that behavior into one reviewable asset:
 
 - Prompt, model, tools, and input rules live together
 - `includes` and `defaults.md` avoid copy-paste drift

@@ -1,0 +1,133 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc">
+  <title id="title">PromptOpsKit pipeline and capabilities</title>
+  <desc id="desc">A pipeline showing prompt YAML assets with model, inputs, system instructions, and prompt template sections; compressed data injection; prompt hierarchy and composition; CI validation; compile step; and vendor API body generation.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#f2f7fb"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-20%" width="120%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#0f172a" flood-opacity="0.12"/>
+    </filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#334155"/>
+    </marker>
+    <style>
+      .label { font: 700 23px Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #0f172a; }
+      .body { font: 500 17px Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #475467; }
+      .small { font: 600 14px Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #475467; }
+      .mono { font: 600 18px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fill: #0f172a; }
+      .box { fill: #ffffff; stroke: #cbd5e1; stroke-width: 2; rx: 18; filter: url(#shadow); }
+      .chip { fill: #f8fafc; stroke: #cbd5e1; stroke-width: 1.5; rx: 18; }
+      .chip-text { font: 700 14px Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #334155; }
+      .code-line { fill: #eef2ff; rx: 6; }
+      .dot { fill: #14b8a6; }
+      .rule { stroke: #334155; stroke-width: 3; fill: none; marker-end: url(#arrow); }
+      .soft-rule { stroke: #94a3b8; stroke-width: 2.5; fill: none; marker-end: url(#arrow); stroke-dasharray: 7 8; }
+    </style>
+  </defs>
+
+  <rect width="1280" height="720" fill="url(#bg)"/>
+  <text x="64" y="72" class="label" font-size="30">PromptOpsKit: repo-native prompt pipeline</text>
+  <text x="64" y="106" class="body">Turn prompt glue into versioned assets, validate them in CI, compile them, and render vendor-ready API bodies.</text>
+
+  <g transform="translate(64 158)">
+    <rect class="box" width="300" height="250"/>
+    <text x="24" y="42" class="label">Prompt YAML files</text>
+    <rect x="24" y="68" width="252" height="156" fill="#f8fafc" stroke="#cbd5e1" rx="12"/>
+    <text x="42" y="98" class="mono">---</text>
+    <rect class="code-line" x="82" y="82" width="150" height="18"/>
+    <text x="42" y="130" class="small">model: gpt-5.4</text>
+    <text x="42" y="158" class="small">inputs: user_message</text>
+    <text x="42" y="186" class="small"># System instructions</text>
+    <text x="42" y="214" class="small"># Prompt template</text>
+  </g>
+
+  <g transform="translate(94 452)">
+    <rect class="box" width="420" height="162"/>
+    <text x="24" y="40" class="label">Data injection placeholder</text>
+    <text x="24" y="74" class="mono">{{ data | compress }}</text>
+    <text x="24" y="101" class="small">length limits: max_size + trim</text>
+    <g transform="translate(24 119)">
+      <rect class="chip" width="76" height="32"/>
+      <text x="18" y="21" class="chip-text">TOON</text>
+    </g>
+    <g transform="translate(112 119)">
+      <rect class="chip" width="112" height="32"/>
+      <text x="14" y="21" class="chip-text">heuristic</text>
+    </g>
+    <g transform="translate(238 119)">
+      <rect class="chip" width="154" height="32"/>
+      <text x="14" y="21" class="chip-text">LLM compression</text>
+    </g>
+  </g>
+
+  <g transform="translate(426 158)">
+    <rect class="box" width="220" height="250"/>
+    <text x="22" y="42" class="label">Hierarchy</text>
+    <text x="22" y="73" class="body">and composition</text>
+    <circle cx="42" cy="113" r="6" class="dot"/>
+    <text x="62" y="119" class="small">defaults.md</text>
+    <circle cx="42" cy="151" r="6" class="dot"/>
+    <text x="62" y="157" class="small">includes</text>
+    <circle cx="42" cy="189" r="6" class="dot"/>
+    <text x="62" y="195" class="small">env + tier overrides</text>
+    <text x="22" y="226" class="body">Enforce standards.</text>
+  </g>
+
+  <g transform="translate(706 158)">
+    <rect class="box" width="210" height="250"/>
+    <text x="22" y="42" class="label">Validate</text>
+    <text x="22" y="73" class="body">in CI/CD</text>
+    <rect x="24" y="101" width="162" height="98" fill="#ecfeff" stroke="#99f6e4" rx="12"/>
+    <text x="48" y="136" class="small">schema checks</text>
+    <text x="48" y="164" class="small">input rules</text>
+    <text x="48" y="192" class="small">guidelines</text>
+    <text x="22" y="226" class="body">Catch drift pre-deploy.</text>
+  </g>
+
+  <g transform="translate(976 158)">
+    <rect class="box" width="240" height="250"/>
+    <text x="22" y="42" class="label">Compile</text>
+    <text x="22" y="73" class="body">for production</text>
+    <rect x="24" y="104" width="192" height="64" fill="#fff7ed" stroke="#fed7aa" rx="12"/>
+    <text x="48" y="143" class="mono">.md -> JSON</text>
+    <text x="70" y="195" class="mono">or ESM</text>
+    <text x="22" y="226" class="body">Ship generated artifacts.</text>
+  </g>
+
+  <g transform="translate(706 452)">
+    <rect class="box" width="510" height="142"/>
+    <text x="24" y="40" class="label">Generate provider-ready API bodies</text>
+    <text x="24" y="72" class="body">Your app keeps SDK, auth, routing, observability, and billing.</text>
+    <g transform="translate(24 94)">
+      <rect class="chip" width="76" height="32"/>
+      <text x="16" y="21" class="chip-text">OpenAI</text>
+    </g>
+    <g transform="translate(112 94)">
+      <rect class="chip" width="96" height="32"/>
+      <text x="14" y="21" class="chip-text">Anthropic</text>
+    </g>
+    <g transform="translate(220 94)">
+      <rect class="chip" width="78" height="32"/>
+      <text x="16" y="21" class="chip-text">Google</text>
+    </g>
+    <g transform="translate(310 94)">
+      <rect class="chip" width="100" height="32"/>
+      <text x="14" y="21" class="chip-text">OpenRouter</text>
+    </g>
+    <g transform="translate(422 94)">
+      <rect class="chip" width="66" height="32"/>
+      <text x="13" y="21" class="chip-text">LLMaaS</text>
+    </g>
+  </g>
+
+  <path class="rule" d="M 364 283 H 420"/>
+  <path class="rule" d="M 646 283 H 700"/>
+  <path class="rule" d="M 916 283 H 970"/>
+  <path class="rule" d="M 1096 408 V 444"/>
+  <path class="soft-rule" d="M 304 452 C 304 426 285 421 252 408"/>
+  <path class="soft-rule" d="M 514 523 C 596 523 624 523 700 523"/>
+
+  <text x="64" y="660" class="body">General flow: author prompt assets -> compose shared standards -> validate in CI/CD -> compile -> render request bodies for the provider you already use.</text>
+</svg>

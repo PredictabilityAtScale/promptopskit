@@ -82,15 +82,9 @@
         </button>
 
         <nav id="primary-nav" aria-label="Primary">
-          <a href="#why">Before/After</a>
+          <a href="#why">Why</a>
           <a href="#demo">Demo</a>
-          <a href="#prompt-file">Prompt file</a>
-          <a href="#runtime">Runtime</a>
-          <a href="#compression">Compression</a>
-          <a href="#testing">Testing</a>
-          <a href="#stack">Stack</a>
-          <a href="#features">Features</a>
-          <a href="#faq">FAQ</a>
+          <a href="#prompt-file">Example</a>
           <a href="/docs/index.html">Docs</a>
           <a
             class="button button-primary nav-github"
@@ -104,7 +98,7 @@
     <main id="top">
       <section class="hero container">
         <p class="eyebrow">Open-source prompt infrastructure</p>
-        <h1>Prompts are becoming production code. Manage them that way.</h1>
+        <h1>Prompts are production code. Manage them that way.</h1>
         <p class="lead">
           AI features start with a few prompt strings. Then model settings, tools,
           provider quirks, context limits, environment overrides, tests, and
@@ -125,6 +119,23 @@
         <pre><code>npm install promptopskit
 npx promptopskit init
 npx promptopskit skill</code></pre>
+      </section>
+
+      <section class="container section architecture-section" aria-labelledby="architecture-title">
+        <div class="architecture-copy">
+          <p class="eyebrow">Architecture at a glance</p>
+          <h2 id="architecture-title">The basic PromptOpsKit pipeline</h2>
+          <p class="section-intro">
+            Author prompt assets in Markdown, compose shared standards, validate in
+            CI/CD, compile for production, and render provider-ready API bodies.
+          </p>
+        </div>
+        <figure class="architecture-figure">
+          <img
+            src="/assets/promptopskit-pipeline.svg"
+            alt="PromptOpsKit pipeline showing prompt YAML files, compressed data injection, hierarchy and composition, CI validation, compilation, and vendor API body generation."
+          />
+        </figure>
       </section>
 
       <section id="why" class="container section section-orientation" aria-labelledby="orientation-title">

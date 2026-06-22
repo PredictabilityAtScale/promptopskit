@@ -57,6 +57,11 @@ interface TheTokenCompanyCompressResponse {
   compression_ratio: number;
 }
 
+interface TheTokenCompanyRawCompressResponse extends Partial<TheTokenCompanyCompressResponse> {
+  original_input_tokens?: number;
+  compression_time?: number;
+}
+
 export function summarizePromptCompression(
   compression: PromptCompressionResult[] = [],
 ): PromptCompressionSummary {
@@ -344,18 +349,49 @@ async function compressWithTheTokenCompany(
     );
   }
 
-  const data = await response.json() as Partial<TheTokenCompanyCompressResponse>;
-  if (
-    typeof data.output !== 'string'
-    || typeof data.output_tokens !== 'number'
-    || typeof data.input_tokens !== 'number'
-    || typeof data.tokens_saved !== 'number'
-    || typeof data.compression_ratio !== 'number'
-  ) {
+  const data = await response.json() as TheTokenCompanyRawCompressResponse;
+  const normalized = normalizeTheTokenCompanyCompressResponse(data);
+  if (!normalized) {
     throw new Error('TheTokenCompany compression returned an invalid response payload.');
   }
 
-  return data as TheTokenCompanyCompressResponse;
+  return normalized;
+}
+
+function normalizeTheTokenCompanyCompressResponse(
+  data: TheTokenCompanyRawCompressResponse,
+): TheTokenCompanyCompressResponse | undefined {
+  if (
+    typeof data.output !== 'string'
+    || typeof data.output_tokens !== 'number'
+  ) {
+    return undefined;
+  }
+
+  const inputTokens = typeof data.input_tokens === 'number'
+    ? data.input_tokens
+    : data.original_input_tokens;
+
+  if (typeof inputTokens !== 'number') {
+    return undefined;
+  }
+
+  const tokensSaved = typeof data.tokens_saved === 'number'
+    ? data.tokens_saved
+    : inputTokens - data.output_tokens;
+  const compressionRatio = typeof data.compression_ratio === 'number'
+    ? data.compression_ratio
+    : data.output_tokens === 0
+      ? 0
+      : inputTokens / data.output_tokens;
+
+  return {
+    output: data.output,
+    output_tokens: data.output_tokens,
+    input_tokens: inputTokens,
+    tokens_saved: tokensSaved,
+    compression_ratio: compressionRatio,
+  };
 }
 
 function getEnv(name: string): string | undefined {

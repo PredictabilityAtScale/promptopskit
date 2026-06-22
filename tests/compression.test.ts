@@ -90,6 +90,63 @@ Summarize this account for {{ name }}.`,
     expect(result.request!.compressionSummary).toEqual(result.compressionSummary);
   });
 
+  it('normalizes the current TheTokenCompany response payload shape', async () => {
+    const calls: Array<{ url: string; init: RequestInit }> = [];
+    const kit = createPromptOpsKit({ sourceDir: '.', cache: false });
+
+    const fetch: typeof globalThis.fetch = async (url, init) => {
+      calls.push({ url: String(url), init: init as RequestInit });
+
+      return new Response(JSON.stringify({
+        output: 'Compressed prompt.',
+        output_tokens: 437,
+        original_input_tokens: 485,
+        compression_time: 0,
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    };
+
+    const result = await kit.renderPrompt({
+      provider: 'openai',
+      source: `---
+id: compression-current-ttc-payload
+schema_version: 1
+provider: openai
+model: gpt-5.4
+compression:
+  thetokencompany:
+    enabled: true
+---
+
+# Prompt template
+
+Summarize this account.`,
+      theTokenCompany: {
+        apiKey: 'ttc-test',
+        fetch,
+      },
+    });
+
+    expect(calls).toHaveLength(1);
+    expect(result.compression).toEqual([{
+      provider: 'thetokencompany',
+      model: 'bear-2',
+      inputTokens: 485,
+      outputTokens: 437,
+      tokensSaved: 48,
+      compressionRatio: 485 / 437,
+    }]);
+    expect(result.compressionSummary).toEqual({
+      steps: 1,
+      inputTokens: 485,
+      outputTokens: 437,
+      tokensSaved: 48,
+      reductionRatio: 48 / 485,
+    });
+  });
+
   it('applies provider cache settings to the compressed prompt text', async () => {
     const calls: Array<{ url: string; init: RequestInit }> = [];
     const kit = createPromptOpsKit({ sourceDir: '.', cache: false });

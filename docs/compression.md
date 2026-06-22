@@ -27,6 +27,8 @@ const result = await kit.renderPrompt({
 });
 ```
 
+If credentials are unavailable or the TheTokenCompany call fails, PromptOpsKit leaves the rendered prompt template unchanged, returns a `POK057` warning in `warnings`, and reports zero token savings with matching input/output token counts. Library rendering does not log this fallback to the console.
+
 Use the local heuristic compressor when you want no backend calls:
 
 ```yaml

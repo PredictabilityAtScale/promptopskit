@@ -4,6 +4,7 @@ import type { RuntimeRenderOptions } from './providers/types.js';
 import { getContextInputs } from './context.js';
 import {
   compressHeuristicText,
+  estimateHeuristicTokens,
   type HeuristicCompressionOptions,
 } from './token-compression.js';
 import {
@@ -55,6 +56,7 @@ interface TheTokenCompanyCompressResponse {
   input_tokens: number;
   tokens_saved: number;
   compression_ratio: number;
+  warnings?: string[];
 }
 
 interface TheTokenCompanyRawCompressResponse extends Partial<TheTokenCompanyCompressResponse> {
@@ -217,6 +219,7 @@ export async function applyPromptCompressionForRender(
     });
 
     promptTemplate = result.output;
+    warnings.push(...(result.warnings ?? []));
 
     compression.push({
       provider: 'thetokencompany',
@@ -312,15 +315,16 @@ async function compressWithTheTokenCompany(
 ): Promise<TheTokenCompanyCompressResponse> {
   const apiKey = options.apiKey ?? getEnv('THETOKENCOMPANY_API_KEY') ?? getEnv('TTC_API_KEY');
   if (!apiKey) {
-    throw new Error(
-      'TheTokenCompany compression is enabled, but no API key was provided. '
-      + 'Pass theTokenCompany.apiKey to renderPrompt() or set THETOKENCOMPANY_API_KEY.',
+    return createTheTokenCompanyFallback(input,
+      'no API key was provided',
     );
   }
 
   const fetchImpl = options.fetch ?? globalThis.fetch;
   if (!fetchImpl) {
-    throw new Error('TheTokenCompany compression requires a runtime with fetch support.');
+    return createTheTokenCompanyFallback(input,
+      'fetch is unavailable in this runtime',
+    );
   }
 
   const baseURL = (options.baseURL ?? THETOKENCOMPANY_DEFAULT_BASE_URL).replace(/\/+$/, '');
@@ -328,34 +332,73 @@ async function compressWithTheTokenCompany(
     ? undefined
     : { aggressiveness: options.aggressiveness };
 
-  const response = await fetchImpl(`${baseURL}/v1/compress`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: options.model,
-      input,
-      ...(compressionSettings ? { compression_settings: compressionSettings } : {}),
-    }),
-  });
-
-  if (!response.ok) {
-    const body = await response.text().catch(() => '');
-    throw new Error(
-      `TheTokenCompany compression failed with HTTP ${response.status}`
-      + (body ? `: ${body}` : '.'),
+  let response: Response;
+  try {
+    response = await fetchImpl(`${baseURL}/v1/compress`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: options.model,
+        input,
+        ...(compressionSettings ? { compression_settings: compressionSettings } : {}),
+      }),
+    });
+  } catch (error) {
+    return createTheTokenCompanyFallback(input,
+      `request failed: ${toErrorMessage(error)}`,
     );
   }
 
-  const data = await response.json() as TheTokenCompanyRawCompressResponse;
+  if (!response.ok) {
+    return createTheTokenCompanyFallback(input,
+      `service returned HTTP ${response.status}`,
+    );
+  }
+
+  let data: TheTokenCompanyRawCompressResponse;
+  try {
+    data = await response.json() as TheTokenCompanyRawCompressResponse;
+  } catch (error) {
+    return createTheTokenCompanyFallback(input,
+      `response body was not valid JSON: ${toErrorMessage(error)}`,
+    );
+  }
+
   const normalized = normalizeTheTokenCompanyCompressResponse(data);
   if (!normalized) {
-    throw new Error('TheTokenCompany compression returned an invalid response payload.');
+    return createTheTokenCompanyFallback(input,
+      'response payload was invalid',
+    );
   }
 
   return normalized;
+}
+
+function createTheTokenCompanyFallback(
+  input: string,
+  reason: string,
+): TheTokenCompanyCompressResponse {
+  const tokens = estimateHeuristicTokens(input);
+
+  return {
+    output: input,
+    output_tokens: tokens,
+    input_tokens: tokens,
+    tokens_saved: 0,
+    compression_ratio: tokens === 0 ? 0 : 1,
+    warnings: [
+      `POK057: TheTokenCompany compression skipped; using uncompressed prompt with zero token savings (${reason}).`,
+    ],
+  };
+}
+
+function toErrorMessage(error: unknown): string {
+  return error instanceof Error && error.message
+    ? error.message
+    : 'unknown error';
 }
 
 function normalizeTheTokenCompanyCompressResponse(

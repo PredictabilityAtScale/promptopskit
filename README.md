@@ -292,7 +292,7 @@ cache:
     retention: 24h
 ```
 
-At render time, pass the caller-owned API key. PromptOpsKit calls `POST https://api.thetokencompany.com/v1/compress` directly with `fetch`; no TheTokenCompany SDK is required.
+At render time, pass the caller-owned API key. PromptOpsKit calls `POST https://api.thetokencompany.com/v1/compress` directly with `fetch`; no TheTokenCompany SDK is required. If credentials are unavailable or the backend call fails, PromptOpsKit preserves the original prompt text, returns a `POK057` warning in `warnings`, and reports zero token savings with matching input/output token counts. Library rendering does not log this fallback to the console.
 
 ```typescript
 const result = await kit.renderPrompt({

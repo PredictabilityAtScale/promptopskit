@@ -253,7 +253,7 @@ Hello {{ name }}.`,
     expect(result.compression).toBeUndefined();
   });
 
-  it('fails before provider rendering when compression is enabled without a key', async () => {
+  it('falls back to uncompressed prompt text when compression is enabled without a key', async () => {
     const kit = createPromptOpsKit({ sourceDir: '.', cache: false });
     const previousLongName = process.env.THETOKENCOMPANY_API_KEY;
     const previousShortName = process.env.TTC_API_KEY;
@@ -261,10 +261,9 @@ Hello {{ name }}.`,
     delete process.env.TTC_API_KEY;
 
     try {
-      await expect(
-        kit.renderPrompt({
-          provider: 'openai',
-          source: `---
+      const result = await kit.renderPrompt({
+        provider: 'openai',
+        source: `---
 id: compression-no-key
 schema_version: 1
 provider: openai
@@ -277,8 +276,28 @@ compression:
 # Prompt template
 
 Hello.`,
-        }),
-      ).rejects.toThrow(/no API key was provided/);
+      });
+
+      const messages = result.request!.body.messages as Array<{ role: string; content: string }>;
+      expect(messages).toEqual([{ role: 'user', content: 'Hello.' }]);
+      expect(result.compression).toEqual([{
+        provider: 'thetokencompany',
+        model: 'bear-2',
+        inputTokens: 2,
+        outputTokens: 2,
+        tokensSaved: 0,
+        compressionRatio: 1,
+      }]);
+      expect(result.compressionSummary).toEqual({
+        steps: 1,
+        inputTokens: 2,
+        outputTokens: 2,
+        tokensSaved: 0,
+        reductionRatio: 0,
+      });
+      expect(result.warnings).toContain(
+        'POK057: TheTokenCompany compression skipped; using uncompressed prompt with zero token savings (no API key was provided).',
+      );
     } finally {
       if (previousLongName === undefined) {
         delete process.env.THETOKENCOMPANY_API_KEY;
@@ -291,6 +310,60 @@ Hello.`,
         process.env.TTC_API_KEY = previousShortName;
       }
     }
+  });
+
+  it('falls back to uncompressed prompt text when TheTokenCompany returns an error', async () => {
+    const calls: Array<{ url: string; init: RequestInit }> = [];
+    const kit = createPromptOpsKit({ sourceDir: '.', cache: false });
+
+    const fetch: typeof globalThis.fetch = async (url, init) => {
+      calls.push({ url: String(url), init: init as RequestInit });
+
+      return new Response('temporary outage', { status: 503 });
+    };
+
+    const result = await kit.renderPrompt({
+      provider: 'openai',
+      source: `---
+id: compression-http-fallback
+schema_version: 1
+provider: openai
+model: gpt-5.4
+compression:
+  thetokencompany:
+    enabled: true
+---
+
+# Prompt template
+
+Summarize this account.`,
+      theTokenCompany: {
+        apiKey: 'ttc-test',
+        fetch,
+      },
+    });
+
+    expect(calls).toHaveLength(1);
+    const messages = result.request!.body.messages as Array<{ role: string; content: string }>;
+    expect(messages).toEqual([{ role: 'user', content: 'Summarize this account.' }]);
+    expect(result.compression).toEqual([{
+      provider: 'thetokencompany',
+      model: 'bear-2',
+      inputTokens: 4,
+      outputTokens: 4,
+      tokensSaved: 0,
+      compressionRatio: 1,
+    }]);
+    expect(result.compressionSummary).toEqual({
+      steps: 1,
+      inputTokens: 4,
+      outputTokens: 4,
+      tokensSaved: 0,
+      reductionRatio: 0,
+    });
+    expect(result.warnings).toContain(
+      'POK057: TheTokenCompany compression skipped; using uncompressed prompt with zero token savings (service returned HTTP 503).',
+    );
   });
 
   it('supports compression through direct adapter renderPrompt and runtime overrides', async () => {

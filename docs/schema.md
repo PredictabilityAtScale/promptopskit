@@ -298,7 +298,7 @@ compression:
 | `code.trim_indentation` | `boolean` | Remove common leading indentation; defaults to `true` |
 | `code.collapse_blank_lines` | `boolean` | Remove blank lines; defaults to `true` |
 
-Compression requires the caller's TheTokenCompany API key. Pass it at render time:
+For backend compression, pass the caller's TheTokenCompany API key at render time:
 
 ```typescript
 const result = await kit.renderPrompt({
@@ -310,7 +310,7 @@ const result = await kit.renderPrompt({
 });
 ```
 
-If `theTokenCompany.apiKey` is omitted, PromptOpsKit also checks `THETOKENCOMPANY_API_KEY` and `TTC_API_KEY`. The request is sent directly to `POST https://api.thetokencompany.com/v1/compress` with no vendor SDK dependency. Compression applies only to the current rendered prompt template; system instructions and conversation history are left unchanged.
+If `theTokenCompany.apiKey` is omitted, PromptOpsKit also checks `THETOKENCOMPANY_API_KEY` and `TTC_API_KEY`. The request is sent directly to `POST https://api.thetokencompany.com/v1/compress` with no vendor SDK dependency. If credentials are unavailable or the backend call fails, PromptOpsKit preserves the original prompt text, returns a `POK057` warning in `warnings`, and reports zero token savings with matching input/output token counts. Library rendering does not log this fallback to the console. Compression applies only to the current rendered prompt template; system instructions and conversation history are left unchanged.
 
 Compression happens before provider request generation, so provider cache fields and cache-control markers are applied to the compressed prompt text. Local heuristic compression is extractive: conservative mode preserves whole source sentences, skips structured blocks, and returns `POK031` warnings when compression is skipped for low confidence.
 

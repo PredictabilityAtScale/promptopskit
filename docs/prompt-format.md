@@ -135,7 +135,7 @@ compression:
 
 When enabled, PromptOpsKit interpolates the `# Prompt template`, sends that rendered text directly to `POST https://api.thetokencompany.com/v1/compress`, and uses the returned `output` as the user prompt before provider cache settings are applied. System instructions and conversation history are not compressed.
 
-Callers must supply their own TheTokenCompany API key:
+Callers can supply their own TheTokenCompany API key:
 
 ```typescript
 const result = await kit.renderPrompt({
@@ -147,6 +147,8 @@ const result = await kit.renderPrompt({
   },
 });
 ```
+
+If credentials are unavailable or the backend call fails, PromptOpsKit preserves the original prompt text, returns a `POK057` warning in `warnings`, and reports zero token savings with matching input/output token counts. Library rendering does not log this fallback to the console.
 
 You can set `compression.thetokencompany.enabled: false` on a prompt, environment, tier, or runtime override to disable inherited compression, or override `aggressiveness` per template/tier.
 

@@ -46,6 +46,7 @@ const result = await kit.validatePrompt('support/reply');
 | `POK047` | Warning | Inline tool definition missing `description` or `input_schema` |
 | `POK055` | Warning | Prompt-level heuristic compression can sentence-select the full prompt template |
 | `POK056` | Warning | System instructions use heuristic compression for one or more placeholders |
+| `POK057` | Runtime warning | TheTokenCompany compression fell back to the uncompressed prompt |
 | `POK033` | Runtime error | `non_empty` validation failed |
 | `POK034` | Runtime error | `reject_secrets` validation matched |
 | `POK020` | Error | Include resolution failed (missing file) |

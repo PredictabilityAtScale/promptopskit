@@ -92,9 +92,9 @@ interface RenderResult {
 }
 ```
 
-`warnings` may include provider adapter warnings and render-time `POK030` context size warnings when configured to be included in results.
+`warnings` may include provider adapter warnings, render-time `POK030` context size warnings when configured to be included in results, and `POK057` TheTokenCompany compression fallback warnings.
 
-When a prompt enables `compression.thetokencompany`, pass the caller-owned API key through `theTokenCompany.apiKey` or set `THETOKENCOMPANY_API_KEY`/`TTC_API_KEY`. PromptOpsKit calls TheTokenCompany directly with `fetch`, compresses only the rendered `# Prompt template`, applies provider cache settings to the compressed prompt text, and returns token-savings metadata in `compression`.
+When a prompt enables `compression.thetokencompany`, pass the caller-owned API key through `theTokenCompany.apiKey` or set `THETOKENCOMPANY_API_KEY`/`TTC_API_KEY`. PromptOpsKit calls TheTokenCompany directly with `fetch`, compresses only the rendered `# Prompt template`, applies provider cache settings to the compressed prompt text, and returns token-savings metadata in `compression`. If credentials are unavailable or the backend call fails, PromptOpsKit preserves the original prompt text, returns a `POK057` warning in `warnings`, and reports zero token savings with matching input/output token counts. Library rendering does not log this fallback to the console.
 
 When a prompt enables `compression.heuristic` or a context placeholder opts in with `{{ value | compress }}` / `context.inputs[].compression`, PromptOpsKit performs local extractive compression without backend calls or credentials. The default `mode: conservative` preserves whole source sentences, skips low-confidence matches, includes neighboring context when configured capacity allows, and leaves structured blocks unchanged. Set `json_to_toon: true` to convert complete JSON object/array inputs to TOON, or use `{{ json_payload | toon }}` for a single placeholder. Invalid JSON is preserved unchanged and reported with `POK031` instead of being sentence-compressed. These runs also return token-savings metadata in `compression`; TOON conversions set `outputFormat: 'toon'`.
 

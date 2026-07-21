@@ -37,6 +37,7 @@ export type {
   RuntimeHistoryCompactionResult,
   RuntimeHistoryMessage,
   OpenAIResponsesRuntimeOptions,
+  LLMAsAServiceRuntimeOptions,
   ProviderAdapter,
   ProviderInlinePromptSource,
   ProviderPromptInput,
@@ -87,7 +88,6 @@ export {
   LLMASASERVICE_BASE_URL,
   LLMASASERVICE_DEFAULT_MODEL,
   LLMASASERVICE_RESPONSE_HEADER_NAMES,
-  LLMASASERVICE_SDK_PLACEHOLDER_API_KEY,
   createLLMAsAServiceOpenAIConfig,
   llmasaserviceAdapter,
 } from './providers/llmasaservice.js';
@@ -155,6 +155,8 @@ export interface RenderPromptOptions {
   strict?: boolean;
   /** OpenAI Responses API-specific request options */
   openaiResponses?: RuntimeRenderOptions['openaiResponses'];
+  /** LLMAsAService gateway credentials */
+  llmasaservice?: RuntimeRenderOptions['llmasaservice'];
   /** TheTokenCompany compression credentials and transport options */
   theTokenCompany?: RuntimeRenderOptions['theTokenCompany'];
 }
@@ -265,6 +267,7 @@ export class PromptOpsKit {
     const adapter = getAdapter(options.provider);
     const validation = adapter.validate(resolved, {
       openaiResponses: options.openaiResponses,
+      llmasaservice: options.llmasaservice,
     });
 
     if (!validation.valid) {
@@ -308,6 +311,7 @@ export class PromptOpsKit {
       toolRegistry: options.toolRegistry,
       strict: options.strict,
       openaiResponses: options.openaiResponses,
+      llmasaservice: options.llmasaservice,
       theTokenCompany: options.theTokenCompany,
     });
     const request = adapter.render(prepared.asset, prepared.runtime);

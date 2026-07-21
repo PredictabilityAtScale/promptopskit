@@ -269,8 +269,8 @@ import {
 } from 'promptopskit/llmasaservice';
 
 const client = new OpenAI(createLLMAsAServiceOpenAIConfig({
+  apiKey: process.env.LLM_GATEWAY_API_KEY!,
   baseURL: process.env.LLM_GATEWAY_BASE_URL,
-  projectId: process.env.LLM_GATEWAY_PROJECT_ID,
 }));
 
 const result = await llmasaserviceAdapter.renderPrompt(
@@ -278,10 +278,12 @@ const result = await llmasaserviceAdapter.renderPrompt(
     path: 'support/triage-summary',
   },
   {
+    llmasaservice: {
+      apiKey: process.env.LLM_GATEWAY_API_KEY!,
+    },
     runtime: {
       provider_options: {
         llmasaservice: {
-          project_id: process.env.LLM_GATEWAY_PROJECT_ID,
           customer: {
             customer_id: customer.id,
             customer_name: customer.name,
@@ -772,14 +774,13 @@ provider_options:
       order: ["anthropic", "openai"]
     transforms: ["middle-out"]
   llmasaservice:
-    project_id: llm-project-id
     # Optional default; usually pass the real customer at render time.
     customer:
       customer_id: cust_123
       customer_name: Acme
 ```
 
-For LLMAsAService, prefer putting the current customer/account/user attribution in `runtime.provider_options.llmasaservice.customer` during rendering. Static prompt metadata may include a default, but runtime values should override it for real requests.
+For LLMAsAService, pass the server-owned gateway credential through `llmasaservice.apiKey`; the adapter emits `Authorization: Bearer <api-key>`. Prefer putting the current customer/account/user attribution in `runtime.provider_options.llmasaservice.customer` during rendering. Static prompt metadata may include a default, but runtime values should override it for real requests. Do not require or generate a project id.
 
 Use `raw` only when a vendor request-body field is important and PromptOpsKit does not model it yet:
 

@@ -335,7 +335,7 @@ describe('UsageTap entitlement helpers', () => {
           reasoning_effort: 'high',
           tools: [{ type: 'web_search' }],
         },
-        headers: { 'x-project-id': 'proj_123' },
+        headers: { Authorization: 'Bearer gateway-key' },
       },
       {
         data: {
@@ -359,7 +359,7 @@ describe('UsageTap entitlement helpers', () => {
     expect(next.body.model).toBe('group:standard');
     expect(next.body.reasoning_effort).toBe('low');
     expect(next.body.tools).toEqual([]);
-    expect(next.headers).toEqual({ 'x-project-id': 'proj_123' });
+    expect(next.headers).toEqual({ Authorization: 'Bearer gateway-key' });
   });
 });
 

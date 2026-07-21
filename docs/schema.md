@@ -183,7 +183,6 @@ provider_options:
       - anthropic/claude-sonnet-4.5
       - openai/gpt-4o
   llmasaservice:
-    project_id: llm-project-id
     customer:
       customer_id: cust_123
       customer_name: Acme
@@ -207,12 +206,12 @@ provider_options:
 | `openrouter.plugins` | `object[]` | OpenRouter plugin definitions |
 | `openrouter.models` | `string[]` | OpenRouter fallback model list |
 | `llmasaservice.base_url` | `string` | Gateway base URL override |
-| `llmasaservice.project_id` | `string` | Gateway project id emitted as `x-project-id` |
+| `llmasaservice.project_id` | `string` | Deprecated optional project id emitted as `x-project-id` for backward compatibility |
 | `llmasaservice.customer` | `object` | Optional default gateway customer attribution object; usually supplied through runtime overrides |
 | `llmasaservice.conversationId` | `string` | Optional gateway conversation id |
 | `llmasaservice.conversationTitle` | `string` | Optional gateway conversation title |
 
-For `provider: llmasaservice`, static validation warns if `project_id` or `customer.customer_id` is missing because these values are often supplied at render time. When validating with render-time overrides, the adapter requires `provider_options.llmasaservice.project_id` so the rendered request can emit `headers['x-project-id']`, and it requires a gateway customer id in `provider_options.llmasaservice.customer.customer_id` or `raw.llmasaservice.customer.customer_id`.
+For `provider: llmasaservice`, pass the required credential through the render-time `llmasaservice.apiKey` option. When validating for rendering, the adapter requires that API key and a gateway customer id in `provider_options.llmasaservice.customer.customer_id` or `raw.llmasaservice.customer.customer_id`. The emitted request contains `headers.Authorization: 'Bearer <api-key>'`. Project ids are no longer required.
 
 ## `raw`
 

@@ -6,6 +6,7 @@ export type {
   ProviderRequest,
   ValidationResult,
   RuntimeRenderOptions,
+  LLMAsAServiceRuntimeOptions,
 } from './types.js';
 export { openaiAdapter } from './openai.js';
 export { openaiResponsesAdapter } from './openai-responses.js';
@@ -16,7 +17,6 @@ export {
   LLMASASERVICE_BASE_URL,
   LLMASASERVICE_DEFAULT_MODEL,
   LLMASASERVICE_RESPONSE_HEADER_NAMES,
-  LLMASASERVICE_SDK_PLACEHOLDER_API_KEY,
   createLLMAsAServiceOpenAIConfig,
   llmasaserviceAdapter,
 } from './llmasaservice.js';

@@ -1321,7 +1321,7 @@ describe('OpenRouter adapter', () => {
 });
 
 describe('LLMAsAService adapter', () => {
-  it('renders OpenAI-compatible body fields with gateway customer metadata and project header', () => {
+  it('renders OpenAI-compatible body fields with bearer auth and no project id', () => {
     const result = getAdapter('llmasaservice').render(
       {
         ...baseAsset,
@@ -1330,7 +1330,6 @@ describe('LLMAsAService adapter', () => {
         response: { stream: true },
         provider_options: {
           llmasaservice: {
-            project_id: 'proj_123',
             customer: {
               customer_id: 'cust_123',
               customer_name: 'Acme',
@@ -1348,13 +1347,16 @@ describe('LLMAsAService adapter', () => {
           },
         },
       },
-      { variables: { name: 'World' } },
+      {
+        variables: { name: 'World' },
+        llmasaservice: { apiKey: 'gateway-key' },
+      },
     );
 
     expect(result.provider).toBe('llmasaservice');
     expect(result.model).toBe('openai:gpt-5.2');
     expect(result.baseURL).toBe('https://gateway.llmasaservice.io');
-    expect(result.headers).toEqual({ 'x-project-id': 'proj_123' });
+    expect(result.headers).toEqual({ Authorization: 'Bearer gateway-key' });
     expect(result.body.model).toBe('openai:gpt-5.2');
     expect(result.body.stream).toBe(true);
     expect(result.body.max_completion_tokens).toBe(1024);
@@ -1378,7 +1380,6 @@ describe('LLMAsAService adapter', () => {
       model: undefined,
       provider_options: {
         llmasaservice: {
-          project_id: 'proj_123',
           customer: {
             customer_id: 'cust_123',
           },
@@ -1392,14 +1393,16 @@ describe('LLMAsAService adapter', () => {
         model: undefined,
         provider_options: {
           llmasaservice: {
-            project_id: 'proj_123',
             customer: {
               customer_id: 'cust_123',
             },
           },
         },
       },
-      { variables: { name: 'World' } },
+      {
+        variables: { name: 'World' },
+        llmasaservice: { apiKey: 'gateway-key' },
+      },
     );
 
     expect(validation.valid).toBe(true);
@@ -1410,16 +1413,22 @@ describe('LLMAsAService adapter', () => {
   it('creates an OpenAI SDK config shape from explicit gateway options', () => {
     const config = createLLMAsAServiceOpenAIConfig({
       baseURL: 'https://gateway.example',
-      projectId: 'proj_123',
+      apiKey: 'gateway-key',
     });
 
     expect(config).toEqual({
       baseURL: 'https://gateway.example',
-      apiKey: 'not-used-by-llm-gateway',
-      defaultHeaders: {
-        'x-project-id': 'proj_123',
-      },
+      apiKey: 'gateway-key',
     });
+  });
+
+  it('keeps project id as an optional backwards-compatible header', () => {
+    const config = createLLMAsAServiceOpenAIConfig({
+      apiKey: 'gateway-key',
+      projectId: 'proj_123',
+    });
+
+    expect(config.defaultHeaders).toEqual({ 'x-project-id': 'proj_123' });
   });
 
   it('warns when gateway metadata will need render-time values', () => {
@@ -1431,11 +1440,11 @@ describe('LLMAsAService adapter', () => {
 
     expect(validation.valid).toBe(true);
     expect(validation.warnings).toContain(
-      'LLMAsAService project_id and customer.customer_id must be supplied before rendering, usually through runtime provider_options.',
+      'LLMAsAService apiKey and customer.customer_id must be supplied before rendering.',
     );
   });
 
-  it('validates required gateway routing and customer metadata at render time', () => {
+  it('validates required bearer auth and customer metadata at render time', () => {
     const validation = getAdapter('llmasaservice').validate(
       {
         ...baseAsset,
@@ -1447,14 +1456,25 @@ describe('LLMAsAService adapter', () => {
 
     expect(validation.valid).toBe(false);
     expect(validation.errors).toContain(
-      'LLMAsAService adapter requires provider_options.llmasaservice.project_id for x-project-id routing.',
+      'LLMAsAService adapter requires llmasaservice.apiKey for Authorization Bearer authentication.',
     );
     expect(validation.errors).toContain(
       'LLMAsAService adapter requires customer.customer_id in provider_options.llmasaservice.customer or raw.llmasaservice.customer.',
     );
   });
 
-  it('requires project_id specifically for the x-project-id header', () => {
+  it('rejects direct rendering without a gateway API key', () => {
+    expect(() => getAdapter('llmasaservice').render(
+      {
+        ...baseAsset,
+        provider: 'llmasaservice',
+        model: 'group:standard',
+      },
+      { variables: { name: 'World' } },
+    )).toThrow(/requires llmasaservice\.apiKey/);
+  });
+
+  it('does not require a project id at render time', () => {
     const validation = getAdapter('llmasaservice').validate(
       {
         ...baseAsset,
@@ -1462,10 +1482,10 @@ describe('LLMAsAService adapter', () => {
         model: 'group:standard',
       },
       {
+        llmasaservice: { apiKey: 'gateway-key' },
         runtime: {
           provider_options: {
             llmasaservice: {
-              projectId: 'proj_123',
               customer: {
                 customer_id: 'cust_123',
               },
@@ -1475,10 +1495,7 @@ describe('LLMAsAService adapter', () => {
       },
     );
 
-    expect(validation.valid).toBe(false);
-    expect(validation.errors).toContain(
-      'LLMAsAService adapter requires provider_options.llmasaservice.project_id for x-project-id routing.',
-    );
+    expect(validation.valid).toBe(true);
   });
 
   it('validates gateway metadata after runtime overrides', () => {
@@ -1489,10 +1506,10 @@ describe('LLMAsAService adapter', () => {
         model: 'group:standard',
       },
       {
+        llmasaservice: { apiKey: 'gateway-key' },
         runtime: {
           provider_options: {
             llmasaservice: {
-              project_id: 'proj_123',
               customer: {
                 customer_id: 'cust_123',
               },
@@ -1514,10 +1531,10 @@ describe('LLMAsAService adapter', () => {
       },
       {
         variables: { name: 'World' },
+        llmasaservice: { apiKey: 'gateway-key' },
         runtime: {
           provider_options: {
             llmasaservice: {
-              project_id: 'proj_123',
               customer: {
                 customer_id: 'cust_runtime',
                 customer_name: 'Runtime Customer',
@@ -1528,7 +1545,7 @@ describe('LLMAsAService adapter', () => {
       },
     );
 
-    expect(result.headers).toEqual({ 'x-project-id': 'proj_123' });
+    expect(result.headers).toEqual({ Authorization: 'Bearer gateway-key' });
     expect(result.body.customer).toEqual({
       customer_id: 'cust_runtime',
       customer_name: 'Runtime Customer',
@@ -1542,19 +1559,21 @@ describe('LLMAsAService adapter', () => {
       // @ts-expect-error simulate browser or worker runtimes without a process global
       globalThis.process = undefined;
 
-      const validation = getAdapter('llmasaservice').validate({
-        ...baseAsset,
-        provider: 'llmasaservice',
-        model: 'group:standard',
-        provider_options: {
-          llmasaservice: {
-            project_id: 'proj_123',
-            customer: {
-              customer_id: 'cust_123',
+      const validation = getAdapter('llmasaservice').validate(
+        {
+          ...baseAsset,
+          provider: 'llmasaservice',
+          model: 'group:standard',
+          provider_options: {
+            llmasaservice: {
+              customer: {
+                customer_id: 'cust_123',
+              },
             },
           },
         },
-      });
+        { llmasaservice: { apiKey: 'gateway-key' } },
+      );
       const result = getAdapter('llmasaservice').render(
         {
           ...baseAsset,
@@ -1562,22 +1581,70 @@ describe('LLMAsAService adapter', () => {
           model: 'group:standard',
           provider_options: {
             llmasaservice: {
-              project_id: 'proj_123',
               customer: {
                 customer_id: 'cust_123',
               },
             },
           },
         },
-        { variables: { name: 'World' } },
+        {
+          variables: { name: 'World' },
+          llmasaservice: { apiKey: 'gateway-key' },
+        },
       );
 
       expect(validation.valid).toBe(true);
       expect(result.baseURL).toBe('https://gateway.llmasaservice.io');
-      expect(result.headers).toEqual({ 'x-project-id': 'proj_123' });
+      expect(result.headers).toEqual({ Authorization: 'Bearer gateway-key' });
     } finally {
       globalThis.process = previousProcess;
     }
+  });
+
+  it('forwards bearer credentials through PromptOpsKit.renderPrompt', async () => {
+    const kit = createPromptOpsKit({ sourceDir: '.', cache: false });
+    const result = await kit.renderPrompt({
+      source: `---
+id: gateway-auth
+schema_version: 1
+provider: llmasaservice
+model: group:standard
+provider_options:
+  llmasaservice:
+    customer:
+      customer_id: cust_123
+---
+
+# Prompt template
+
+Hello`,
+      provider: 'llmasaservice',
+      llmasaservice: { apiKey: 'gateway-key' },
+    });
+
+    expect(result.request?.headers).toEqual({ Authorization: 'Bearer gateway-key' });
+  });
+
+  it('rejects PromptOpsKit rendering without a gateway API key', async () => {
+    const kit = createPromptOpsKit({ sourceDir: '.', cache: false });
+
+    await expect(kit.renderPrompt({
+      source: `---
+id: gateway-auth
+schema_version: 1
+provider: llmasaservice
+model: group:standard
+provider_options:
+  llmasaservice:
+    customer:
+      customer_id: cust_123
+---
+
+# Prompt template
+
+Hello`,
+      provider: 'llmasaservice',
+    })).rejects.toThrow(/requires llmasaservice\.apiKey/);
   });
 });
 

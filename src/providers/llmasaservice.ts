@@ -11,7 +11,6 @@ import { resolveAssetForProvider } from './resolve-asset.js';
 import { withPromptInputSupport } from './prompt-input.js';
 
 export const LLMASASERVICE_BASE_URL = 'https://gateway.llmasaservice.io';
-export const LLMASASERVICE_SDK_PLACEHOLDER_API_KEY = 'not-used-by-llm-gateway';
 export const LLMASASERVICE_DEFAULT_MODEL = 'group:standard';
 export const LLMASASERVICE_RESPONSE_HEADER_NAMES = [
   'x-request-id',
@@ -22,25 +21,27 @@ export const LLMASASERVICE_RESPONSE_HEADER_NAMES = [
 export interface LLMAsAServiceOpenAIConfig {
   baseURL: string;
   apiKey: string;
-  defaultHeaders: {
+  defaultHeaders?: {
     'x-project-id': string;
   };
 }
 
 export interface LLMAsAServiceOpenAIConfigOptions {
+  apiKey: string;
   baseURL?: string;
+  /** @deprecated Project ids are no longer required by the gateway. */
   projectId?: string;
 }
 
 export function createLLMAsAServiceOpenAIConfig(
-  options: LLMAsAServiceOpenAIConfigOptions = {},
+  options: LLMAsAServiceOpenAIConfigOptions,
 ): LLMAsAServiceOpenAIConfig {
   return {
     baseURL: options.baseURL ?? LLMASASERVICE_BASE_URL,
-    apiKey: LLMASASERVICE_SDK_PLACEHOLDER_API_KEY,
-    defaultHeaders: {
-      'x-project-id': options.projectId ?? '',
-    },
+    apiKey: options.apiKey,
+    ...(options.projectId
+      ? { defaultHeaders: { 'x-project-id': options.projectId } }
+      : {}),
   };
 }
 
@@ -67,10 +68,6 @@ function rawCustomerId(asset: ResolvedPromptAsset): unknown {
   return customer?.customer_id;
 }
 
-function isGatewayRenderValidation(runtime: RuntimeRenderOptions | undefined): boolean {
-  return runtime?.runtime !== undefined;
-}
-
 /**
  * LLMAsAService gateway adapter.
  * Uses the OpenAI Chat Completions body shape, plus gateway routing and
@@ -94,14 +91,14 @@ export const llmasaserviceAdapter: ProviderAdapter = withPromptInputSupport({
 
     const errors = [...validation.errors];
     const gatewayOptions = resolvedAsset.provider_options?.llmasaservice;
-    const missingProjectId = !gatewayOptions?.project_id;
+    const missingApiKey = !runtime?.llmasaservice?.apiKey;
     const missingCustomerId =
       !gatewayOptions?.customer?.customer_id && typeof rawCustomerId(resolvedAsset) !== 'string';
-    const validateRenderMetadata = isGatewayRenderValidation(runtime);
+    const validateRenderMetadata = runtime !== undefined;
 
-    if (missingProjectId && validateRenderMetadata) {
+    if (missingApiKey && validateRenderMetadata) {
       errors.push(
-        'LLMAsAService adapter requires provider_options.llmasaservice.project_id for x-project-id routing.',
+        'LLMAsAService adapter requires llmasaservice.apiKey for Authorization Bearer authentication.',
       );
     }
 
@@ -111,9 +108,9 @@ export const llmasaserviceAdapter: ProviderAdapter = withPromptInputSupport({
       );
     }
 
-    if ((missingProjectId || missingCustomerId) && !validateRenderMetadata) {
+    if ((missingApiKey || missingCustomerId) && !validateRenderMetadata) {
       warnings.push(
-        'LLMAsAService project_id and customer.customer_id must be supplied before rendering, usually through runtime provider_options.',
+        'LLMAsAService apiKey and customer.customer_id must be supplied before rendering.',
       );
     }
 
@@ -152,7 +149,13 @@ export const llmasaserviceAdapter: ProviderAdapter = withPromptInputSupport({
 
     body = applyRawProviderBody(body, resolvedAsset, 'llmasaservice');
 
-    const projectId = options?.project_id ?? '';
+    const apiKey = runtime.llmasaservice?.apiKey;
+    if (!apiKey) {
+      throw new Error(
+        'LLMAsAService adapter requires llmasaservice.apiKey for Authorization Bearer authentication.',
+      );
+    }
+    const projectId = options?.project_id;
 
     return {
       body,
@@ -160,7 +163,8 @@ export const llmasaserviceAdapter: ProviderAdapter = withPromptInputSupport({
       model,
       baseURL: options?.base_url ?? LLMASASERVICE_BASE_URL,
       headers: {
-        'x-project-id': projectId,
+        Authorization: `Bearer ${apiKey}`,
+        ...(projectId ? { 'x-project-id': projectId } : {}),
       },
     };
   },

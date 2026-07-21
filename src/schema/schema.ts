@@ -106,6 +106,7 @@ export const LLMAsAServiceCustomerSchema = z.object({
 
 export const LLMAsAServiceProviderOptionsSchema = z.object({
   base_url: z.string().url().optional(),
+  // Deprecated compatibility fields; the gateway no longer requires project routing.
   project_id: z.string().optional(),
   customer: LLMAsAServiceCustomerSchema.optional(),
   conversationId: z.string().optional(),

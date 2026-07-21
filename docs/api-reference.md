@@ -75,6 +75,7 @@ const result = await kit.renderPrompt({
 | `toolRegistry` | `Record<string, unknown>` | Tool definitions for resolving string tool references |
 | `strict` | `boolean` | Fail on missing variables except object-form inputs marked `optional: true` (default `false`) |
 | `openaiResponses` | `object` | Optional Responses API extras (`previous_response_id`, `conversation`, `instructions`, `parallel_tool_calls`, `max_tool_calls`, `store`, `metadata`, `include`, `background`) |
+| `llmasaservice` | `object` | Required LLMAsAService credentials (`apiKey`) when rendering for the gateway |
 | `theTokenCompany` | `object` | Optional TheTokenCompany compression settings (`apiKey`, `baseURL`, `fetch`) used when `compression.thetokencompany.enabled: true` |
 
 Either `path` or `source` must be provided.
@@ -266,7 +267,7 @@ const request = adapter.render(resolvedAsset, {
 
 Supported adapter names are `openai`, `openai-responses`, `anthropic`, `gemini`/`google`, `openrouter`, and `llmasaservice`.
 
-`RuntimeRenderOptions` for direct adapter rendering supports `environment`, `tier`, `runtime`, `variables`, `onContextOverflow`, `history`, `onHistoryCompaction`, `toolRegistry`, `strict`, and `openaiResponses`.
+`RuntimeRenderOptions` for direct adapter rendering supports `environment`, `tier`, `runtime`, `variables`, `onContextOverflow`, `history`, `onHistoryCompaction`, `toolRegistry`, `strict`, `openaiResponses`, `llmasaservice`, and `theTokenCompany`. For LLMAsAService, pass `{ llmasaservice: { apiKey } }`; project ids are no longer required.
 
 Runtime overrides can include the same overridable front matter fields as `environments` and `tiers`, including `raw` provider passthrough blocks. Raw blocks are merged into provider request bodies after normalized fields and provider-specific options.
 

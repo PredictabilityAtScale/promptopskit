@@ -219,14 +219,16 @@ result = await kit.renderPrompt({
 });
 if (!result.request) throw new Error(result.returnMessage ?? 'Prompt rendering failed.');
 
-// LLMAsAService — OpenAI-compatible gateway with project and customer metadata
+// LLMAsAService — OpenAI-compatible gateway with bearer auth and customer metadata
 result = await kit.renderPrompt({
   path: 'hello',
   provider: 'llmasaservice',
+  llmasaservice: {
+    apiKey: process.env.LLM_GATEWAY_API_KEY!,
+  },
   runtime: {
     provider_options: {
       llmasaservice: {
-        project_id: process.env.LLM_GATEWAY_PROJECT_ID,
         customer: { customer_id: 'cust_123', customer_name: 'Acme' },
       },
     },
@@ -235,7 +237,7 @@ result = await kit.renderPrompt({
 });
 if (!result.request) throw new Error(result.returnMessage ?? 'Prompt rendering failed.');
 // result.request.body → { model, messages, customer, ... }
-// result.request.headers → { 'x-project-id': '...' }
+// result.request.headers → { Authorization: 'Bearer ...' }
 ```
 
 Provider adapters are also available as direct imports:
@@ -341,7 +343,7 @@ TOON preprocessing uses a local encode-only implementation inspired by the MIT-l
 
 See [Compression and Compaction](./docs/compression.md) for complete examples and token-savings reporting.
 
-Use `provider_options` when PromptOpsKit has a known provider-specific mapping, such as Anthropic `top_k`, Gemini's native `response_schema`, OpenRouter routing fields, or LLMAsAService gateway routing/customer metadata.
+Use `provider_options` when PromptOpsKit has a known provider-specific mapping, such as Anthropic `top_k`, Gemini's native `response_schema`, OpenRouter routing fields, or LLMAsAService customer/conversation metadata.
 
 ```yaml
 response:
@@ -359,14 +361,13 @@ provider_options:
       order: ["anthropic", "openai"]
     transforms: ["middle-out"]
   llmasaservice:
-    project_id: "llm-project-id"
     # Optional default; usually pass the real customer at render time.
     customer:
       customer_id: "cust_123"
       customer_name: "Acme"
 ```
 
-For LLMAsAService, `provider_options.llmasaservice.customer` is intended to be render-time attribution for the current account/user. A prompt can keep a default, but production calls should normally override it through `runtime.provider_options.llmasaservice.customer`.
+For LLMAsAService, pass the gateway credential through the render-time `llmasaservice.apiKey` option; the adapter emits it as an `Authorization: Bearer ...` header. `provider_options.llmasaservice.customer` is intended to be render-time attribution for the current account/user. A prompt can keep a default, but production calls should normally override it through `runtime.provider_options.llmasaservice.customer`. A project id is no longer required.
 
 When a provider adds a body field PromptOpsKit does not model yet, use `raw`:
 
@@ -689,6 +690,7 @@ Renders a prompt for a specific provider. Returns `{ resolved, request?, returnM
 | `toolRegistry` | `Record<string, unknown>` | Tool definitions for resolving string tool references |
 | `strict` | `boolean` | Fail on missing variables except object-form inputs marked `optional: true` |
 | `openaiResponses` | `object` | Optional Responses API extras (`previous_response_id`, `conversation`, `instructions`, `parallel_tool_calls`, `max_tool_calls`, `store`, `metadata`, `include`, `background`) |
+| `llmasaservice` | `object` | Required LLMAsAService gateway credentials (`apiKey`) when using that provider |
 | `theTokenCompany` | `object` | Optional compression settings (`apiKey`, `baseURL`, `fetch`) used when `compression.thetokencompany.enabled: true` |
 
 Use `compressionSummary.tokensSaved` for a lightweight operation-level aggregate across compression and compaction steps. Use `compression` for the detailed per-step breakdown.

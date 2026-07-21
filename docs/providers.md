@@ -37,7 +37,6 @@ provider_options:
       order: ["anthropic", "openai"]
     transforms: ["middle-out"]
   llmasaservice:
-    project_id: "llm-project-id"
     customer:
       customer_id: "cust_123"
       customer_name: "Acme"
@@ -485,7 +484,7 @@ If you use environment variables in your application, read them in app code and 
 
 ```bash
 LLM_GATEWAY_BASE_URL=https://gateway.llmasaservice.io
-LLM_GATEWAY_PROJECT_ID=<project id from llmasaservice admin>
+LLM_GATEWAY_API_KEY=<api key from llmasaservice admin>
 LLM_GATEWAY_DEFAULT_MODEL=group:standard
 ```
 
@@ -496,7 +495,6 @@ provider: llmasaservice
 model: group:standard
 provider_options:
   llmasaservice:
-    project_id: "llm-project-id"
     # Optional default; most applications should override customer at render time.
     customer:
       customer_id: "cust_123"
@@ -507,9 +505,9 @@ provider_options:
     conversationTitle: "optional conversation title"
 ```
 
-`project_id` is emitted as the `x-project-id` request header. `customer`, `conversationId`, and `conversationTitle` are emitted in the JSON body. Customer attribution is usually known only at request time, so pass it through `runtime.provider_options.llmasaservice.customer` when rendering. A prompt file may include a default customer, but runtime values should override it for real user/customer traffic.
+`customer`, `conversationId`, and `conversationTitle` are emitted in the JSON body. Customer attribution is usually known only at request time, so pass it through `runtime.provider_options.llmasaservice.customer` when rendering. A prompt file may include a default customer, but runtime values should override it for real user/customer traffic.
 
-Adapter validation without render-time overrides warns when `project_id` or `customer.customer_id` is missing. When validating with render-time overrides, the adapter requires `provider_options.llmasaservice.project_id` and a `customer.customer_id` value after overrides are applied.
+Pass the gateway API key through the render-time `llmasaservice.apiKey` option. The adapter emits `Authorization: Bearer <api-key>` and requires the API key plus a `customer.customer_id` value when validating for rendering. Project ids are no longer required. The deprecated `project_id`/`projectId` options remain available only for backward compatibility with gateway deployments that still use them.
 
 OpenAI SDK setup:
 
@@ -521,17 +519,19 @@ import {
 } from 'promptopskit/llmasaservice';
 
 const gateway = new OpenAI(createLLMAsAServiceOpenAIConfig({
+  apiKey: process.env.LLM_GATEWAY_API_KEY!,
   baseURL: process.env.LLM_GATEWAY_BASE_URL,
-  projectId: process.env.LLM_GATEWAY_PROJECT_ID,
 }));
 
 const request = llmasaserviceAdapter.render(prompt, {
   variables,
+  llmasaservice: {
+    apiKey: process.env.LLM_GATEWAY_API_KEY!,
+  },
   runtime: {
     model: process.env.LLM_GATEWAY_DEFAULT_MODEL,
     provider_options: {
       llmasaservice: {
-        project_id: process.env.LLM_GATEWAY_PROJECT_ID,
         customer: {
           customer_id: account.id,
           customer_name: account.name,
@@ -546,7 +546,7 @@ const request = llmasaserviceAdapter.render(prompt, {
 const completion = await gateway.chat.completions.create(request.body as any);
 ```
 
-The gateway does not require an OpenAI provider API key or LLM Gateway API key for gateway-routed calls. `createLLMAsAServiceOpenAIConfig()` sets the OpenAI SDK `apiKey` to `not-used-by-llm-gateway` only because the SDK constructor requires a value.
+The gateway API key is required. `createLLMAsAServiceOpenAIConfig()` passes it to the OpenAI SDK, which sends it as bearer authorization. Keep this credential in server-side application configuration rather than prompt front matter.
 
 For GPT-5 class OpenAI model selectors such as `gpt-5.2` or `openai:gpt-5.2`, `sampling.max_output_tokens` is emitted as `max_completion_tokens`. Other gateway selectors preserve the normal OpenAI-compatible fields.
 
@@ -561,7 +561,7 @@ Manual smoke test:
 ```bash
 curl https://gateway.llmasaservice.io/chat/completions \
   -H "Content-Type: application/json" \
-  -H "x-project-id: $LLM_GATEWAY_PROJECT_ID" \
+  -H "Authorization: Bearer $LLM_GATEWAY_API_KEY" \
   -d '{
     "model": "group:standard",
     "messages": [{"role": "user", "content": "Say ok"}],

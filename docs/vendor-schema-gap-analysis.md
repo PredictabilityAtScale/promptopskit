@@ -74,7 +74,7 @@ See [`docs/schema.md`](./schema.md) and [`src/schema/schema.ts`](../src/schema/s
 | Area | Gateway capability | PromptOpsKit status | Gap |
 |---|---|---|---|
 | OpenAI-compatible chat payloads | Accepts `POST /chat/completions` and `/v1/chat/completions` with standard Chat Completions fields | Supported through `llmasaserviceAdapter`, which reuses the OpenAI chat body mapping | No significant gap for chat request shaping. |
-| Gateway project routing | Requires `x-project-id` header or top-level `projectId` body field | Supported via `provider_options.llmasaservice.project_id`, emitted as `request.headers['x-project-id']`; `projectId` remains available for body fallback | Header transport remains caller-owned when not using the emitted metadata directly. |
+| Gateway authentication | Requires `Authorization: Bearer <api-key>`; project ids are no longer required | Supported via the render-time `llmasaservice.apiKey` option and emitted request headers | No significant gap. |
 | Customer attribution | Supports body `customer.customer_id` plus optional customer/user display fields | Supported via `provider_options.llmasaservice.customer` and `raw.llmasaservice` runtime overrides | No significant gap. |
 | Conversation tracking | Supports `conversationId` and `conversationTitle` in the JSON body | Supported via `provider_options.llmasaservice` | No significant gap. |
 | Gateway model selectors | Supports `group:*`, vendor-prefixed selectors, and comma/pipe fallback lists | Supported as normal prompt `model` strings; GPT-5 selectors prefer `max_completion_tokens` | No significant gap. |
@@ -90,13 +90,13 @@ Implemented in this pass:
 3. **Normalized portable JSON Schema output** so `response.schema` remains provider-neutral and Gemini emits it as `generationConfig.responseJsonSchema`; Gemini-native schema dialects stay under `provider_options.gemini.response_schema`.
 4. **Added OpenRouter provider options** under `provider_options.openrouter` for common body-level routing fields.
 5. **Added `raw` provider passthrough** (`raw.openai`, `raw.openai-responses` / `raw.openai_responses`, `raw.anthropic`, `raw.gemini` / `raw.google`, `raw.openrouter`, `raw.llmasaservice`) as an explicit escape hatch for vendor fields not modeled yet.
-6. **Added LLMAsAService provider options** under `provider_options.llmasaservice` for gateway project routing, customer attribution, and conversation metadata.
-7. **Documented runtime responsibility for vendor headers and SDK configuration**; adapters produce request bodies plus optional transport hints where a provider needs them.
+6. **Added LLMAsAService provider options** under `provider_options.llmasaservice` for customer attribution and conversation metadata.
+7. **Documented LLMAsAService bearer authentication and SDK configuration**; the adapter emits authorization from a render-time credential.
 
 Still intentionally out of scope:
 
 - Gemini cache-resource lifecycle APIs (create/list/delete) remain outside prompt front matter because they are operational resource-management calls, not prompt request shaping.
-- Vendor headers, beta/version headers, auth, HTTP clients, and retries remain caller-owned. LLMAsAService emits `x-project-id` as request metadata for callers that want to apply it directly.
+- Vendor headers, beta/version headers, HTTP clients, and retries remain caller-owned except for LLMAsAService bearer authorization, which its adapter emits from `llmasaservice.apiKey`.
 
 ## Scope and methodology
 

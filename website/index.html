@@ -383,8 +383,8 @@ tests/
         <h2 id="providers-title">Provider-ready output with bring-your-own transport</h2>
         <p class="section-intro">
           Render OpenAI Chat, OpenAI Responses, Anthropic, Gemini, OpenRouter, and
-          LLMAsAService request bodies while keeping your app's auth, retries,
-          observability, billing, and routing.
+          LLMAsAService requests while keeping secrets in your server-side app and
+          retaining control of transport, retries, observability, billing, and routing.
         </p>
         <article class="card">
           <h3>Not a prompt dashboard. Not an LLM gateway. Not another runtime service.</h3>
@@ -513,8 +513,10 @@ tests/
           <article class="card">
             <h3>Can I keep my existing SDK and infra?</h3>
             <p>
-              Yes. PromptOpsKit returns request payloads only, so auth, retries, routing,
-              observability, and billing stay in your stack.
+              Yes. PromptOpsKit returns provider-ready request metadata; your application
+              still executes the call and owns secrets, retries, routing, observability,
+              and billing. For LLMAsAService, a server-owned API key is rendered as a
+              bearer authorization header.
             </p>
           </article>
           <article class="card">

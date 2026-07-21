@@ -51,6 +51,13 @@ export interface OpenAIResponsesRuntimeOptions {
   background?: boolean;
 }
 
+/**
+ * Credentials used for LLMAsAService gateway requests.
+ */
+export interface LLMAsAServiceRuntimeOptions {
+  apiKey: string;
+}
+
 export interface RuntimeHistoryMessage {
   role: string;
   content: string;
@@ -86,6 +93,7 @@ export interface RuntimeRenderOptions {
   toolRegistry?: Record<string, unknown>;
   strict?: boolean;
   openaiResponses?: OpenAIResponsesRuntimeOptions;
+  llmasaservice?: LLMAsAServiceRuntimeOptions;
   theTokenCompany?: TheTokenCompanyRuntimeOptions;
 }
 

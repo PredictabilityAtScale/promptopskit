@@ -86,9 +86,6 @@ cache:
   openai:
     prompt_cache_key: support-v1
     retention: in_memory
-provider_options:
-  llmasaservice:
-    project_id: 39a5e4a0-681c-463d-ae7b-bca25d4487ae
 metadata:
   owner: platform
   review_required: true
@@ -116,7 +113,6 @@ Use support tone and escalation policy.
 - `provider: openai` (inherited from root defaults)
 - `model: gpt-5.4` (inherited from root defaults)
 - `cache.openai.prompt_cache_key: support-v1` (inherited from root defaults)
-- `provider_options.llmasaservice.project_id` (inherited from root defaults)
 - `metadata.owner: support` (nearest override)
 - `metadata.review_required: true` (inherited from parent defaults)
 - system instructions from `support/defaults.md`
@@ -454,7 +450,6 @@ provider_options:
     transforms:
       - middle-out
   llmasaservice:
-    project_id: llm-project-id
     customer:
       customer_id: cust_123
 context:

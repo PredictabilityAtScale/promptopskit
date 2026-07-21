@@ -137,7 +137,7 @@ provider: llmasaservice
 model: group:standard
 provider_options:
   llmasaservice:
-    project_id: 39a5e4a0-681c-463d-ae7b-bca25d4487ae
+    base_url: https://gateway.example.com
     conversationTitle: Default title
 ---
 `);
@@ -168,7 +168,7 @@ provider_options:
     expect(asset.provider).toBe('llmasaservice');
     expect(asset.model).toBe('group:standard');
     expect(asset.provider_options?.llmasaservice).toEqual({
-      project_id: '39a5e4a0-681c-463d-ae7b-bca25d4487ae',
+      base_url: 'https://gateway.example.com',
       conversationId: 'conv_123',
       conversationTitle: 'Local title',
     });

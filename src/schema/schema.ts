@@ -114,11 +114,41 @@ export const LLMAsAServiceProviderOptionsSchema = z.object({
   projectId: z.string().optional(),
 });
 
+export const UsageTapGatewayCustomerSchema = z.object({
+  customer_id: z.string().optional(),
+  customer_name: z.string().optional(),
+  customer_email: z.string().optional(),
+  customer_user_id: z.string().optional(),
+  customer_user_name: z.string().optional(),
+  customer_user_email: z.string().optional(),
+});
+
+export const UsageTapGatewayCompressSchema = z.object({
+  mode: z.string().optional(),
+  aggressiveness: z.number().min(0).max(1).optional(),
+  latencyBudgetMs: z.number().int().nonnegative().optional(),
+  compactEmptyUserMessages: z.boolean().optional(),
+  compactDuplicateUserTextParts: z.boolean().optional(),
+  failOpen: z.boolean().optional(),
+  timeoutMs: z.number().int().nonnegative().optional(),
+}).passthrough();
+
+export const UsageTapGatewayProviderOptionsSchema = z.object({
+  base_url: z.string().url().optional(),
+  customer: UsageTapGatewayCustomerSchema.optional(),
+  feature: z.string().optional(),
+  conversationId: z.string().optional(),
+  conversationTitle: z.string().optional(),
+  projectId: z.string().optional(),
+  compress: UsageTapGatewayCompressSchema.optional(),
+});
+
 export const ProviderOptionsSchema = z.object({
   anthropic: AnthropicProviderOptionsSchema.optional(),
   gemini: GeminiProviderOptionsSchema.optional(),
   openrouter: OpenRouterProviderOptionsSchema.optional(),
   llmasaservice: LLMAsAServiceProviderOptionsSchema.optional(),
+  usagetap: UsageTapGatewayProviderOptionsSchema.optional(),
 });
 
 export type ProviderOptions = z.infer<typeof ProviderOptionsSchema>;
@@ -134,6 +164,7 @@ export const RawProviderBodySchema = z.object({
   google: z.record(z.unknown()).optional(),
   openrouter: z.record(z.unknown()).optional(),
   llmasaservice: z.record(z.unknown()).optional(),
+  usagetap: z.record(z.unknown()).optional(),
 });
 
 export type RawProviderBody = z.infer<typeof RawProviderBodySchema>;
@@ -313,7 +344,7 @@ export const SectionsSchema = z.object({
 // --- Defaults files (folder-level inheritance) ---
 
 export const PromptDefaultsSchema = z.object({
-  provider: z.enum(['openai', 'openai-responses', 'anthropic', 'google', 'gemini', 'openrouter', 'llmasaservice', 'any']).optional(),
+  provider: z.enum(['openai', 'openai-responses', 'anthropic', 'google', 'gemini', 'openrouter', 'llmasaservice', 'usagetap', 'any']).optional(),
   model: z.string().optional(),
   fallback_models: z.array(z.string()).optional(),
   reasoning: ReasoningSchema.optional(),
@@ -344,7 +375,7 @@ export const PromptAssetSchema = z.object({
   schema_version: z.number().int().positive().default(1),
   description: z.string().optional(),
 
-  provider: z.enum(['openai', 'openai-responses', 'anthropic', 'google', 'gemini', 'openrouter', 'llmasaservice', 'any']).optional(),
+  provider: z.enum(['openai', 'openai-responses', 'anthropic', 'google', 'gemini', 'openrouter', 'llmasaservice', 'usagetap', 'any']).optional(),
   model: z.string().optional(),
   fallback_models: z.array(z.string()).optional(),
 

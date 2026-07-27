@@ -13,6 +13,7 @@ export default defineConfig([
       'providers/gemini': 'src/providers/gemini.ts',
       'providers/openrouter': 'src/providers/openrouter.ts',
       'providers/llmasaservice': 'src/providers/llmasaservice.ts',
+      'providers/usagetap': 'src/providers/usagetap.ts',
     },
     format: ['esm', 'cjs'],
     dts: true,

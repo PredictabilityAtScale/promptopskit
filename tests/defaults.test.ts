@@ -15,6 +15,34 @@ describe('defaults.md inheritance', () => {
     await rm(tmpDir, { recursive: true, force: true });
   });
 
+  it('accepts UsageTap as a folder default and merges its raw and typed options', async () => {
+    await writeFile(join(tmpDir, 'defaults.md'), `---
+provider: usagetap
+provider_options:
+  usagetap:
+    feature: defaults-feature
+raw:
+  usagetap:
+    route: defaults
+---
+`);
+    await writeFile(join(tmpDir, 'hello.md'), `---
+id: hello
+provider_options:
+  usagetap:
+    conversationId: conversation-1
+---
+# Prompt template
+Hello
+`);
+    const { asset } = await loadPromptFile(join(tmpDir, 'hello.md'), { defaultsRoot: tmpDir });
+    expect(asset.provider).toBe('usagetap');
+    expect(asset.provider_options?.usagetap).toEqual({
+      feature: 'defaults-feature', conversationId: 'conversation-1',
+    });
+    expect(asset.raw?.usagetap).toEqual({ route: 'defaults' });
+  });
+
   it('applies folder defaults when a prompt omits metadata and system instructions', async () => {
     await writeFile(join(tmpDir, 'defaults.md'), `---
 metadata:

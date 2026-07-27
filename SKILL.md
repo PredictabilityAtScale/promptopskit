@@ -135,6 +135,7 @@ Provider aliases:
 | `google`, `gemini` | `gemini` |
 | `openrouter` | `openrouter` |
 | `llmasaservice`, `llmasaservice.io`, `llm gateway` | `llmasaservice` |
+| `usagetap`, `usagetap gateway`, `gateway.usagetap.com` | `usagetap` |
 
 Behavior:
 
@@ -258,6 +259,39 @@ if (!result.request) throw new Error('Prompt rendering did not produce an OpenRo
 
 const completion = await client.chat.completions.create(result.request.body as any);
 ```
+
+UsageTap gateway example (buffered Chat Completions):
+
+```ts
+import OpenAI from 'openai';
+import { createUsageTapGatewayOpenAIConfig, usagetapAdapter } from 'promptopskit/usagetap';
+
+const apiKey = process.env.USAGETAP_GATEWAY_API_KEY!;
+const client = new OpenAI(createUsageTapGatewayOpenAIConfig({ apiKey }));
+const rendered = await usagetapAdapter.renderPrompt({ source: `---
+id: usagetap-example
+provider: usagetap
+model: usagetap/standard
+fallback_models: [usagetap/premium, openai/gpt-5-mini]
+provider_options:
+  usagetap:
+    feature: prompt-tightener
+    compress: { mode: deterministic, aggressiveness: 0.35 }
+---
+# Prompt template
+Improve {{ text }}
+` }, { variables: { text: 'this prompt' }, usagetap: { apiKey } });
+if (!('body' in rendered)) throw new Error(rendered.returnMessage);
+await client.chat.completions.create(rendered.body as never);
+```
+
+The default URL is `https://gateway.usagetap.com/v1`; append only `/chat/completions` for manual
+transport. `usagetap/standard` and `usagetap/premium` are managed aliases; direct `provider/model`
+IDs and ordered fallbacks work too. The API key is runtime-only and customer attribution is
+optional. Gateway compression (`provider_options.usagetap.compress` or `raw.usagetap.compress`) is
+separate from local/client compression. Never combine `usagetapAdapter` with client-side UsageTap
+begin/end or runner helpers because the gateway meters itself. Generic UsageTap lifecycle requests
+still refer to `createUsageTapClient` and direct-provider metering helpers.
 
 LLMAsAService example:
 

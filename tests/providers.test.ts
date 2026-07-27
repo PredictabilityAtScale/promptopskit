@@ -11,12 +11,13 @@ import {
   createLLMAsAServiceOpenAIConfig,
   llmasaserviceAdapter,
 } from '../src/providers/llmasaservice.js';
+import { usagetapAdapter } from '../src/providers/usagetap.js';
 import { getAdapter } from '../src/providers/index.js';
 import { PromptAssetSchema } from '../src/schema/index.js';
 import type { ResolvedPromptAsset } from '../src/schema/index.js';
 import { createPromptOpsKit } from '../src/index.js';
 
-const adaptersWithPromptInput = [openaiAdapter, openaiResponsesAdapter, anthropicAdapter, geminiAdapter, openrouterAdapter, llmasaserviceAdapter] as const;
+const adaptersWithPromptInput = [openaiAdapter, openaiResponsesAdapter, anthropicAdapter, geminiAdapter, openrouterAdapter, llmasaserviceAdapter, usagetapAdapter] as const;
 
 const baseAsset: ResolvedPromptAsset = {
   id: 'test',

@@ -294,6 +294,7 @@ function mergeRaw(base: PromptDefaults['raw'], local: PromptDefaults['raw']): Pr
     google: mergeRecordBlock(base?.google, local?.google),
     openrouter: mergeRecordBlock(base?.openrouter, local?.openrouter),
     llmasaservice: mergeRecordBlock(base?.llmasaservice, local?.llmasaservice),
+    usagetap: mergeRecordBlock(base?.usagetap, local?.usagetap),
   };
 
   removeEmptyProviderBlocks(merged);
@@ -311,6 +312,7 @@ function mergeProviderOptions(
     gemini: mergeRecordBlock(base?.gemini, local?.gemini),
     openrouter: mergeRecordBlock(base?.openrouter, local?.openrouter),
     llmasaservice: mergeRecordBlock(base?.llmasaservice, local?.llmasaservice),
+    usagetap: mergeRecordBlock(base?.usagetap, local?.usagetap),
   };
 
   removeEmptyProviderBlocks(merged);

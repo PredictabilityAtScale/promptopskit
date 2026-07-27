@@ -262,7 +262,7 @@ export function validateAsset(
     const anthropicCaution = ['if', 'then', 'else'];
 
     const checks: Array<{ provider: string[]; unsupported: string[]; code: string }> = [
-      { provider: ['openai', 'openai-responses', 'openrouter', 'llmasaservice'], unsupported: openAIUnsupported, code: 'POK052' },
+      { provider: ['openai', 'openai-responses', 'openrouter', 'llmasaservice', 'usagetap'], unsupported: openAIUnsupported, code: 'POK052' },
       { provider: ['gemini', 'google'], unsupported: geminiUnsupported, code: 'POK053' },
       { provider: ['anthropic'], unsupported: anthropicCaution, code: 'POK054' },
     ];

@@ -476,6 +476,24 @@ provider_options:
 
 Use `raw.openrouter` for less common OpenRouter body fields that PromptOpsKit does not model yet.
 
+## UsageTap Gateway
+
+Use `provider: usagetap` with `usagetapAdapter` for the first-party UsageTap gateway. It renders
+OpenAI Chat Completions bodies with bearer authentication. The default model is
+`usagetap/standard` and the default base URL is `https://gateway.usagetap.com/v1`; managed
+`usagetap/premium`, canonical `provider/model` IDs, and ordered `fallback_models` are supported.
+Customer attribution is optional. Supply `{ usagetap: { apiKey, idempotencyKey? } }` only at render
+time. Typed gateway metadata and compression live under `provider_options.usagetap`; unsupported
+fields can use `raw.usagetap`, which merges last.
+
+Gateway calls are already authorized and metered by UsageTap. Do not wrap them in client-side
+`beginUsageTapCall`/`endUsageTapCall`, `withUsageTapCall`, or provider runner helpers. Those lifecycle
+APIs remain for metering direct calls made to other providers. Gateway compression is also distinct
+from PromptOpsKit's local/client prompt compression pipeline.
+
+Manual callers append `/chat/completions` to get
+`https://gateway.usagetap.com/v1/chat/completions`, without adding another `/v1`.
+
 ## LLMAsAService Gateway
 
 Body shape: OpenAI-compatible Chat Completions payloads sent to `https://gateway.llmasaservice.io`. The adapter reuses the OpenAI chat mapping, applies `provider_options.llmasaservice`, and reads `raw.llmasaservice` for gateway-only body fields.

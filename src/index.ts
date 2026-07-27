@@ -38,6 +38,7 @@ export type {
   RuntimeHistoryMessage,
   OpenAIResponsesRuntimeOptions,
   LLMAsAServiceRuntimeOptions,
+  UsageTapGatewayRuntimeOptions,
   ProviderAdapter,
   ProviderInlinePromptSource,
   ProviderPromptInput,
@@ -91,6 +92,14 @@ export {
   createLLMAsAServiceOpenAIConfig,
   llmasaserviceAdapter,
 } from './providers/llmasaservice.js';
+export {
+  USAGETAP_GATEWAY_BASE_URL,
+  USAGETAP_GATEWAY_DEFAULT_MODEL,
+  USAGETAP_GATEWAY_RESPONSE_HEADER_NAMES,
+  createUsageTapGatewayOpenAIConfig,
+  usagetapAdapter,
+} from './providers/usagetap.js';
+export type { UsageTapGatewayOpenAIConfig, UsageTapGatewayOpenAIConfigOptions } from './providers/usagetap.js';
 export { PromptAssetSchema, PromptAssetOverridesSchema } from './schema/index.js';
 export {
   summarizePromptCompression,
@@ -157,6 +166,8 @@ export interface RenderPromptOptions {
   openaiResponses?: RuntimeRenderOptions['openaiResponses'];
   /** LLMAsAService gateway credentials */
   llmasaservice?: RuntimeRenderOptions['llmasaservice'];
+  /** UsageTap gateway credentials and optional per-request idempotency key */
+  usagetap?: RuntimeRenderOptions['usagetap'];
   /** TheTokenCompany compression credentials and transport options */
   theTokenCompany?: RuntimeRenderOptions['theTokenCompany'];
 }
@@ -268,6 +279,7 @@ export class PromptOpsKit {
     const validation = adapter.validate(resolved, {
       openaiResponses: options.openaiResponses,
       llmasaservice: options.llmasaservice,
+      usagetap: options.usagetap,
     });
 
     if (!validation.valid) {
@@ -312,6 +324,7 @@ export class PromptOpsKit {
       strict: options.strict,
       openaiResponses: options.openaiResponses,
       llmasaservice: options.llmasaservice,
+      usagetap: options.usagetap,
       theTokenCompany: options.theTokenCompany,
     });
     const request = adapter.render(prepared.asset, prepared.runtime);

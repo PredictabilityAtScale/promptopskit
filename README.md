@@ -419,6 +419,79 @@ If you need a different layout, keep passing `sourceDir` and `compiledDir` expli
 
 `renderPrompt()` and `validatePrompt()` use the same source-versus-compiled resolution rules as `kit.renderPrompt()`. The existing synchronous `render()` and `validate()` methods still work for already-resolved compiled or inline assets.
 
+## UsageTap LLM Gateway
+
+Select `provider: usagetap` for the first-party OpenAI-compatible gateway. The default base URL is
+`https://gateway.usagetap.com/v1` (including `/v1`) and the default managed route is
+`usagetap/standard`. `usagetap/premium`, direct canonical `provider/model` IDs, and ordered
+`fallback_models` are supported. Customer attribution is optional; without it, calls are attributed
+to the authenticated organization. Pass the API key only in runtime options, never prompt assets.
+
+```ts
+import OpenAI from 'openai';
+import { createUsageTapGatewayOpenAIConfig, usagetapAdapter } from 'promptopskit/usagetap';
+
+const apiKey = process.env.USAGETAP_GATEWAY_API_KEY!;
+const openai = new OpenAI(createUsageTapGatewayOpenAIConfig({ apiKey }));
+const request = await usagetapAdapter.renderPrompt({ source: `---
+id: buffered-gateway
+provider: usagetap
+model: usagetap/standard
+fallback_models: [usagetap/premium, openai/gpt-5-mini]
+provider_options:
+  usagetap:
+    feature: prompt-tightener
+    compress: { mode: deterministic, aggressiveness: 0.35 }
+---
+# Prompt template
+Tighten: {{ prompt }}
+` }, { variables: { prompt: 'Summarize the report.' }, usagetap: { apiKey, idempotencyKey: 'request-1' } });
+if (!('body' in request)) throw new Error(request.returnMessage);
+await openai.chat.completions.create(request.body as never);
+```
+
+Gateway compression uses `provider_options.usagetap.compress` or `raw.usagetap.compress` and is
+separate from PromptOpsKit's local/client compression pipeline. Never wrap gateway calls with
+`beginUsageTapCall`, `withUsageTapCall`, or a `runOpenAIWithUsageTap`-style helper: the gateway
+meters itself. `createUsageTapClient` and those helpers meter direct calls to other providers.
+
+For manual transport, append `/chat/completions`, producing
+`https://gateway.usagetap.com/v1/chat/completions`; do not append a second `/v1`.
+
+```diff
+- provider: llmasaservice
+- model: group:standard
++ provider: usagetap
++ model: usagetap/standard
+  raw:
+-   llmasaservice:
++   usagetap:
+      llmGateway:
+        feature: prompt-tightener
+```
+
+```diff
+- import { llmasaserviceAdapter, LLMASASERVICE_BASE_URL } from "promptopskit";
++ import { usagetapAdapter, USAGETAP_GATEWAY_BASE_URL } from "promptopskit";
+- const request = llmasaserviceAdapter.render(asset, {
+-   llmasaservice: { apiKey },
++ const request = usagetapAdapter.render(asset, {
++   usagetap: { apiKey, idempotencyKey },
+    runtime: {
+-     model: "group:standard",
++     model: "usagetap/standard",
+      provider_options: {
+-       llmasaservice: { base_url: baseURL, customer },
++       usagetap: { base_url: baseURL, customer },
+      },
+    },
+  });
+```
+
+Consumer applications should explicitly rename `LLMASASERVICE_API_KEY` to
+`USAGETAP_GATEWAY_API_KEY`, `LLMASASERVICE_BASE_URL` to `USAGETAP_GATEWAY_BASE_URL`, and
+`LLMASASERVICE_MODEL` to `USAGETAP_GATEWAY_MODEL`. Migrating downstream consumers is separate.
+
 ## Optional UsageTap Tracking
 
 PromptOpsKit can also help you track provider calls with UsageTap.com while keeping the core render API transport-light.

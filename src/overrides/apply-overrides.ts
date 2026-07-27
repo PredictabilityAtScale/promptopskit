@@ -95,6 +95,7 @@ function mergeOverride(
       google: mergeRecordBlock(result.raw?.google, override.raw.google),
       openrouter: mergeRecordBlock(result.raw?.openrouter, override.raw.openrouter),
       llmasaservice: mergeRecordBlock(result.raw?.llmasaservice, override.raw.llmasaservice),
+      usagetap: mergeRecordBlock(result.raw?.usagetap, override.raw.usagetap),
     };
   }
 
@@ -117,6 +118,10 @@ function mergeOverride(
       llmasaservice: {
         ...result.provider_options?.llmasaservice,
         ...override.provider_options.llmasaservice,
+      },
+      usagetap: {
+        ...result.provider_options?.usagetap,
+        ...override.provider_options.usagetap,
       },
     };
   }

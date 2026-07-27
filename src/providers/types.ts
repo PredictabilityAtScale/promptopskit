@@ -58,6 +58,12 @@ export interface LLMAsAServiceRuntimeOptions {
   apiKey: string;
 }
 
+/** Credentials and per-request metadata for the UsageTap gateway. */
+export interface UsageTapGatewayRuntimeOptions {
+  apiKey: string;
+  idempotencyKey?: string;
+}
+
 export interface RuntimeHistoryMessage {
   role: string;
   content: string;
@@ -94,6 +100,7 @@ export interface RuntimeRenderOptions {
   strict?: boolean;
   openaiResponses?: OpenAIResponsesRuntimeOptions;
   llmasaservice?: LLMAsAServiceRuntimeOptions;
+  usagetap?: UsageTapGatewayRuntimeOptions;
   theTokenCompany?: TheTokenCompanyRuntimeOptions;
 }
 

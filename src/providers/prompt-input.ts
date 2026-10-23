@@ -7,12 +7,13 @@ import { resolveAssetForProvider } from './resolve-asset.js';
 import type {
   ProviderAdapter,
   ProviderPromptInput,
+  ProviderRequest,
   RenderPromptMethod,
   RuntimeRenderOptions,
   ValidatePromptMethod,
 } from './types.js';
 
-type SyncProviderAdapter = Omit<ProviderAdapter, 'validatePrompt' | 'renderPrompt'>;
+type SyncProviderAdapter<TRequest extends ProviderRequest> = Omit<ProviderAdapter<TRequest>, 'validatePrompt' | 'renderPrompt'>;
 
 function isPromptLookup(input: ProviderPromptInput): input is Extract<ProviderPromptInput, { path: string }> {
   return 'path' in input && typeof input.path === 'string';
@@ -37,13 +38,16 @@ async function resolveProviderPromptInput(
   return input;
 }
 
-export function withPromptInputSupport(adapter: SyncProviderAdapter): ProviderAdapter {
+export function withPromptInputSupport<TRequest extends ProviderRequest>(
+  adapter: SyncProviderAdapter<TRequest>,
+  options: { validateBeforeRender?: boolean } = {},
+): ProviderAdapter<TRequest> {
   const validatePrompt: ValidatePromptMethod = async (input, runtime) => {
     const resolved = await resolveProviderPromptInput(input, runtime);
     return adapter.validate(resolved, runtime);
   };
 
-  const renderPrompt: RenderPromptMethod = async (input, runtime) => {
+  const renderPrompt: RenderPromptMethod<TRequest> = async (input, runtime) => {
     const resolved = await resolveProviderPromptInput(input, runtime);
     const resolvedForRender = resolveAssetForProvider(resolved, runtime);
     const sanitization = sanitizeContextVariables(resolvedForRender, runtime.variables, {
@@ -56,6 +60,14 @@ export function withPromptInputSupport(adapter: SyncProviderAdapter): ProviderAd
         model: resolvedForRender.model ?? '',
         returnMessage: sanitization.shortCircuit.returnMessage,
       };
+    }
+
+    // Native adapters can reject unsupported history before compaction transforms it.
+    if (options.validateBeforeRender) {
+      const validation = adapter.validate(resolvedForRender, runtime);
+      if (!validation.valid) {
+        throw new Error(`${adapter.name} validation failed:\n${validation.errors.join('\n')}`);
+      }
     }
 
     const prepared = await applyPromptCompressionForRender(resolvedForRender, {
@@ -77,7 +89,7 @@ export function withPromptInputSupport(adapter: SyncProviderAdapter): ProviderAd
             compressionSummary: summarizePromptCompression(prepared.compression),
           }
           : {}),
-        ...(prepared.warnings.length > 0 ? { warnings: prepared.warnings } : {}),
+        ...(prepared.warnings.length > 0 ? { warnings: [...new Set([...(request.warnings ?? []), ...prepared.warnings])] } : {}),
       }
       : request;
   };

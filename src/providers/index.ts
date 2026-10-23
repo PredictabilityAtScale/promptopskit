@@ -12,6 +12,8 @@ export type {
 export { openaiAdapter } from './openai.js';
 export { openaiResponsesAdapter } from './openai-responses.js';
 export { anthropicAdapter } from './anthropic.js';
+export { bedrockAdapter, BEDROCK_DEFAULT_MAX_TOKENS } from './bedrock.js';
+export type { BedrockConverseInput, BedrockProviderRequest } from './bedrock.js';
 export { geminiAdapter } from './gemini.js';
 export { openrouterAdapter } from './openrouter.js';
 export {
@@ -38,6 +40,7 @@ import { geminiAdapter } from './gemini.js';
 import { openrouterAdapter } from './openrouter.js';
 import { llmasaserviceAdapter } from './llmasaservice.js';
 import { usagetapAdapter } from './usagetap.js';
+import { bedrockAdapter } from './bedrock.js';
 
 const adapters: Record<string, ProviderAdapter> = {
   openai: openaiAdapter,
@@ -48,6 +51,7 @@ const adapters: Record<string, ProviderAdapter> = {
   openrouter: openrouterAdapter,
   llmasaservice: llmasaserviceAdapter,
   usagetap: usagetapAdapter,
+  bedrock: bedrockAdapter,
 };
 
 /**

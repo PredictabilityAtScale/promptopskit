@@ -1,6 +1,6 @@
 # Provider Adapters
 
-PromptOpsKit ships six provider adapters. Direct `render()` calls always produce a `{ body, provider, model }` object shaped for the target API. Some providers also include optional transport metadata such as `baseURL` and `headers`. Async `renderPrompt()` helpers may instead return `{ provider, model, returnMessage }` when context validation is configured to short-circuit before request shaping. You handle the HTTP call and SDK setup.
+PromptOpsKit ships provider adapters that render `{ body, provider, model }` for the target API. Some include optional transport metadata such as `baseURL` and `headers`. Bedrock renders native AWS SDK command input and an `operation` label. Async `renderPrompt()` helpers may instead return `{ provider, model, returnMessage }` when context validation short-circuits. You own transport and SDK setup.
 
 ## Supported providers
 
@@ -12,7 +12,11 @@ PromptOpsKit ships six provider adapters. Direct `render()` calls always produce
 | Google Gemini | `gemini` or `google` | `geminiAdapter` |
 | OpenRouter | `openrouter` | `openrouterAdapter` |
 | LLMAsAService Gateway | `llmasaservice` | `llmasaserviceAdapter` |
+| UsageTap Gateway | `usagetap` | `usagetapAdapter` |
+| AWS Bedrock Converse | `bedrock` | `bedrockAdapter` |
 
+
+See [AWS Bedrock](./bedrock.md) for native Converse/ConverseStream input, application-owned credentials, tools, schemas, and explicit caching.
 
 ## Normalized front matter vs provider-specific options
 
@@ -66,6 +70,7 @@ Adapters emit that neutral JSON Schema through each provider's native request sh
 | `openai-responses` | `text: { format: { type: "json_schema", name, description?, schema, strict } }` |
 | `anthropic` | `output_config: { format: { type: "json_schema", schema } }` |
 | `gemini` / `google` | `generationConfig.responseJsonSchema` |
+| `bedrock` | `outputConfig.textFormat.structure.jsonSchema` (schema is a JSON string) |
 
 Only drop to provider-specific schema fields for exceptional dialect needs, such as Gemini's native `provider_options.gemini.response_schema` or an Anthropic-native `provider_options.anthropic.output_config`.
 
@@ -120,6 +125,7 @@ raw:
 | `anthropic` | Mapped to body `stream` |
 | `openrouter` | Mapped to body `stream` (same as OpenAI) |
 | `llmasaservice` | Mapped to body `stream` (same as OpenAI) |
+| `bedrock` | Selects `request.operation` (`converse` / `converse-stream`); no `stream` field in SDK input |
 | `gemini` | **Not body-mapped**; Gemini streaming is endpoint-based (`streamGenerateContent`) |
 
 ## Usage via `renderPrompt`

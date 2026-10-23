@@ -10,6 +10,7 @@ export default defineConfig([
       'providers/openai': 'src/providers/openai.ts',
       'providers/openai-responses': 'src/providers/openai-responses.ts',
       'providers/anthropic': 'src/providers/anthropic.ts',
+      'providers/bedrock': 'src/providers/bedrock.ts',
       'providers/gemini': 'src/providers/gemini.ts',
       'providers/openrouter': 'src/providers/openrouter.ts',
       'providers/llmasaservice': 'src/providers/llmasaservice.ts',

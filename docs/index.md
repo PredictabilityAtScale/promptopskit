@@ -11,6 +11,7 @@ Open-source developer toolkit for managing prompts, system instructions, tools, 
 - [Overrides](./overrides.md) — Environment and tier-based overrides for dev/prod/free/pro
 - [Providers](./providers.md) — Provider adapters, request shaping, compression, caching, and raw passthrough for OpenAI, Anthropic, Gemini, OpenRouter, and LLMAsAService
 - [UsageTap](./usagetap.md) — Optional begin/end call tracking and entitlement-aware provider helpers for UsageTap.com
+- [AWS Bedrock](./bedrock.md) — Native Converse/ConverseStream rendering with application-owned AWS credentials and transport
 - [Inline Source](./inline-source.md) — Render prompts from strings without files
 
 ## Reference

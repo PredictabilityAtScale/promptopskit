@@ -10,6 +10,16 @@
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
+    "./bedrock": {
+      "import": {
+        "types": "./dist/providers/bedrock.d.ts",
+        "default": "./dist/providers/bedrock.js"
+      },
+      "require": {
+        "types": "./dist/providers/bedrock.d.cts",
+        "default": "./dist/providers/bedrock.cjs"
+      }
+    },
     ".": {
       "import": {
         "types": "./dist/index.d.ts",
@@ -110,7 +120,7 @@
     "test": "vitest run",
     "test:serial": "vitest run --no-file-parallelism",
     "test:watch": "vitest",
-    "lint": "tsc --noEmit",
+    "lint": "tsc --noEmit && tsc --project tests/types/tsconfig.json",
     "attw": "node scripts/check-attw.mjs",
     "clean": "rimraf dist",
     "release:patch": "npm version patch -m \"chore(release): %s [release]\"",
@@ -149,6 +159,7 @@
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.2",
     "@arethetypeswrong/core": "^0.18.2",
+    "@aws-sdk/client-bedrock-runtime": "^3.1156.0",
     "@types/node": "^25.6.0",
     "rimraf": "^6.0.0",
     "tsup": "^8.5.1",

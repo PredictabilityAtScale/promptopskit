@@ -83,6 +83,8 @@ export { applyOverrides } from './overrides/index.js';
 export { validateAsset, validateAssetWithIncludes } from './validation/index.js';
 export { getAdapter, openaiAdapter, openaiResponsesAdapter } from './providers/index.js';
 export { anthropicAdapter } from './providers/anthropic.js';
+export { bedrockAdapter, BEDROCK_DEFAULT_MAX_TOKENS } from './providers/bedrock.js';
+export type { BedrockConverseInput, BedrockProviderRequest } from './providers/bedrock.js';
 export { geminiAdapter } from './providers/gemini.js';
 export { openrouterAdapter } from './providers/openrouter.js';
 export {
@@ -277,6 +279,8 @@ export class PromptOpsKit {
 
     const adapter = getAdapter(options.provider);
     const validation = adapter.validate(resolved, {
+      toolRegistry: options.toolRegistry,
+      history: options.history,
       openaiResponses: options.openaiResponses,
       llmasaservice: options.llmasaservice,
       usagetap: options.usagetap,
@@ -338,7 +342,7 @@ export class PromptOpsKit {
         ? {
           ...request,
           ...(prepared.compression.length > 0 ? { compression: prepared.compression, compressionSummary } : {}),
-          ...(prepared.warnings.length > 0 ? { warnings: prepared.warnings } : {}),
+          ...(prepared.warnings.length > 0 ? { warnings: [...new Set([...(request.warnings ?? []), ...prepared.warnings])] } : {}),
         }
         : request,
       ...(prepared.compression.length > 0 ? { compression: prepared.compression } : {}),

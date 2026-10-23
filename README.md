@@ -47,7 +47,7 @@ PromptOpsKit turns that behavior into one reviewable asset:
 Core capabilities:
 
 - **Markdown prompt assets** — capture prompt text, model config, tool bindings, context rules, and metadata together.
-- **Provider-ready output** — render request bodies for OpenAI Chat, OpenAI Responses, Anthropic, Gemini, OpenRouter, and LLMAsAService while your app owns transport.
+- **Provider-ready output** — render requests for OpenAI Chat, OpenAI Responses, Anthropic, Gemini, OpenRouter, LLMAsAService, UsageTap, and AWS Bedrock while your app owns transport.
 - **Input hardening** — define required values, size limits, allow/deny patterns, and secret rejection close to the prompt template.
 - **Reusable composition** — share tone, policy, and safety instructions with `includes`, and apply folder-level standards with `defaults.md`.
 - **Environment and tier overrides** — keep dev/prod and plan-specific behavior in one prompt source with explicit, reviewable overrides.
@@ -162,7 +162,7 @@ Supported values for `warnings.contextSize` are `auto`, `off`, `result-only`, `c
 - **Composition** — `includes` to share system instructions across prompts, with circular detection
 - **Folder defaults** — `defaults.md` inheritance for shared provider, model, options, metadata, and system instructions
 - **Overrides** — Environment and tier-based overrides (base → env → tier → runtime)
-- **6 provider adapters** — OpenAI (Chat), OpenAI (Responses), Anthropic, Gemini, OpenRouter, LLMAsAService
+- **8 provider adapters** — OpenAI (Chat), OpenAI (Responses), Anthropic, Gemini, OpenRouter, LLMAsAService, UsageTap, AWS Bedrock
 - **Prompt compression** — optional `compression.thetokencompany` calls TheTokenCompany, while `compression.heuristic` and `compression.code` run local no-backend compression/compaction before provider cache fields are applied
 - **Provider-aware input caching controls** — optional `cache` front matter maps to OpenAI prompt cache hints, Anthropic `cache_control`, and Gemini `cachedContent`
 - **Vendor escape hatch** — optional `raw.<provider>` blocks shallow-merge unmodeled request-body fields into the final provider payload
@@ -246,6 +246,7 @@ Provider adapters are also available as direct imports:
 import { openaiAdapter } from 'promptopskit/openai';
 import { openaiResponsesAdapter } from 'promptopskit/openai-responses';
 import { anthropicAdapter } from 'promptopskit/anthropic';
+import { bedrockAdapter } from 'promptopskit/bedrock';
 import { geminiAdapter } from 'promptopskit/gemini';
 import { openrouterAdapter } from 'promptopskit/openrouter';
 import { llmasaserviceAdapter } from 'promptopskit/llmasaservice';
@@ -418,6 +419,10 @@ const request = result;
 If you need a different layout, keep passing `sourceDir` and `compiledDir` explicitly.
 
 `renderPrompt()` and `validatePrompt()` use the same source-versus-compiled resolution rules as `kit.renderPrompt()`. The existing synchronous `render()` and `validate()` methods still work for already-resolved compiled or inline assets.
+
+### AWS Bedrock
+
+Use `provider: bedrock` or import `bedrockAdapter` from `promptopskit/bedrock` to render native input for AWS `ConverseCommand` and `ConverseStreamCommand`. The customer app owns the AWS SDK, credentials, region, and transport; PromptOpsKit makes no AWS calls. Tools, structured schemas, Bedrock-specific options, and explicit cache checkpoints are supported. See the [Bedrock guide](./docs/bedrock.md) for a complete example and supported scope.
 
 ## UsageTap LLM Gateway
 

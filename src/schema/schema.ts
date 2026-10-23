@@ -73,6 +73,35 @@ export const ResponseSchemaWithValidation = ResponseSchema.superRefine((value, c
 
 // --- Provider-specific options ---
 
+/** JSON values accepted by Bedrock's document fields, without an AWS dependency. */
+export type BedrockJsonValue = null | boolean | number | string | BedrockJsonValue[] | { [key: string]: BedrockJsonValue };
+export const BedrockJsonValueSchema: z.ZodType<BedrockJsonValue> = z.lazy(() => z.union([
+  z.null(), z.boolean(), z.number().finite(), z.string(),
+  z.array(BedrockJsonValueSchema), z.record(BedrockJsonValueSchema),
+]));
+
+export const BedrockToolChoiceSchema = z.union([
+  z.object({ auto: z.object({}).strict() }).strict(),
+  z.object({ any: z.object({}).strict() }).strict(),
+  z.object({ tool: z.object({ name: z.string().min(1).max(64).regex(/^[a-zA-Z0-9_-]+$/) }).strict() }).strict(),
+]);
+
+export const BedrockGuardrailConfigSchema = z.object({
+  guardrailIdentifier: z.string().min(1),
+  guardrailVersion: z.string().min(1),
+  trace: z.enum(['enabled', 'disabled', 'enabled_full']).optional(),
+}).strict();
+
+export const BedrockProviderOptionsSchema = z.object({
+  tool_choice: BedrockToolChoiceSchema.optional(),
+  additional_model_request_fields: z.record(BedrockJsonValueSchema).optional(),
+  additional_model_response_field_paths: z.array(z.string().min(1)).optional(),
+  guardrail_config: BedrockGuardrailConfigSchema.optional(),
+  request_metadata: z.record(z.string()).optional(),
+  performance_config: z.object({ latency: z.enum(['standard', 'optimized']) }).strict().optional(),
+  service_tier: z.object({ type: z.enum(['default', 'priority', 'flex', 'reserved']) }).strict().optional(),
+}).strict();
+
 export const AnthropicProviderOptionsSchema = z.object({
   top_k: z.number().int().min(0).optional(),
   tool_choice: z.record(z.unknown()).optional(),
@@ -144,6 +173,7 @@ export const UsageTapGatewayProviderOptionsSchema = z.object({
 });
 
 export const ProviderOptionsSchema = z.object({
+  bedrock: BedrockProviderOptionsSchema.optional(),
   anthropic: AnthropicProviderOptionsSchema.optional(),
   gemini: GeminiProviderOptionsSchema.optional(),
   openrouter: OpenRouterProviderOptionsSchema.optional(),
@@ -156,6 +186,7 @@ export type ProviderOptions = z.infer<typeof ProviderOptionsSchema>;
 // --- Raw provider body passthrough ---
 
 export const RawProviderBodySchema = z.object({
+  bedrock: z.record(z.unknown()).optional(),
   openai: z.record(z.unknown()).optional(),
   'openai-responses': z.record(z.unknown()).optional(),
   openai_responses: z.record(z.unknown()).optional(),
@@ -228,7 +259,15 @@ export const GeminiCacheSchema = z.object({
   cached_content: z.string().min(1).optional(),
 });
 
+export const BedrockCacheSchema = z.object({
+  ttl: z.enum(['5m', '1h']).optional(),
+  cache_system_instructions: z.boolean().optional(),
+  cache_tools: z.boolean().optional(),
+  cache_prompt_template: z.boolean().optional(),
+}).strict();
+
 export const CacheSchema = z.object({
+  bedrock: BedrockCacheSchema.optional(),
   openai: OpenAICacheSchema.optional(),
   anthropic: AnthropicCacheSchema.optional(),
   gemini: GeminiCacheSchema.optional(),
@@ -344,7 +383,7 @@ export const SectionsSchema = z.object({
 // --- Defaults files (folder-level inheritance) ---
 
 export const PromptDefaultsSchema = z.object({
-  provider: z.enum(['openai', 'openai-responses', 'anthropic', 'google', 'gemini', 'openrouter', 'llmasaservice', 'usagetap', 'any']).optional(),
+  provider: z.enum(['openai', 'openai-responses', 'anthropic', 'google', 'gemini', 'openrouter', 'llmasaservice', 'usagetap', 'bedrock', 'any']).optional(),
   model: z.string().optional(),
   fallback_models: z.array(z.string()).optional(),
   reasoning: ReasoningSchema.optional(),
@@ -375,7 +414,7 @@ export const PromptAssetSchema = z.object({
   schema_version: z.number().int().positive().default(1),
   description: z.string().optional(),
 
-  provider: z.enum(['openai', 'openai-responses', 'anthropic', 'google', 'gemini', 'openrouter', 'llmasaservice', 'usagetap', 'any']).optional(),
+  provider: z.enum(['openai', 'openai-responses', 'anthropic', 'google', 'gemini', 'openrouter', 'llmasaservice', 'usagetap', 'bedrock', 'any']).optional(),
   model: z.string().optional(),
   fallback_models: z.array(z.string()).optional(),
 

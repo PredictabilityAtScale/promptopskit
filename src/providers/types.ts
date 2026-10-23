@@ -13,6 +13,8 @@ export interface ProviderRequest {
   body: Record<string, unknown>;
   provider: string;
   model: string;
+  /** Native Bedrock SDK operation; never serialized into the command input. */
+  operation?: 'converse' | 'converse-stream';
   baseURL?: string;
   headers?: Record<string, string>;
   compression?: PromptCompressionResult[];
@@ -27,7 +29,7 @@ export interface ProviderPromptReturnMessageResult {
   returnMessage: string;
 }
 
-export type ProviderPromptRenderResult = ProviderRequest | ProviderPromptReturnMessageResult;
+export type ProviderPromptRenderResult<TRequest extends ProviderRequest = ProviderRequest> = TRequest | ProviderPromptReturnMessageResult;
 
 /**
  * Result of validating an asset against a provider.
@@ -124,19 +126,19 @@ export interface ValidatePromptMethod {
   (source: ProviderInlinePromptSource, runtime?: RuntimeRenderOptions): Promise<ValidationResult>;
 }
 
-export interface RenderPromptMethod {
-  (asset: ResolvedPromptAsset, runtime: RuntimeRenderOptions): Promise<ProviderPromptRenderResult>;
-  (lookup: ProviderPromptLookup, runtime: RuntimeRenderOptions): Promise<ProviderPromptRenderResult>;
-  (source: ProviderInlinePromptSource, runtime: RuntimeRenderOptions): Promise<ProviderPromptRenderResult>;
+export interface RenderPromptMethod<TRequest extends ProviderRequest = ProviderRequest> {
+  (asset: ResolvedPromptAsset, runtime: RuntimeRenderOptions): Promise<ProviderPromptRenderResult<TRequest>>;
+  (lookup: ProviderPromptLookup, runtime: RuntimeRenderOptions): Promise<ProviderPromptRenderResult<TRequest>>;
+  (source: ProviderInlinePromptSource, runtime: RuntimeRenderOptions): Promise<ProviderPromptRenderResult<TRequest>>;
 }
 
 /**
  * Provider adapter interface. Each provider implements this.
  */
-export interface ProviderAdapter {
+export interface ProviderAdapter<TRequest extends ProviderRequest = ProviderRequest> {
   name: string;
   validate(asset: ResolvedPromptAsset, runtime?: RuntimeRenderOptions): ValidationResult;
-  render(asset: ResolvedPromptAsset, runtime: RuntimeRenderOptions): ProviderRequest;
+  render(asset: ResolvedPromptAsset, runtime: RuntimeRenderOptions): TRequest;
   validatePrompt: ValidatePromptMethod;
-  renderPrompt: RenderPromptMethod;
+  renderPrompt: RenderPromptMethod<TRequest>;
 }

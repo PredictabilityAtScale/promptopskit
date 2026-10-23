@@ -81,6 +81,7 @@ function mergeOverride(
       anthropic: mergeRecordBlock(result.cache?.anthropic, override.cache.anthropic),
       gemini: mergeRecordBlock(result.cache?.gemini, override.cache.gemini),
       google: mergeRecordBlock(result.cache?.google, override.cache.google),
+      bedrock: mergeRecordBlock(result.cache?.bedrock, override.cache.bedrock),
     };
   }
   if (override.raw !== undefined) {
@@ -96,6 +97,7 @@ function mergeOverride(
       openrouter: mergeRecordBlock(result.raw?.openrouter, override.raw.openrouter),
       llmasaservice: mergeRecordBlock(result.raw?.llmasaservice, override.raw.llmasaservice),
       usagetap: mergeRecordBlock(result.raw?.usagetap, override.raw.usagetap),
+      bedrock: mergeRecordBlock(result.raw?.bedrock, override.raw.bedrock),
     };
   }
 
@@ -103,6 +105,7 @@ function mergeOverride(
     result.provider_options = {
       ...result.provider_options,
       ...override.provider_options,
+      bedrock: mergeRecordBlock(result.provider_options?.bedrock, override.provider_options.bedrock),
       anthropic: {
         ...result.provider_options?.anthropic,
         ...override.provider_options.anthropic,

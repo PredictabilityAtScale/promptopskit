@@ -2,6 +2,24 @@ import { describe, it, expect } from 'vitest';
 import { parsePrompt } from '../src/parser/index.js';
 
 describe('parsePrompt', () => {
+  it('preserves YAML anchors and merge-key overrides with the patched parser', () => {
+    const { asset } = parsePrompt(`---
+id: yaml.merge
+sampling: &base_sampling
+  temperature: 0.2
+  max_output_tokens: 128
+environments:
+  dev:
+    sampling:
+      <<: *base_sampling
+      max_output_tokens: 64
+---
+# Prompt template
+Hello
+`);
+    expect(asset.sampling).toEqual({ temperature: 0.2, max_output_tokens: 128 });
+    expect(asset.environments?.dev.sampling).toEqual({ temperature: 0.2, max_output_tokens: 64 });
+  });
   it('parses a basic prompt with front matter and sections', () => {
     const source = `---
 id: test.basic

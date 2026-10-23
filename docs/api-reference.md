@@ -65,7 +65,7 @@ const result = await kit.renderPrompt({
 |--------|------|-------------|
 | `path` | `string` | Prompt path (no extension), e.g. `'support/reply'` |
 | `source` | `string` | Inline prompt source (alternative to `path`) |
-| `provider` | `string` | `'openai'`, `'openai-responses'`, `'anthropic'`, `'gemini'`, `'openrouter'`, `'llmasaservice'` (required) |
+| `provider` | `string` | `'openai'`, `'openai-responses'`, `'anthropic'`, `'gemini'`, `'openrouter'`, `'llmasaservice'`, `'usagetap'`, `'bedrock'` (required) |
 | `variables` | `Record<string, string>` | Template variables |
 | `onContextOverflow` | `(info) => string` | Optional callback to transform an oversized context value before rendering |
 | `onHistoryCompaction` | `(info) => string \| { role, content }` | Optional callback used when `context.history.max_items` compacts overflow history |
@@ -85,7 +85,7 @@ Either `path` or `source` must be provided.
 ```typescript
 interface RenderResult {
   resolved: ResolvedPromptAsset;  // Fully resolved asset
-  request?: ProviderRequest;      // { body, provider, model, baseURL?, headers?, warnings?, compression?, compressionSummary? } when rendering continues
+  request?: ProviderRequest;      // { body, provider, model, operation?, baseURL?, headers?, warnings?, compression?, compressionSummary? } when rendering continues
   returnMessage?: string;         // Short-circuit message from context validation when configured
   compression?: PromptCompressionResult[];
   compressionSummary?: PromptCompressionSummary;
@@ -265,7 +265,9 @@ const request = adapter.render(resolvedAsset, {
 });
 ```
 
-Supported adapter names are `openai`, `openai-responses`, `anthropic`, `gemini`/`google`, `openrouter`, and `llmasaservice`.
+Supported adapter names are `openai`, `openai-responses`, `anthropic`, `gemini`/`google`, `openrouter`, `llmasaservice`, `usagetap`, and `bedrock`.
+
+`bedrockAdapter`, available from the root or `promptopskit/bedrock`, returns a `BedrockProviderRequest`. Its typed `body: BedrockConverseInput` can be passed to the application's AWS `ConverseCommand` or `ConverseStreamCommand`. The `operation` metadata is `converse` or `converse-stream`; it is not serialized into the SDK input. The adapter emits no credentials, headers, or endpoint. `BEDROCK_DEFAULT_MAX_TOKENS` is `4096`. See the [Bedrock guide](./bedrock.md) for mappings, native options, and application-owned AWS setup. Bedrock metering helpers are not included.
 
 `RuntimeRenderOptions` for direct adapter rendering supports `environment`, `tier`, `runtime`, `variables`, `onContextOverflow`, `history`, `onHistoryCompaction`, `toolRegistry`, `strict`, `openaiResponses`, `llmasaservice`, and `theTokenCompany`. For LLMAsAService, pass `{ llmasaservice: { apiKey } }`; project ids are no longer required.
 

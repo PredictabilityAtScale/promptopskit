@@ -5,6 +5,9 @@ export {
   SamplingSchema,
   ResponseSchema,
   CacheSchema,
+  BedrockCacheSchema,
+  BedrockProviderOptionsSchema,
+  BedrockToolChoiceSchema,
   CompressionSchema,
   TheTokenCompanyCompressionSchema,
   HeuristicCompressionSchema,
@@ -40,6 +43,7 @@ export {
 } from './schema.js';
 
 export type {
+  BedrockJsonValue,
   PromptAsset,
   PromptAssetOverrides,
   PromptDefaults,

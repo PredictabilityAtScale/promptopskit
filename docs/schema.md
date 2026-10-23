@@ -9,7 +9,7 @@ Prompt files use YAML front matter. This page documents every supported field.
 | `id` | `string` | Yes | Unique prompt identifier (e.g. `support/reply`) |
 | `schema_version` | `number` | Yes | Schema version — currently `1` |
 | `description` | `string` | No | Human-readable description of the prompt |
-| `provider` | `string` | No | `openai`, `openai-responses`, `anthropic`, `gemini`, `google`, `openrouter`, `llmasaservice`, `any` |
+| `provider` | `string` | No | `openai`, `openai-responses`, `anthropic`, `gemini`, `google`, `openrouter`, `llmasaservice`, `usagetap`, `bedrock`, `any` |
 | `model` | `string` | No | Model name (e.g. `gpt-5.4`, `claude-sonnet-4-20250514`) |
 | `fallback_models` | `string[]` | No | Ordered list of fallback models |
 | `reasoning` | `object` | No | Reasoning/thinking configuration |
@@ -18,7 +18,7 @@ Prompt files use YAML front matter. This page documents every supported field.
 | `compression` | `object` | No | Prompt-template compression options |
 | `cache` | `object` | No | Provider-specific prompt/context caching options |
 | `tools` | `array` | No | Tool references (strings or inline definitions) |
-| `provider_options` | `object` | No | Provider-specific advanced options (`anthropic`, `gemini`, `openrouter`, `llmasaservice`) |
+| `provider_options` | `object` | No | Provider-specific advanced options (`anthropic`, `gemini`, `openrouter`, `llmasaservice`, `usagetap`, `bedrock`) |
 | `raw` | `object` | No | Provider-scoped request-body passthrough for fields PromptOpsKit does not model yet |
 | `mcp` | `object` | No | MCP server references |
 | `context` | `object` | No | Declare expected variables and history settings |
@@ -33,7 +33,7 @@ Prompt files use YAML front matter. This page documents every supported field.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `provider` | `enum` | Default provider (`openai`, `openai-responses`, `anthropic`, `google`, `gemini`, `openrouter`, `llmasaservice`, `any`) |
+| `provider` | `enum` | Default provider (`openai`, `openai-responses`, `anthropic`, `google`, `gemini`, `openrouter`, `llmasaservice`, `usagetap`, `bedrock`, `any`) |
 | `model` | `string` | Default model identifier |
 | `fallback_models` | `string[]` | Default fallback models |
 | `reasoning` | `object` | Same as prompt-level `reasoning` block |
@@ -213,6 +213,10 @@ provider_options:
 
 For `provider: llmasaservice`, pass the required credential through the render-time `llmasaservice.apiKey` option. When validating for rendering, the adapter requires that API key and a gateway customer id in `provider_options.llmasaservice.customer.customer_id` or `raw.llmasaservice.customer.customer_id`. The emitted request contains `headers.Authorization: 'Bearer <api-key>'`. Project ids are no longer required.
 
+### Bedrock provider options
+
+`provider_options.bedrock` accepts `tool_choice`, `additional_model_request_fields`, `additional_model_response_field_paths`, `guardrail_config`, `request_metadata`, `performance_config`, and `service_tier`. These map to native Converse SDK input fields. Guardrail nested keys use native camelCase; tool choice is exactly one of `{ auto: {} }`, `{ any: {} }`, or `{ tool: { name } }`. Extension values must be JSON-compatible. Credentials, region, and client settings are not accepted here. See [Bedrock](./bedrock.md) for examples and model-dependent limitations.
+
 ## `raw`
 
 Use `raw` as an explicit vendor escape hatch when an API adds a request-body field before PromptOpsKit has a first-class schema field for it.
@@ -237,7 +241,7 @@ raw:
       customer_id: cust_123
 ```
 
-Supported keys: `openai`, `openai-responses` (or `openai_responses`), `anthropic`, `gemini` (or `google`), `openrouter`, and `llmasaservice`.
+Supported keys: `openai`, `openai-responses` (or `openai_responses`), `anthropic`, `gemini` (or `google`), `openrouter`, `llmasaservice`, `usagetap`, and `bedrock`. `raw.bedrock` merges into SDK command input, subject to the [Bedrock validation rules](./bedrock.md#raw-input-inheritance-and-validation).
 
 Raw fields are shallow-merged into the final provider request body after normalized fields and `provider_options`. That means `raw` can intentionally override generated fields such as `temperature`, but it should be used sparingly and documented in `# Notes` because it is provider-specific.
 
@@ -350,6 +354,10 @@ cache:
 | `gemini.cached_content` / `google.cached_content` | `string` | Previously created Gemini cache resource name used as `cachedContent` |
 
 You can define multiple provider cache blocks in one prompt; each adapter reads only its own cache settings.
+
+### Bedrock cache
+
+`cache.bedrock` accepts `ttl` (`5m` or `1h`) and the boolean flags `cache_system_instructions`, `cache_tools`, and `cache_prompt_template`. Each selected location gets a native `cachePoint` after its content. Flags default to false; TTL alone creates no checkpoints. Availability and minimum sizes depend on the model.
 
 ## `mcp`
 

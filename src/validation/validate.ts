@@ -8,6 +8,7 @@ import {
   getContextInputs,
 } from '../context.js';
 import { levenshtein } from './levenshtein.js';
+import { bedrockSchemaWarnings } from '../providers/bedrock-schema.js';
 
 export interface ValidationError {
   code: string;
@@ -254,6 +255,11 @@ export function validateAsset(
 
 
   if (asset.response?.schema && asset.provider) {
+    if (asset.provider === 'bedrock') {
+      for (const message of bedrockSchemaWarnings(asset.response.schema)) {
+        warnings.push({ code: 'POK058', message, filePath });
+      }
+    }
     const keywords = new Set<string>();
     collectSchemaKeywords(asset.response.schema, keywords);
 

@@ -256,12 +256,14 @@ function mergeCache(base: PromptDefaults['cache'], local: PromptDefaults['cache'
       ...(base?.google ?? {}),
       ...(local?.google ?? {}),
     },
+    bedrock: mergeRecordBlock(base?.bedrock, local?.bedrock),
   };
 
   if (merged.openai && Object.keys(merged.openai).length === 0) delete merged.openai;
   if (merged.anthropic && Object.keys(merged.anthropic).length === 0) delete merged.anthropic;
   if (merged.gemini && Object.keys(merged.gemini).length === 0) delete merged.gemini;
   if (merged.google && Object.keys(merged.google).length === 0) delete merged.google;
+  if (!merged.bedrock || Object.keys(merged.bedrock).length === 0) delete merged.bedrock;
 
   return Object.keys(merged).length > 0 ? merged : undefined;
 }
@@ -295,6 +297,7 @@ function mergeRaw(base: PromptDefaults['raw'], local: PromptDefaults['raw']): Pr
     openrouter: mergeRecordBlock(base?.openrouter, local?.openrouter),
     llmasaservice: mergeRecordBlock(base?.llmasaservice, local?.llmasaservice),
     usagetap: mergeRecordBlock(base?.usagetap, local?.usagetap),
+    bedrock: mergeRecordBlock(base?.bedrock, local?.bedrock),
   };
 
   removeEmptyProviderBlocks(merged);
@@ -313,6 +316,7 @@ function mergeProviderOptions(
     openrouter: mergeRecordBlock(base?.openrouter, local?.openrouter),
     llmasaservice: mergeRecordBlock(base?.llmasaservice, local?.llmasaservice),
     usagetap: mergeRecordBlock(base?.usagetap, local?.usagetap),
+    bedrock: mergeRecordBlock(base?.bedrock, local?.bedrock),
   };
 
   removeEmptyProviderBlocks(merged);

@@ -8,9 +8,13 @@ description: Guidance for creating and editing promptopskit prompt files, defaul
 This project uses **promptopskit** to manage LLM prompts as code.
 Prompts live in markdown files with YAML front matter, are validated against
 a schema, and render into provider-specific request bodies (OpenAI, Anthropic,
-Gemini, OpenRouter, LLMAsAService, and OpenAI Responses). Follow these instructions when creating or editing prompts.
+Gemini, OpenRouter, LLMAsAService, UsageTap, OpenAI Responses, and AWS Bedrock). Follow these instructions when creating or editing prompts.
 
 ---
+
+## AWS Bedrock prompts
+
+Use `provider: bedrock` for native Converse input and an exact customer-approved Bedrock model or inference-profile ID/ARN. Set `sampling.max_output_tokens` for the workload (adapter default: 4096). The app owns the AWS SDK, credentials, region, transport, and the choice of Converse/ConverseStream; never put credentials in prompt assets. `response.stream` selects operation metadata, not a serialized `stream` field. Text history accepts only user/assistant turns. Bedrock tools, schema output, provider options, and cache checkpoints differ from Anthropic/OpenAI payloads; read `docs/bedrock.md` in this repository (or the linked Bedrock guide in the package documentation) before authoring those fields. No Bedrock UsageTap metering helper is provided.
 
 ## User request intents
 

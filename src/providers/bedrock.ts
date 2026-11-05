@@ -15,6 +15,8 @@ import { resolveAssetForProvider } from './resolve-asset.js';
 import { applyRawProviderBody } from './raw.js';
 import { bedrockSchemaWarnings } from './bedrock-schema.js';
 
+export type { BedrockJsonValue } from '../schema/index.js';
+
 export const BEDROCK_DEFAULT_MAX_TOKENS = 4096;
 
 const cachePointSchema = z.object({
@@ -30,7 +32,7 @@ const toolSchema = z.object({
     name: z.string().min(1).max(64).regex(/^[a-zA-Z0-9_-]+$/),
     description: z.string().min(1).optional(),
     inputSchema: z.object({
-      json: z.record(BedrockJsonValueSchema).refine((schema) => schema.type === 'object', {
+      json: z.record(z.string(), BedrockJsonValueSchema).refine((schema) => schema.type === 'object', {
         message: 'Bedrock tool input schema must have type: object at its root.',
       }),
     }).strict(),
@@ -64,12 +66,12 @@ const converseInputSchema = z.object({
       }).strict() }).strict(),
     }).strict(),
   }).strict().optional(),
-  additionalModelRequestFields: z.record(BedrockJsonValueSchema).optional(),
+  additionalModelRequestFields: z.record(z.string(), BedrockJsonValueSchema).optional(),
   additionalModelResponseFieldPaths: z.array(z.string().min(1)).optional(),
   guardrailConfig: BedrockGuardrailConfigSchema.extend({
     streamProcessingMode: z.enum(['sync', 'async']).optional(),
   }).optional(),
-  requestMetadata: z.record(z.string()).optional(),
+  requestMetadata: z.record(z.string(), z.string()).optional(),
   performanceConfig: BedrockProviderOptionsSchema.shape.performance_config,
   serviceTier: BedrockProviderOptionsSchema.shape.service_tier,
 }).passthrough();

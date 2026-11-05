@@ -28,7 +28,7 @@ import type {
 import type { PromptValidationResult } from './validation/index.js';
 
 // --- Re-exports ---
-export type { PromptAsset, ResolvedPromptAsset } from './schema/index.js';
+export type { PromptAsset, PromptAssetOverrides, ResolvedPromptAsset } from './schema/index.js';
 export type {
   ProviderRequest,
   ProviderPromptRenderResult,

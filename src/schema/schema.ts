@@ -5,7 +5,7 @@ import { z } from 'zod';
 export const InlineToolDefSchema = z.object({
   name: z.string(),
   description: z.string().optional(),
-  input_schema: z.record(z.unknown()).optional(),
+  input_schema: z.record(z.string(), z.unknown()).optional(),
 });
 
 export type InlineToolDef = z.infer<typeof InlineToolDefSchema>;
@@ -18,7 +18,7 @@ export const MCPServerRefSchema = z.union([
   z.string(),
   z.object({
     name: z.string(),
-    config: z.record(z.unknown()).optional(),
+    config: z.record(z.string(), z.unknown()).optional(),
   }),
 ]);
 
@@ -47,7 +47,7 @@ export const SamplingSchema = z.object({
 export const ResponseSchema = z.object({
   format: z.enum(['text', 'json', 'markdown']).optional(),
   stream: z.boolean().optional(),
-  schema: z.record(z.unknown()).optional(),
+  schema: z.record(z.string(), z.unknown()).optional(),
   schema_ref: z.string().min(1).optional(),
   schema_source: z.object({
     mode: z.enum(['inline', 'schema_ref_json', 'schema_ref_zod_module']).optional(),
@@ -63,7 +63,7 @@ export const ResponseSchema = z.object({
 export const ResponseSchemaWithValidation = ResponseSchema.superRefine((value, ctx) => {
   if (value.schema !== undefined && value.schema_ref !== undefined) {
     ctx.addIssue({
-      code: z.ZodIssueCode.custom,
+      code: 'custom',
       message: 'response.schema and response.schema_ref are mutually exclusive',
       path: ['schema_ref'],
     });
@@ -77,7 +77,7 @@ export const ResponseSchemaWithValidation = ResponseSchema.superRefine((value, c
 export type BedrockJsonValue = null | boolean | number | string | BedrockJsonValue[] | { [key: string]: BedrockJsonValue };
 export const BedrockJsonValueSchema: z.ZodType<BedrockJsonValue> = z.lazy(() => z.union([
   z.null(), z.boolean(), z.number().finite(), z.string(),
-  z.array(BedrockJsonValueSchema), z.record(BedrockJsonValueSchema),
+  z.array(BedrockJsonValueSchema), z.record(z.string(), BedrockJsonValueSchema),
 ]));
 
 export const BedrockToolChoiceSchema = z.union([
@@ -94,34 +94,34 @@ export const BedrockGuardrailConfigSchema = z.object({
 
 export const BedrockProviderOptionsSchema = z.object({
   tool_choice: BedrockToolChoiceSchema.optional(),
-  additional_model_request_fields: z.record(BedrockJsonValueSchema).optional(),
+  additional_model_request_fields: z.record(z.string(), BedrockJsonValueSchema).optional(),
   additional_model_response_field_paths: z.array(z.string().min(1)).optional(),
   guardrail_config: BedrockGuardrailConfigSchema.optional(),
-  request_metadata: z.record(z.string()).optional(),
+  request_metadata: z.record(z.string(), z.string()).optional(),
   performance_config: z.object({ latency: z.enum(['standard', 'optimized']) }).strict().optional(),
   service_tier: z.object({ type: z.enum(['default', 'priority', 'flex', 'reserved']) }).strict().optional(),
 }).strict();
 
 export const AnthropicProviderOptionsSchema = z.object({
   top_k: z.number().int().min(0).optional(),
-  tool_choice: z.record(z.unknown()).optional(),
-  output_config: z.record(z.unknown()).optional(),
+  tool_choice: z.record(z.string(), z.unknown()).optional(),
+  output_config: z.record(z.string(), z.unknown()).optional(),
 });
 
 export const GeminiProviderOptionsSchema = z.object({
   candidate_count: z.number().int().positive().optional(),
   top_k: z.number().int().min(0).optional(),
   seed: z.number().int().optional(),
-  response_schema: z.record(z.unknown()).optional(),
-  response_json_schema: z.record(z.unknown()).optional(),
+  response_schema: z.record(z.string(), z.unknown()).optional(),
+  response_json_schema: z.record(z.string(), z.unknown()).optional(),
   response_modalities: z.array(z.string()).optional(),
   thinking_budget_tokens: z.number().int().positive().optional(),
 });
 
 export const OpenRouterProviderOptionsSchema = z.object({
-  provider: z.record(z.unknown()).optional(),
+  provider: z.record(z.string(), z.unknown()).optional(),
   transforms: z.array(z.string()).optional(),
-  plugins: z.array(z.record(z.unknown())).optional(),
+  plugins: z.array(z.record(z.string(), z.unknown())).optional(),
   models: z.array(z.string()).optional(),
 });
 
@@ -186,16 +186,16 @@ export type ProviderOptions = z.infer<typeof ProviderOptionsSchema>;
 // --- Raw provider body passthrough ---
 
 export const RawProviderBodySchema = z.object({
-  bedrock: z.record(z.unknown()).optional(),
-  openai: z.record(z.unknown()).optional(),
-  'openai-responses': z.record(z.unknown()).optional(),
-  openai_responses: z.record(z.unknown()).optional(),
-  anthropic: z.record(z.unknown()).optional(),
-  gemini: z.record(z.unknown()).optional(),
-  google: z.record(z.unknown()).optional(),
-  openrouter: z.record(z.unknown()).optional(),
-  llmasaservice: z.record(z.unknown()).optional(),
-  usagetap: z.record(z.unknown()).optional(),
+  bedrock: z.record(z.string(), z.unknown()).optional(),
+  openai: z.record(z.string(), z.unknown()).optional(),
+  'openai-responses': z.record(z.string(), z.unknown()).optional(),
+  openai_responses: z.record(z.string(), z.unknown()).optional(),
+  anthropic: z.record(z.string(), z.unknown()).optional(),
+  gemini: z.record(z.string(), z.unknown()).optional(),
+  google: z.record(z.string(), z.unknown()).optional(),
+  openrouter: z.record(z.string(), z.unknown()).optional(),
+  llmasaservice: z.record(z.string(), z.unknown()).optional(),
+  usagetap: z.record(z.string(), z.unknown()).optional(),
 });
 
 export type RawProviderBody = z.infer<typeof RawProviderBodySchema>;
@@ -397,8 +397,8 @@ export const PromptDefaultsSchema = z.object({
   mcp: MCPSchema.optional(),
   context: ContextSchema.optional(),
   includes: z.array(z.string()).optional(),
-  environments: z.record(PromptAssetOverridesSchema).optional(),
-  tiers: z.record(PromptAssetOverridesSchema).optional(),
+  environments: z.record(z.string(), PromptAssetOverridesSchema).optional(),
+  tiers: z.record(z.string(), PromptAssetOverridesSchema).optional(),
   metadata: MetadataSchema.optional(),
   sections: z.object({
     system_instructions: z.string().optional(),
@@ -433,8 +433,8 @@ export const PromptAssetSchema = z.object({
 
   includes: z.array(z.string()).optional(),
 
-  environments: z.record(PromptAssetOverridesSchema).optional(),
-  tiers: z.record(PromptAssetOverridesSchema).optional(),
+  environments: z.record(z.string(), PromptAssetOverridesSchema).optional(),
+  tiers: z.record(z.string(), PromptAssetOverridesSchema).optional(),
 
   metadata: MetadataSchema.optional(),
 

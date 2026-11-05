@@ -20,7 +20,7 @@ export default defineConfig([
     dts: true,
     clean: true,
     sourcemap: true,
-    target: 'node20',
+    target: 'node22.18',
   },
   // CLI entry (with shebang)
   {
@@ -30,7 +30,7 @@ export default defineConfig([
     format: ['esm'],
     dts: false,
     sourcemap: true,
-    target: 'node20',
+    target: 'node22.18',
     banner: {
       js: '#!/usr/bin/env node',
     },

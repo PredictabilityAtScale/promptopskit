@@ -120,7 +120,7 @@ response:
   format: json
   schema_ref: ./schemas/support-reply.schema.json
 
-# External zod module reference (must export default or named `schema`)
+# External Zod 4 module reference (must export default or named `schema`)
 response:
   format: json
   schema_ref: ./schemas/support-reply.schema.mjs
@@ -131,7 +131,7 @@ response:
 | `format` | `'text' \| 'json' \| 'markdown'` | Response format |
 | `stream` | `boolean` | Enable streaming |
 | `schema` | `object` | Portable JSON Schema object for structured output |
-| `schema_ref` | `string` | Relative path to external schema (`.json`) or zod module (`.js/.mjs/.cjs`) |
+| `schema_ref` | `string` | Relative path to external schema (`.json`) or Zod 4 module (`.js/.mjs/.cjs`) |
 | `schema_name` | `string` | Optional schema name (used by OpenAI/OpenAI Responses) |
 | `schema_description` | `string` | Optional schema description (used by OpenAI/OpenAI Responses/OpenRouter/LLMAsAService structured outputs) |
 | `schema_strict` | `boolean` | Strict schema enforcement toggle (OpenAI/OpenAI Responses) |
@@ -481,7 +481,7 @@ Populated by the parser — not authored:
 
 ## Zod schemas
 
-The schema definitions are available as Zod schemas for programmatic use:
+The schema definitions are available as Zod 4 schemas for programmatic use:
 
 ```typescript
 import { PromptAssetSchema, PromptAssetOverridesSchema } from 'promptopskit';

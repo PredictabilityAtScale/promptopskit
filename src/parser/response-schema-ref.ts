@@ -3,7 +3,6 @@ import { createHash } from 'node:crypto';
 import { dirname, extname, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { z } from 'zod';
-import { zodToJsonSchema } from 'zod-to-json-schema';
 import type { PromptAsset } from '../schema/index.js';
 
 const SUPPORTED_SCHEMA_REF_EXTENSIONS = new Set(['.json', '.js', '.mjs', '.cjs']);
@@ -64,16 +63,34 @@ async function resolveZodSchemaRef(schemaRef: string, promptFilePath: string): P
   }
 
   const mod = imported as Record<string, unknown>;
-  const candidate = mod.default ?? mod.schema;
+  // CommonJS modules also have a default namespace object. Prefer it only
+  // when it is itself a schema, so named `exports.schema` remains usable.
+  const candidate = mod.default instanceof z.ZodType ? mod.default : mod.schema;
 
   if (!(candidate instanceof z.ZodType)) {
-    throw new Error('POK051: zod schema modules must export a Zod schema as default export or named export "schema"');
+    throw new Error('POK051: zod schema modules must export a Zod 4 schema as default export or named export "schema"');
   }
 
-  const jsonSchema = zodToJsonSchema(candidate, {
-    target: 'jsonSchema7',
-    $refStrategy: 'none',
-  });
+  let jsonSchema: Record<string, unknown>;
+  try {
+    jsonSchema = z.toJSONSchema(candidate, {
+      target: 'draft-07',
+      reused: 'inline',
+      // Match the previous converter: defaults stay optional and transforms
+      // describe the JSON input, before Zod applies the transformation.
+      io: 'input',
+      override: ({ zodSchema, jsonSchema }) => {
+        // Input mode omits this for stripping objects. Preserve the previous
+        // closed-object schemas without changing explicit catchall behavior.
+        if (zodSchema._zod.def.type === 'object' && jsonSchema.additionalProperties === undefined) {
+          jsonSchema.additionalProperties = false;
+        }
+      },
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`POK051: response.schema_ref "${schemaRef}" could not be converted to JSON Schema (${message})`);
+  }
 
   if (!jsonSchema || typeof jsonSchema !== 'object' || Array.isArray(jsonSchema)) {
     throw new Error(`POK051: response.schema_ref "${schemaRef}" did not produce a valid JSON schema object`);

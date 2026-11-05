@@ -6,7 +6,17 @@
 npm install promptopskit
 ```
 
-Requires Node.js 20 or later.
+Requires Node.js 22.18.0 or later.
+
+## Upgrading from 0.12 to 0.13
+
+This pre-1.0 minor release includes breaking changes:
+
+- Upgrade Node.js to 22.18.0 or later before installing.
+- Update JavaScript `response.schema_ref` modules to export Zod 4 schemas. Zod 3 exports are rejected with `POK051`; a `.json` schema file is another option.
+- Exported validators such as `PromptAssetSchema` are now Zod 4 schemas. Update code that composes them with Zod 3 or depends on Zod's error messages or types.
+
+See [schema conversion and migration details](schema-dx.md#security-note-for-executable-schema-modules).
 
 ## Scaffold starter prompts
 

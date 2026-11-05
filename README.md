@@ -3,7 +3,7 @@
 [![npm version](https://img.shields.io/npm/v/promptopskit.svg)](https://www.npmjs.com/package/promptopskit)
 [![CI](https://github.com/PredictabilityAtScale/promptopskit/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/PredictabilityAtScale/promptopskit/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Node.js](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](https://nodejs.org)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D22.18.0-brightgreen.svg)](https://nodejs.org)
 
 **Prompts are becoming production code. Manage them that way.**
 
@@ -59,6 +59,11 @@ Core capabilities:
 ```bash
 npm install promptopskit
 ```
+
+Requires Node.js 22.18.0 or later. When upgrading from 0.12, update any
+`response.schema_ref` JavaScript modules to export Zod 4 schemas, or use a
+`.json` schema file. Exported PromptOpsKit validators also use Zod 4.
+See the [Zod schema migration notes](docs/schema-dx.md#security-note-for-executable-schema-modules).
 
 ## Quick Start
 
@@ -279,7 +284,7 @@ In browser or client-side code, keep provider credentials on the server. Use the
 
 ### Prompt compression, provider-specific fields, and raw passthrough
 
-Use normalized fields first (`sampling`, `response`, `compression`, `cache`, `tools`) so prompts stay portable. `response.schema` is the neutral JSON Schema path; adapters emit it as OpenAI/OpenRouter/LLMAsAService `response_format`, OpenAI Responses `text.format`, Anthropic `output_config.format`, and Gemini `generationConfig.responseJsonSchema`. You can also provide `response.schema_ref` to load schema from a prompt-relative `.json` file or `.js/.mjs/.cjs` zod module (mutually exclusive with `response.schema`).
+Use normalized fields first (`sampling`, `response`, `compression`, `cache`, `tools`) so prompts stay portable. `response.schema` is the neutral JSON Schema path; adapters emit it as OpenAI/OpenRouter/LLMAsAService `response_format`, OpenAI Responses `text.format`, Anthropic `output_config.format`, and Gemini `generationConfig.responseJsonSchema`. You can also provide `response.schema_ref` to load schema from a prompt-relative `.json` file or `.js/.mjs/.cjs` Zod 4 module (mutually exclusive with `response.schema`).
 
 Use `compression.thetokencompany` when a prompt template should be compressed before provider request generation and cache controls:
 

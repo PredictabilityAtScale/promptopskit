@@ -80,7 +80,7 @@ Pros: simplest, ecosystem-standard.
 ### Pattern 2: Type-first (Zod) with schema export
 
 - Define schema in code (`z.object(...)`).
-- Export JSON Schema artifact during build (`zod-to-json-schema`).
+- Export JSON Schema artifact during build with Zod 4's native `z.toJSONSchema()`.
 - Prompt references generated JSON file.
 
 Pros: strong TS ergonomics.
@@ -141,7 +141,7 @@ Make messages actionable:
 
 - `POK050: response.schema_ref "./schemas/reply.json" not found (resolved from prompts/support/reply.md)`
 - `POK050: response.schema_ref "./schemas/reply.json" must resolve to a JSON object schema`
-- `POK051: zod schema modules must export a Zod schema as default export or named export "schema"`
+- `POK051: zod schema modules must export a Zod 4 schema as default export or named export "schema"`
 - `POK051: response.schema_ref "./schemas/reply.schema.ts" has unsupported extension ".ts". Use .json, .js, .mjs, or .cjs`
 - `response.schema and response.schema_ref are mutually exclusive`
 
@@ -167,4 +167,6 @@ This sequencing maximizes immediate DX value with low maintenance cost.
 
 ## Security note for executable schema modules
 
-`schema_ref` supports executable JS modules (`.js/.mjs/.cjs`) for zod exports. These modules are imported during load/validate/compile, so only reference trusted repository code.
+`schema_ref` supports executable JS modules (`.js/.mjs/.cjs`) for Zod 4 exports. These modules are imported during load/validate/compile, so only reference trusted repository code. Zod 3 modules must migrate their imports and schemas to Zod 4, or export a JSON Schema file instead.
+
+Conversion uses Zod 4's native `z.toJSONSchema()` targeting draft 7. Schemas describe the input before transformations; defaulted properties remain optional. Plain objects remain closed (`additionalProperties: false`), explicit passthrough and catchall settings are preserved, and reused schemas are inlined. Types without a JSON Schema equivalent, such as `z.date()`, fail with `POK051`; use JSON-compatible values such as ISO date strings instead.
